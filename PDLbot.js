@@ -103,13 +103,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             case 'elo':
                 let eloTest = async function () {
                     getELO(userID()).then(function (value) {
-                        botMessage(channelID, tag(userID) + ' your ELO is ' + value['elo'] + '.');
+                        if (value['success']) {
+                            botMessage(channelID, tag(userID) + ' your ELO is ' + value['elo'] + '.')
+                        }
                     })
-                }
-
-                var eloResult = getELO(userID);
-                if (eloResult['success']) {
-                    botMessage(channelID, tag(userID) + ' your ELO is ' + getELO['elo'] + '.')
                 }
                 break;
         }
