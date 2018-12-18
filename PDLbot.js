@@ -98,7 +98,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 			case 'rating':
 			case 'skill':
 			case 'sr':
-				// get user ELO
+				// get user skill rating
 				db.checkUserExists(userID).then(function (value) {
 					if (value['success'] && value['exists']) {
 						db.getRating(userID).then(function (value) {
