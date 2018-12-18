@@ -24,7 +24,7 @@ exports.connect = function () {
 		if (err) throw err;
 	});
 	// create DB tables if they don't already exist
-	con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id bigint, 1v1_elo int not null default 1500, competing boolean not null default 0)', function (err, res) {
+	con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id bigint, skill_rating int not null default 1500, competing boolean not null default 0)', function (err, res) {
 		if (err) throw err;
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table "users"');
@@ -108,15 +108,15 @@ exports.setUserCompeting = function (discord_id, competing) {
 	});
 }
 
-// get user's ELO
-// returns {success: boolean, elo: int}
+// get user's skill rating
+// returns {success: boolean, skill_rating: int}
 exports.getRating = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT 1v1_elo FROM users WHERE discord_id=?';
+		var sql = 'SELECT skill_rating FROM users WHERE discord_id=?';
 		await con.query(sql, discord_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
-				resolve({ success: true, elo: res[0]['1v1_elo'] });
+				resolve({ success: true, skill_rating: res[0]['skill_rating'] });
 			}
 		});
 	});
