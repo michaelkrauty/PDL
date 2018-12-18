@@ -101,13 +101,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 });
                 break;
             case 'elo':
-                let eloTest = async function () {
-                    getELO(userID()).then(function (value) {
-                        if (value['success']) {
-                            botMessage(channelID, tag(userID) + ' your ELO is ' + value['elo'] + '.')
-                        }
-                    })
-                }
+            // TODO: update other commands to function like this one.
+                getELO(userID).then(function (value) {
+                    if (value['success']) {
+                        botMessage(channelID, tag(userID) + ' your ELO is ' + value['elo'] + '.');
+                    } else {
+                        log.debug('fail');
+                        botMessage(channelID, 'FAIL');
+                    }
+                });
                 break;
         }
     }
@@ -134,15 +136,18 @@ function registerUser(discord_id, discord_username) {
     });
 }
 
-async function getELO(discord_id) {
-    var sql = 'SELECT 1v1_elo FROM users WHERE discord_id=?';
-    con.query(sql, discord_id, function (err, res) {
-        if (err) throw err;
-        if (res.length > 0) {
-            return { success: false };
-        }
-        return { success: true, elo: res }
-    });
+function getELO(discord_id) {
+    return new Promise(async function (resolve, reject) {
+        var sql = 'SELECT 1v1_elo FROM users WHERE discord_id=?';
+        await con.query(sql, discord_id, function (err, res) {
+            if (err) throw err;
+            if (res.length > 0) {
+                resolve({ success: true, elo: res[0]['1v1_elo'] });
+            } else {
+                resolve({ success: false });
+            }
+        });
+    })
 }
 
 function botMessage(channelID, message) {
