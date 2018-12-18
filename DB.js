@@ -24,7 +24,7 @@ exports.connect = function () {
 		if (err) throw err;
 	});
 	// create DB tables if they don't already exist
-	con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id bigint, skill_rating int not null default 1500, rating_deviation int, skill_volatility, competing boolean not null default 0)', function (err, res) {
+	con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id bigint, skill_rating int not null default 1500, rating_deviation int, skill_volatility int, competing boolean not null default 0)', function (err, res) {
 		if (err) throw err;
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table "users"');
