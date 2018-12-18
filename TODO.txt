@@ -1,0 +1,38 @@
+https://goo.gl/qq2MGo <- current data
+
+- Assign discord role based on rank
+- Assign ELO score as role? <- maybe
+- Allow querying of quest progress
+- Assign quest roles
+- Remove roles as needed
+
+if cell = > 4 and less than 10 assign Role - "Column Title" + " " + "Novice"
+if cell = > 9 and less than 25 assign Role- "Column Title" + " " + "Operator". Remove Novice
+if cell = > 24 and less than 50 assign Role- "Column Title" + " " + "Master". Remove Operator
+if cell = > 49 and less than 100 assign Role- "Column Title" + " " + "Grand Master". Remove Master
+if cell = > 99 assign Role- "Column Title" + " " + "Ultra Clapper". Remove Grand Master
+
+each player would have a RANK role, and an ELO role by default
+and then only one potential role per quest that they had undertaken
+
+so Banana has Roles:
+RANK 2
+Rating 1200
+AWP Novice
+-
+but Mr Pink only has:
+Rank 2
+Rating 1200
+-
+Maverick has:
+Rank 3
+Rating 1175
+-
+then if maverick queries !quest
+it returns:
+awp - 0
+One Hand- 0
+Pistol - 1
+Snd - 0
+
+possibly: Roles for #1-#3, top 5, top 10, top 20
