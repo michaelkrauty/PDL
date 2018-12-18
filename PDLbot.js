@@ -29,8 +29,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 		args = args.splice(1);
 		switch (cmd) {
 			case 'help':
-				// help dialogue
-				botMessage(channelID, '```PDL-bot commands:\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing: Check whether you are currently competing\n!check: Check if you are registered in PDL\n!elo: Get your current ELO```');
+				if (args.length == 0) {
+					// help dialogue
+					botMessage(channelID, '```PDL-bot commands:\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing: Check whether you are currently competing\n!check: Check if you are registered in PDL\n!elo: Get your current ELO```');
+				}
 				break;
 			case 'register':
 				// register new user
