@@ -110,7 +110,7 @@ exports.setUserCompeting = function (discord_id, competing) {
 
 // get user's ELO
 // returns {success: boolean, elo: int}
-exports.getELO = function (discord_id) {
+exports.getRating = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT 1v1_elo FROM users WHERE discord_id=?';
 		await con.query(sql, discord_id, function (err, res) {

@@ -95,12 +95,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				});
 				break;
 			case 'elo':
+			case 'rating':
+			case 'skill':
+			case 'sr':
 				// get user ELO
 				db.checkUserExists(userID).then(function (value) {
 					if (value['success'] && value['exists']) {
-						db.getELO(userID).then(function (value) {
+						db.getRating(userID).then(function (value) {
 							if (value['success']) {
-								botMessage(channelID, tag(userID) + ' your ELO is ' + value['elo'] + '.');
+								botMessage(channelID, tag(userID) + ' your SR is ' + value['elo'] + '.');
 							} else {
 								log.debug('fail');
 								botMessage(channelID, 'FAIL');
