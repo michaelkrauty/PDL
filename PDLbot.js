@@ -131,7 +131,7 @@ client.on('message', message => {
 					if (value['success'] && value['exists']) {
 						db.getUserEloRating(message.author.id).then(function (value) {
 							if (value['success']) {
-								message.channel.send(tag(message.author.id) + ' your SR is ' + value['elo_rating'] + '.');
+								message.channel.send(tag(message.author.id) + ' your ELO is ' + value['elo_rating'] + '.');
 							} else {
 								log.error('fail');
 								message.channel.send('FAIL');
