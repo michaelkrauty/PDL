@@ -25,6 +25,8 @@ client.once('ready', () => {
 	db.connect();
 });
 
+const MatchResult = { WIN: 1, LOSS: 0 }
+
 // called when the bot sees a message
 client.on('message', message => {
 	// commands start with !
