@@ -8,6 +8,7 @@ const strings = require('./strings.js');
 
 const glicko2lite = require('glicko2-lite');
 const glicko2 = require('glicko2');
+const eloRating = require('elo-rating');
 
 // configure logger settings
 log.remove(log.transports.Console);
@@ -54,13 +55,13 @@ client.on('message', message => {
 			case 'register':
 				// register new user
 				if (args.length == 0) {
-				db.registerUser(message.author.id, message.author.username).then(function (value) {
-					if (value['success']) {
-						message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
-					} else {
-						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
-					}
-				});
+					db.registerUser(message.author.id, message.author.username).then(function (value) {
+						if (value['success']) {
+							message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
+						} else {
+							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
+						}
+					});
 				} else if (args.length == 1) {
 					// register other user
 					targetUser = message.mentions.users.values().next().value.username;
@@ -169,7 +170,22 @@ client.on('message', message => {
 												const collector = msg.createReactionCollector(filter, { time: 60000 });
 												collector.on('collect', r => {
 													console.log(r['_emoji']['name']);
-													msg.react('👌');
+													msg.react('👌').then(() => {
+														db.getUserEloRating(message.author.id).then(userELO => {
+															db.getUserEloRating(targetID).then(targetELO => {
+																var uELO = userELO['elo_rating'];
+																var tELO = targetELO['elo_rating'];
+																var res = eloRating.calculate(uELO, tELO, (r['_emoji']['name'] === '✅'));
+
+																var newUserELO = res['playerRating'];
+																var newTargetELO = res['opponentRating'];
+																db.setUserEloRating(message.author.id, newUserELO);
+																db.setUserEloRating(targetID, newTargetELO);
+
+																msg.channel.send(tag(message.author.id) + " ELO: " + uELO + '->' + newUserELO + '\n' + tag(targetID) + " ELO: " + tELO + '->' + newTargetELO);
+															});
+														});
+													});
 												});
 												collector.on('end', collected => console.log(`Collected ${collected.size} items`));
 											});
