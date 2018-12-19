@@ -141,7 +141,35 @@ client.on('message', message => {
 				});
 				break;
 			case 'submit':
-
+				// submit game result (win/loss)
+				if (args.length == 1) {
+					targetUser = message.mentions.users.values().next().value.username;
+					targetID = message.mentions.users.values().next().value.id;
+					db.checkUserExists(targetID).then(function (value) {
+						if (value['success'] && value['exists']) {
+							db.checkUserExists(message.author.id).then((value) => {
+								if (value['success'] && value['exists']) {
+									message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id))).then((msg) => {
+										msg.react('✅').then(() => {
+											msg.react('❎').then(() => {
+												const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id
+												const collector = msg.createReactionCollector(filter, { time: 60000 });
+												collector.on('collect', r => {
+													console.log(r['_emoji']['name']);
+													msg.react('👌');
+													message.channel.send();
+												});
+												collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+											});
+										});
+									});
+								}
+							});
+						} else {
+							message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
+						}
+					});
+				}
 				break;
 		}
 	}
