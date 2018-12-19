@@ -61,7 +61,7 @@ client.on('message', message => {
 			case 'help':
 				if (args.length == 0) {
 					// help dialogue
-					message.channel.send('```PDL-bot commands:\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing: Check whether you are currently competing\n!check: Check if you are registered in PDL\n!elo: Get your current ELO```');
+					message.channel.send('```PDL-bot Commands:\nSyntax: <> = required paramater, [] = optional paramater\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing [user]: Check whether you are currently competing\n!check [user]: Check registration in PDL\n!sr [user]: Get current SR\'s SR```');
 				}
 				break;
 			case 'register':
