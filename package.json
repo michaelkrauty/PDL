@@ -5,7 +5,10 @@
 	"main": "PDLbot.js",
 	"author": "scorched",
 	"dependencies": {
+		"discord": "^0.8.2",
 		"discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6",
+		"discord.js": "^11.4.2",
+		"eslint": "^5.10.0",
 		"express": "^4.16.4",
 		"glicko2": "^0.8.4",
 		"mysql": "^2.16.0",
