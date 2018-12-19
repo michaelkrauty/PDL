@@ -32,7 +32,7 @@ exports.connect = function () {
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table "users"');
 	});
-	con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint, opponent bigint, result tinyint)', function (err, res) {
+	con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint, opponent_id bigint, result tinyint)', function (err, res) {
 		if (err) throw err;
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table "matches"');
