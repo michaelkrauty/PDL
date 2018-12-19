@@ -3,6 +3,9 @@ const mysql = require('mysql');
 const log = require('winston');
 var con;
 
+/**
+ * @description connects to SQL database and creates necessary tables
+ */
 exports.connect = function () {
 	// connect to MySQL DB
 	log.info('Connecting to MySQL DB: ' + config['db']['user'] + '@' + config['db']['host'] + '...');
@@ -41,8 +44,11 @@ exports.connect = function () {
 	});
 }
 
-// check if user exists in DB
-// returns {success: boolean, exists: boolean}
+/**
+ * @description check if user exists in DB
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, exists: boolean}
+ */
 exports.checkUserExists = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT id FROM users WHERE discord_id=?';
@@ -57,8 +63,12 @@ exports.checkUserExists = function (discord_id) {
 	});
 }
 
-// register new user
-// returns {success: boolean}
+/**
+ * @description register new user
+ * @param {bigint} discord_id the user's discord id
+ * @param {string} discord_username the user's discord username
+ * @returns {success: boolean}
+ */
 exports.registerUser = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
 		exports.checkUserExists(discord_id).then(function (value) {
@@ -75,8 +85,12 @@ exports.registerUser = function (discord_id, discord_username) {
 	});
 }
 
-// create new user in DB
-// returns {success: boolean}
+/**
+ * @description create new user in DB
+ * @param {bigint} discord_id the user's discord id
+ * @param {string} discord_username the user's discord username
+ * @returns {success: boolean}
+ */
 exports.createUserInDB = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'INSERT INTO users (discord_username, discord_id) VALUES (?,?)';
@@ -87,8 +101,11 @@ exports.createUserInDB = function (discord_id, discord_username) {
 	});
 }
 
-// check if user is competing
-// returns {success: boolean, competing: boolean}
+/**
+ * @description check if the user is competing
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, competing: boolean}
+ */
 exports.isUserCompeting = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT competing FROM users WHERE discord_id=?';
@@ -101,8 +118,12 @@ exports.isUserCompeting = function (discord_id) {
 	});
 }
 
-// set user's competing boolean
-// returns {success: boolean}
+/**
+ * @description set user's competing boolean
+ * @param {bigint} discord_id the user's discord id
+ * @param {boolean} competing is the user competing?
+ * @returns {success: boolean}
+ */
 exports.setUserCompeting = function (discord_id, competing) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'UPDATE users SET competing=? WHERE discord_id=?';
@@ -113,8 +134,11 @@ exports.setUserCompeting = function (discord_id, competing) {
 	});
 }
 
-// get user's skill rating
-// returns {success: boolean, skill_rating: int}
+/**
+ * @description get user's skill rating
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, skill_rating: int}
+ */
 exports.getRating = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT skill_rating FROM users WHERE discord_id=?';
@@ -127,7 +151,11 @@ exports.getRating = function (discord_id) {
 	});
 }
 
-// get user's rating deviation
+/**
+ * @description get user's rating deviation
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, rating_deviation: int}
+ */
 exports.getRatingDeviation = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT rating_deviation FROM users WHERE discord_id=?';
@@ -140,7 +168,11 @@ exports.getRatingDeviation = function (discord_id) {
 	});
 }
 
-// get user's skill volatility
+/**
+ * @description get user's skill volatility
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, skill_volatility: int}
+ */
 exports.getSkillVolatility = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT skill_volatility FROM users WHERE discord_id=?';
