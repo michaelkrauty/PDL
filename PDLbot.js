@@ -4,6 +4,7 @@ const schedule = require('node-schedule');
 const auth = require('./auth.json');
 const config = require('./config.js');
 const db = require('./DB.js');
+const strings = require('./strings.js');
 
 const glicko2lite = require('glicko2-lite');
 const glicko2 = require('glicko2');
@@ -47,16 +48,16 @@ client.on('message', message => {
 			case 'help':
 				if (args.length == 0) {
 					// help dialogue
-					message.channel.send('```PDL-bot Commands:\nSyntax: <> = required paramater, [] = optional paramater\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing [user]: Check whether you are currently competing\n!check [user]: Check registration in PDL\n!sr [user]: Get current SR\'s SR```');
+					message.channel.send(strings['help']);
 				}
 				break;
 			case 'register':
 				// register new user
 				db.registerUser(message.author.id, message.author.username).then(function (value) {
 					if (value['success']) {
-						message.channel.send(tag(message.author.id) + ' is now registered in the Pavlov Duel League!');
+						message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
 					} else {
-						message.channel.send(tag(message.author.id) + ', you are already registered in the Pavlov Duel League!');
+						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
 					}
 				});
 				break;
@@ -65,7 +66,7 @@ client.on('message', message => {
 				db.registerUser(message.author.id, message.author.username).then(function () {
 					db.setUserCompeting(message.author.id, true).then(function (value) {
 						if (value['success']) {
-							message.channel.send(tag(message.author.id) + ' is now competing in PDL!');
+							message.channel.send(strings['user_now_competing'].replace('{user}', tag(message.author.id)));
 						}
 					});
 				});
@@ -76,11 +77,11 @@ client.on('message', message => {
 					if (value['success'] && value['exists']) {
 						db.setUserCompeting(message.author.id, false).then(function (value) {
 							if (value['success']) {
-								message.channel.send(tag(message.author.id) + ' is no longer competing in PDL!');
+								message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
 							}
 						});
 					} else {
-						message.channel.send(tag(message.author.id) + ', you are not registered in PDL. Use !register to register!');
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
 				});
 				break;
@@ -90,13 +91,13 @@ client.on('message', message => {
 					if (value['success'] && value['exists']) {
 						db.isUserCompeting(message.author.id).then(function (value) {
 							if (value['success'] && value['competing']) {
-								message.channel.send(tag(message.author.id) + ' is competing.');
+								message.channel.send(strings['user_is_competing'].replace('{user}', tag(message.author.id)));
 							} else {
-								message.channel.send(tag(message.author.id) + ' is not competing.');
+								message.channel.send(strings['user_is_not_competing'].replace('{user}', tag(message.author.id)));
 							}
 						});
 					} else {
-						message.channel.send(tag(message.author.id) + ', you are not registered in PDL. Use !register to register!');
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
 				});
 				break;
@@ -105,9 +106,9 @@ client.on('message', message => {
 				if (args.length == 0) {
 					db.checkUserExists(message.author.id).then(function (value) {
 						if (value['success'] && value['exists']) {
-							message.channel.send(tag(message.author.id) + ' is registered in the Pavlov Duel League.');
+							message.channel.send(strings['user_is_registered'].replace('{user}', tag(message.author.id)));
 						} else {
-							message.channel.send(tag(message.author.id) + ' is not registered in the Pavlov Duel League.');
+							message.channel.send(strings['user_is_not_registered'].replace('{user}', tag(message.author.id)));
 						}
 					});
 				} else if (args.length == 1) {
@@ -115,9 +116,9 @@ client.on('message', message => {
 					targetID = message.mentions.users.values().next().value.id;
 					db.checkUserExists(targetID).then(function (value) {
 						if (value['success'] && value['exists']) {
-							message.channel.send(tag(message.author.id) + ' ' + targetUser + ' is registered in the Pavlov Duel League.');
+							message.channel.send(strings['target_is_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
 						} else {
-							message.channel.send(tag(message.author.id) + ' ' + targetUser + ' is not registered in the Pavlov Duel League.');
+							message.channel.send(strings['target_is_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
 						}
 					});
 				}
@@ -131,14 +132,11 @@ client.on('message', message => {
 					if (value['success'] && value['exists']) {
 						db.getUserEloRating(message.author.id).then(function (value) {
 							if (value['success']) {
-								message.channel.send(tag(message.author.id) + ' your ELO is ' + value['elo_rating'] + '.');
-							} else {
-								log.error('fail');
-								message.channel.send('FAIL');
+								message.channel.send(strings['target_is_not_registered'].replace('{user}', tag(message.author.id)).replace('{elo}', value['elo_rating']));
 							}
 						});
 					} else {
-						message.channel.send(tag(message.author.id) + ', you are not registered in PDL. Use !register to register!');
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
 				});
 				break;
