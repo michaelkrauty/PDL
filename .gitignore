@@ -43,3 +43,4 @@ config.js
 node_modules/
 PDLsite/
 PDLSite.js
+*.tmp
