@@ -182,7 +182,13 @@ client.on('message', message => {
 																db.setUserEloRating(message.author.id, newUserELO);
 																db.setUserEloRating(targetID, newTargetELO);
 
-																msg.channel.send(tag(message.author.id) + " ELO: " + uELO + '->' + newUserELO + '\n' + tag(targetID) + " ELO: " + tELO + '->' + newTargetELO);
+																msg.channel.send(strings['new_elo_message']
+																	.replace('{user}', tag(message.author.id))
+																	.replace('{target}', tag(targetID))
+																	.replace('{old_user_elo}', uELO)
+																	.replace('{new_user_elo}', newUserELO)
+																	.replace('{old_target_elo}', tELO)
+																	.replace('{new_target_elo}', newTargetELO));
 															});
 														});
 													});
