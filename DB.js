@@ -134,6 +134,25 @@ exports.setUserCompeting = function (discord_id, competing) {
 	});
 }
 
+
+/**
+ * @todo
+ * @description get all of a user's data
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, userdata[]}
+ */
+exports.getUserData = function (discord_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM users WHERE discord_id=?';
+		await con.query(sql, discord_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, data: res[0] });
+			}
+		});
+	});
+}
+
 /**
  * @description get user's skill rating
  * @param {bigint} discord_id the user's discord id

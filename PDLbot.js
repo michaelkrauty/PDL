@@ -46,6 +46,18 @@ client.on('message', message => {
 
 		args = args.splice(1);
 		switch (cmd) {
+			case 'debug':
+				db.getUserData(message.author.id).then(function (value) {
+					if (value['success']) {
+						var msg = '';
+						for (let elem in value['data']) {
+							msg += elem + ': ' + value['data'][elem] + '\n'
+							console.log(elem + ': ' + value['data'][elem]);
+						}
+						message.channel.send('```javascript\n' + msg + '```');
+					}
+				});
+				break;
 			case 'help':
 				if (args.length == 0) {
 					// help dialogue
