@@ -119,7 +119,7 @@ client.on('message', message => {
 						} else {
 							message.channel.send(tag(message.author.id) + ' ' + targetUser + ' is not registered in the Pavlov Duel League.');
 						}
-					})
+					});
 				}
 				break;
 			case 'elo':
