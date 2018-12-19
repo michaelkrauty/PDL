@@ -13,6 +13,7 @@ const strings = {
 	target_is_registered: '{user} {target} is registered in the Pavlov Duel League.',
 	target_is_not_registered: '{user} {target} is not registered in the Pavlov Duel League.',
 	user_elo: '{user} your ELO is {elo}.',
-	did_you_win: '{user} did you win the game?'
+	did_you_win: '{user} did you win the game?',
+	new_elo_message: '{user} ELO: {old_user_elo}->{new_user_elo}\n{target} ELO: {old_target_elo}->{new_target_elo}'
 }
 module.exports = strings;
