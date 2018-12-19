@@ -126,3 +126,16 @@ exports.getRating = function (discord_id) {
 		});
 	});
 }
+
+// get user's rating deviation
+exports.getRatingDeviation = function (discord_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT rating_deviation FROM users WHERE discord_id=?';
+		await con.query(sql, discord_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, rating_deviation: res[0]['rating_deviation'] });
+			}
+		});
+	});
+}
