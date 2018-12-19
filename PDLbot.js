@@ -53,6 +53,7 @@ client.on('message', message => {
 				break;
 			case 'register':
 				// register new user
+				if (args.length == 0) {
 				db.registerUser(message.author.id, message.author.username).then(function (value) {
 					if (value['success']) {
 						message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
@@ -60,6 +61,18 @@ client.on('message', message => {
 						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
 					}
 				});
+				} else if (args.length == 1) {
+					// register other user
+					targetUser = message.mentions.users.values().next().value.username;
+					targetID = message.mentions.users.values().next().value.id;
+					db.registerUser(targetID, targetUser).then(function (value) {
+						if (value['success']) {
+							message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(targetID)));
+						} else {
+							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
+						}
+					});
+				}
 				break;
 			case 'compete':
 				// register user if they're not already in the DB
