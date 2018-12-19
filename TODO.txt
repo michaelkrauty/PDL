@@ -5,6 +5,8 @@ https://goo.gl/qq2MGo <- current data
 - Allow querying of quest progress
 - Assign quest roles
 - Remove roles as needed
+- !weekly command, to run matchups and gliko2 algorithm
+- !pausematchups, to pause matchups and gliko2 algorithm
 
 if cell = > 4 and less than 10 assign Role - "Column Title" + " " + "Novice"
 if cell = > 9 and less than 25 assign Role- "Column Title" + " " + "Operator". Remove Novice
