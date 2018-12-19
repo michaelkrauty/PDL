@@ -37,11 +37,11 @@ exports.connect = function () {
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table "matches"');
 	});
-	con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
-		if (err) throw err;
-		if (res['warningCount'] == 0)
-			log.info('Created MySQL table "quests"');
-	});
+	// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
+	// 	if (err) throw err;
+	// 	if (res['warningCount'] == 0)
+	// 		log.info('Created MySQL table "quests"');
+	// });
 }
 
 /**
