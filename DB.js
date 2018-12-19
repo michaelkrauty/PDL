@@ -220,3 +220,19 @@ exports.getUserGlicko2Volatility = function (discord_id) {
 		});
 	});
 }
+
+/**
+ * @description set user's ELO ranking
+ * @param {int} discord_id the user's discord id
+ * @param {int} elo the user's new ELO ranking
+ * @returns {success: boolean}
+ */
+exports.setUserEloRating = function (discord_id, elo) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'UPDATE users SET elo_rating=? WHERE discord_id=?';
+		await con.query(sql, [elo, discord_id], function (err) {
+			if (err) throw err;
+			resolve({ success: true });
+		});
+	});
+}
