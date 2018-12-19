@@ -157,7 +157,6 @@ client.on('message', message => {
 												collector.on('collect', r => {
 													console.log(r['_emoji']['name']);
 													msg.react('👌');
-													message.channel.send();
 												});
 												collector.on('end', collected => console.log(`Collected ${collected.size} items`));
 											});
