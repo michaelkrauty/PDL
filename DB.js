@@ -139,3 +139,16 @@ exports.getRatingDeviation = function (discord_id) {
 		});
 	});
 }
+
+// get user's skill volatility
+exports.getSkillVolatility = function (discord_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT skill_volatility FROM users WHERE discord_id=?';
+		await con.query(sql, discord_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, skill_volatility: res[0]['skill_volatility'] });
+			}
+		});
+	});
+}
