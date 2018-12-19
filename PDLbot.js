@@ -1,7 +1,24 @@
 const discord = require('discord.io');
 const log = require('winston');
+const schedule = require('node-schedule');
 const auth = require('./auth.json');
 const db = require('./DB.js');
+
+const glicko2 = require('glicko2');
+const glicko2_settings = {
+	// tau : "Reasonable choices are between 0.3 and 1.2, though the system should
+	//      be tested to decide which value results in greatest predictive accuracy."
+	tau: 0.5,
+	// rating : default rating
+	rating: 1500,
+	//rd : Default rating deviation 
+	//     small number = good confidence on the rating accuracy
+	rd: 200,
+	//vol : Default volatility (expected fluctation on the player rating)
+	vol: 0.06
+};
+var ranking = new glicko2.Glicko2(glicko2_settings);
+
 // configure logger settings
 log.remove(log.transports.Console);
 log.add(new log.transports.Console, {
