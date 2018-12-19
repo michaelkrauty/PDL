@@ -173,28 +173,14 @@ client.on('message', message => {
 												collector.on('collect', r => {
 													console.log(r['_emoji']['name']);
 													msg.react('👌').then(() => {
-														db.getUserEloRating(message.author.id).then(userELO => {
-															db.getUserEloRating(targetID).then(targetELO => {
-																var uELO = userELO['elo_rating'];
-																var tELO = targetELO['elo_rating'];
-																var res = eloRating.calculate(uELO, tELO, (r['_emoji']['name'] === '✅'));
-
-																var newUserELO = res['playerRating'];
-																var newTargetELO = res['opponentRating'];
-																db.setUserEloRating(message.author.id, newUserELO);
-																db.setUserEloRating(targetID, newTargetELO);
-
-																msg.channel.send(strings['new_elo_message']
-																	.replace('{user}', tag(message.author.id))
-																	.replace('{target}', tag(targetID))
-																	.replace('{old_user_elo}', uELO)
-																	.replace('{new_user_elo}', newUserELO)
-																	.replace('{old_target_elo}', tELO)
-																	.replace('{new_target_elo}', newTargetELO));
+														var result;
+														((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
+														db.submitMatchResult(message.author.id, targetID, result)
+															.then(() => {
+																message.channel.send(strings['confirm_game_please'].replace('{target}', tag(targetID)));
 															});
 														});
 													});
-												});
 												collector.on('end', collected => console.log(`Collected ${collected.size} items`));
 											});
 										});
