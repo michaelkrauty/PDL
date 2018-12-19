@@ -5,20 +5,7 @@ const auth = require('./auth.json');
 const config = require('./config.js');
 const db = require('./DB.js');
 
-const glicko2 = require('glicko2');
-const glicko2_settings = {
-	// tau : "Reasonable choices are between 0.3 and 1.2, though the system should
-	//      be tested to decide which value results in greatest predictive accuracy."
-	tau: 0.5,
-	// rating : default rating
-	rating: 1500,
-	//rd : Default rating deviation 
-	//     small number = good confidence on the rating accuracy
-	rd: 350,
-	//vol : Default volatility (expected fluctation on the player rating)
-	vol: 0.06
-};
-var ranking = new glicko2.Glicko2(glicko2_settings);
+const glicko2 = require('glicko2-lite');
 
 // configure logger settings
 log.remove(log.transports.Console);
@@ -30,11 +17,11 @@ log.level = 'debug';
 
 const client = new discord.Client();
 
+client.login(config['bot_token']);
 client.once('ready', () => {
 	log.info('Logged in as: ' + client.username + ' - (' + client.id + ')');
 	db.connect();
 });
-client.login(config['bot_token']);
 
 
 // called when the bot sees a message
@@ -155,6 +142,9 @@ client.on('message', message => {
 						message.channel.send(tag(message.author.id) + ', you are not registered in PDL. Use !register to register!');
 					}
 				});
+				break;
+			case 'submit':
+
 				break;
 		}
 	}
