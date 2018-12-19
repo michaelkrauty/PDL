@@ -5,7 +5,8 @@ const auth = require('./auth.json');
 const config = require('./config.js');
 const db = require('./DB.js');
 
-const glicko2 = require('glicko2-lite');
+const glicko2lite = require('glicko2-lite');
+const glicko2 = require('glicko2');
 
 // configure logger settings
 log.remove(log.transports.Console);
@@ -13,16 +14,14 @@ log.add(new log.transports.Console, {
 	colorize: true
 });
 log.level = 'debug';
+
 // initialize Discord bot
-
 const client = new discord.Client();
-
 client.login(config['bot_token']);
 client.once('ready', () => {
 	log.info('Logged in as: ' + client.username + ' - (' + client.id + ')');
 	db.connect();
 });
-
 
 // called when the bot sees a message
 client.on('message', message => {
@@ -127,14 +126,14 @@ client.on('message', message => {
 			case 'rating':
 			case 'skill':
 			case 'sr':
-				// get user skill rating
+				// get user ELO rating
 				db.checkUserExists(message.author.id).then(function (value) {
 					if (value['success'] && value['exists']) {
-						db.getRating(message.author.id).then(function (value) {
+						db.getUserEloRating(message.author.id).then(function (value) {
 							if (value['success']) {
-								message.channel.send(tag(message.author.id) + ' your SR is ' + value['skill_rating'] + '.');
+								message.channel.send(tag(message.author.id) + ' your SR is ' + value['elo_rating'] + '.');
 							} else {
-								log.debug('fail');
+								log.error('fail');
 								message.channel.send('FAIL');
 							}
 						});
@@ -153,4 +152,19 @@ client.on('message', message => {
 // tag a user by userID
 function tag(userID) {
 	return '<@' + userID + '>';
+}
+
+function updateRatings() {
+	var ranking = new glicko2.Glicko2();
+	var scorched = ranking.makePlayer(1500, 350, 0.06);
+	var maverick = ranking.makePlayer(1500, 350, 0.06);
+
+	var matches = [];
+	matches.push([scorched, maverick, 1]);
+	matches.push([maverick, scorched, 1]);
+	matches.push([scorched, maverick, 1]);
+	ranking.updateRatings(matches);
+	console.log("scorched rating: " + scorched.getRating());
+	console.log("scorched deviation: " + scorched.getRd());
+	console.log("scorched volatility: " + scorched.getVol());
 }
