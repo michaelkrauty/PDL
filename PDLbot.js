@@ -212,30 +212,35 @@ client.on('message', message => {
 								db.getOpponentLatestMatch(user_db_id).then((value) => {
 									if (value['success']) {
 										const match_id = value['match']['id'];
+										const match_player_id = value['match']['player_id'];
+										const match_opponent_id = value['match']['opponent_id'];
+										const match_result = value['match']['result'] == true;
 										const match_confirmed = value['match']['confirmed'] == true;
 										db.setMatchResultConfirmed(match_id, match_confirmed).then((value) => {
 											if (value['success']) {
-												message.channel.send(match_id + " CONFIRMED");
-												// db.getUserEloRating(message.author.id).then(userELO => {
-												// 	db.getUserEloRating(targetID).then(targetELO => {
-												// 		var uELO = userELO['elo_rating'];
-												// 		var tELO = targetELO['elo_rating'];
-												// 		var res = eloRating.calculate(uELO, tELO, (r['_emoji']['name'] === '✅'));
+												if (config.ranking_method === config.RankingMethod.ELO) {
 
-												// 		var newUserELO = res['playerRating'];
-												// 		var newTargetELO = res['opponentRating'];
-												// 		db.setUserEloRating(message.author.id, newUserELO);
-												// 		db.setUserEloRating(targetID, newTargetELO);
+													db.getUserEloRating(match_opponent_id).then(userELO => {
+														db.getUserEloRating(match_player_id).then(targetELO => {
+															var uELO = userELO['elo_rating'];
+															var tELO = targetELO['elo_rating'];
+															var res = eloRating.calculate(uELO, tELO, match_result);
 
-												// 		msg.channel.send(strings['new_elo_message']
-												// 			.replace('{user}', tag(message.author.id))
-												// 			.replace('{target}', tag(targetID))
-												// 			.replace('{old_user_elo}', uELO)
-												// 			.replace('{new_user_elo}', newUserELO)
-												// 			.replace('{old_target_elo}', tELO)
-												// 			.replace('{new_target_elo}', newTargetELO));
-												// 	});
-												// });
+															var newUserELO = res['playerRating'];
+															var newTargetELO = res['opponentRating'];
+															db.setUserEloRating(message.author.id, newUserELO);
+															db.setUserEloRating(targetID, newTargetELO);
+
+															msg.channel.send(strings['new_elo_message']
+																.replace('{user}', tag(message.author.id))
+																.replace('{target}', tag(targetID))
+																.replace('{old_user_elo}', uELO)
+																.replace('{new_user_elo}', newUserELO)
+																.replace('{old_target_elo}', tELO)
+																.replace('{new_target_elo}', newTargetELO));
+														});
+													});
+												}
 											} else {
 												log.error("ERROR in confrim command");
 												message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
