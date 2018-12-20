@@ -168,22 +168,32 @@ client.on('message', message => {
 									message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id))).then((msg) => {
 										msg.react('✅').then(() => {
 											msg.react('❎').then(() => {
-												const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id
+												const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
 												const collector = msg.createReactionCollector(filter, { time: 60000 });
 												collector.on('collect', r => {
 													console.log(r['_emoji']['name']);
 													msg.react('👌').then(() => {
 														var result;
 														((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
-														db.submitMatchResult(message.author.id, targetID, result)
-															.then(() => {
+														db.getUserIdFromDiscordId(message.author.id).then((value) => {
+															const user_db_id = value['id'];
+															db.getUserIdFromDiscordId(targetID).then((value) => {
+																const target_db_id = value['id'];
+																db.submitMatchResult(user_db_id, target_db_id, result)
+																	.then((value) => {
 																message.channel.send(strings['confirm_game_please'].replace('{target}', tag(targetID)));
 															});
+															})
+														})
 														});
 													});
-												collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+												collector.on('end', collected => {
+													if (collected.size < 1) {
+														message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
+													}
 											});
 										});
+									});
 									});
 								}
 							});
