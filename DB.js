@@ -155,13 +155,13 @@ exports.getUserData = function (discord_id) {
 
 /**
  * @description get user's ELO rating
- * @param {bigint} discord_id the user's discord id
+ * @param {bigint} id the user's id
  * @returns {success: boolean, elo_rating: int}
  */
-exports.getUserEloRating = function (discord_id) {
+exports.getUserEloRating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT elo_rating FROM users WHERE discord_id=?';
-		await con.query(sql, discord_id, function (err, res) {
+		var sql = 'SELECT elo_rating FROM users WHERE id=?';
+		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, elo_rating: res[0]['elo_rating'] });
@@ -172,13 +172,13 @@ exports.getUserEloRating = function (discord_id) {
 
 /**
  * @description get user's glicko2 rating
- * @param {bigint} discord_id the user's discord id
+ * @param {bigint} user_id the user's id
  * @returns {success: boolean, glicko2_rating: int}
  */
-exports.getUserGlicko2Rating = function (discord_id) {
+exports.getUserGlicko2Rating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_rating FROM users WHERE discord_id=?';
-		await con.query(sql, discord_id, function (err, res) {
+		var sql = 'SELECT glicko2_rating FROM users WHERE id=?';
+		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, glicko2_rating: res[0]['glicko2_rating'] });
@@ -189,13 +189,13 @@ exports.getUserGlicko2Rating = function (discord_id) {
 
 /**
  * @description get user's glicko2 deviation
- * @param {bigint} discord_id the user's discord id
+ * @param {bigint} user_id the user's id
  * @returns {success: boolean, glicko2_deviation: int}
  */
-exports.getUserGlicko2Deviation = function (discord_id) {
+exports.getUserGlicko2Deviation = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_deviation FROM users WHERE discord_id=?';
-		await con.query(sql, discord_id, function (err, res) {
+		var sql = 'SELECT glicko2_deviation FROM users WHERE id=?';
+		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, glicko2_deviation: res[0]['glicko2_deviation'] });
@@ -206,13 +206,13 @@ exports.getUserGlicko2Deviation = function (discord_id) {
 
 /**
  * @description get user's glicko2 volatility
- * @param {bigint} discord_id the user's discord id
+ * @param {bigint} user_id the user's id
  * @returns {success: boolean, glicko2_volatility: int}
  */
-exports.getUserGlicko2Volatility = function (discord_id) {
+exports.getUserGlicko2Volatility = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_volatility FROM users WHERE discord_id=?';
-		await con.query(sql, discord_id, function (err, res) {
+		var sql = 'SELECT glicko2_volatility FROM users WHERE id=?';
+		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, glicko2_volatility: res[0]['glicko2_volatility'] });
@@ -223,14 +223,14 @@ exports.getUserGlicko2Volatility = function (discord_id) {
 
 /**
  * @description set user's ELO ranking
- * @param {int} discord_id the user's discord id
+ * @param {int} user_id the user's id
  * @param {int} elo the user's new ELO ranking
  * @returns {success: boolean}
  */
-exports.setUserEloRating = function (discord_id, elo) {
+exports.setUserEloRating = function (user_id, elo) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE users SET elo_rating=? WHERE discord_id=?';
-		await con.query(sql, [elo, discord_id], function (err) {
+		var sql = 'UPDATE users SET elo_rating=? WHERE id=?';
+		await con.query(sql, [elo, user_id], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
 		});
