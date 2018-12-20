@@ -236,3 +236,71 @@ exports.setUserEloRating = function (discord_id, elo) {
 		});
 	});
 }
+
+/**
+ * @description submit a match result
+ * @param {int} discord_id the user's discord id
+ * @param {int} opponent_discord_id the opponent's discord id
+ * @param {int} result the result of the match
+ * @returns {success: boolean}
+ */
+exports.submitMatchResult = function (discord_id, opponent_discord_id, result) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?)';
+		await con.query(sql, [discord_id, opponent_discord_id, result], function (err) {
+			if (err) throw err;
+			resolve({ success: true });
+		});
+	});
+}
+
+/**
+ * @description confirm a match result
+ * @param {int} match_id the match to confirm
+ * @param {boolean} confirmed is the match confirmed?
+ * @returns {success: boolean}
+ */
+exports.setMatchResultConfirmed = function (match_id, confirmed) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'UPDATE matches SET confirmed=? WHERE id=?';
+		await con.query(sql, [confirmed, match_id], function (err) {
+			if (err) throw err;
+			resolve({ success: true });
+		});
+	});
+}
+
+
+/**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserLatestMatch = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE player_id=? LIMIT 1;';
+		await con.query(sql, user_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match: res[0] });
+			}
+		});
+	});
+}
+
+/**
+ * @description get an opponent's latest match
+ * @param {bigint} opponent_id the opponent's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getOpponentLatestMatch = function (opponent_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE opponent_id=? ASCENDING LIMIT 1;';
+		await con.query(sql, opponent_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match: res[0] });
+			}
+		});
+	});
+}
