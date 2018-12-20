@@ -270,6 +270,39 @@ exports.setMatchResultConfirmed = function (match_id, confirmed) {
 	});
 }
 
+/**
+ * @description get Discord id from user id
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, discord_id: bigint}
+ */
+exports.getDiscordIdFromUserId = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT discord_id FROM users WHERE id=?';
+		await con.query(sql, user_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, id: res[0]['discord_id'] });
+			}
+		});
+	});
+}
+
+/**
+ * @description get user id from Discord id
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, id: bigint}
+ */
+exports.getUserIdFromDiscordId = function (discord_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT id FROM users WHERE discord_id=?';
+		await con.query(sql, discord_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, id: res[0]['id'] });
+			}
+		});
+	});
+}
 
 /**
  * @description get user's latest match
