@@ -93,8 +93,8 @@ exports.registerUser = function (discord_id, discord_username) {
  */
 exports.createUserInDB = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO users (discord_username, discord_id) VALUES (?,?)';
-		await con.query(sql, [discord_username, discord_id], function (err) {
+		var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?)';
+		await con.query(sql, [discord_id, discord_username], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
 		});
