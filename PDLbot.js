@@ -181,19 +181,19 @@ client.on('message', message => {
 																const target_db_id = value['id'];
 																db.submitMatchResult(user_db_id, target_db_id, result)
 																	.then((value) => {
-																message.channel.send(strings['confirm_game_please'].replace('{target}', tag(targetID)));
-															});
+																		message.channel.send(strings['confirm_game_please'].replace('{target}', tag(targetID)));
+																	});
 															})
 														})
-														});
 													});
+												});
 												collector.on('end', collected => {
 													if (collected.size < 1) {
 														message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
 													}
+												});
 											});
 										});
-									});
 									});
 								}
 							});
