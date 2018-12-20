@@ -19,7 +19,7 @@ log.level = 'debug';
 
 // initialize Discord bot
 const client = new discord.Client();
-client.login(config['bot_token']);
+client.login(config.bot_token);
 client.once('ready', () => {
 	log.info('Logged in as: ' + client.username + ' - (' + client.id + ')');
 	db.connect();
