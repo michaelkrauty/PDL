@@ -203,6 +203,59 @@ client.on('message', message => {
 					});
 				}
 				break;
+			case 'confirm':
+				db.checkUserExists(message.author.id).then((value) => {
+					if (value['success'] && value['exists']) {
+						db.getUserIdFromDiscordId(message.author.id).then((value) => {
+							if (value['success']) {
+								const user_db_id = value['id'];
+								db.getOpponentLatestMatch(user_db_id).then((value) => {
+									if (value['success']) {
+										const match_id = value['match']['id'];
+										const match_confirmed = value['match']['confirmed'] == true;
+										db.setMatchResultConfirmed(match_id, match_confirmed).then((value) => {
+											if (value['success']) {
+												message.channel.send(match_id + " CONFIRMED");
+												// db.getUserEloRating(message.author.id).then(userELO => {
+												// 	db.getUserEloRating(targetID).then(targetELO => {
+												// 		var uELO = userELO['elo_rating'];
+												// 		var tELO = targetELO['elo_rating'];
+												// 		var res = eloRating.calculate(uELO, tELO, (r['_emoji']['name'] === '✅'));
+
+												// 		var newUserELO = res['playerRating'];
+												// 		var newTargetELO = res['opponentRating'];
+												// 		db.setUserEloRating(message.author.id, newUserELO);
+												// 		db.setUserEloRating(targetID, newTargetELO);
+
+												// 		msg.channel.send(strings['new_elo_message']
+												// 			.replace('{user}', tag(message.author.id))
+												// 			.replace('{target}', tag(targetID))
+												// 			.replace('{old_user_elo}', uELO)
+												// 			.replace('{new_user_elo}', newUserELO)
+												// 			.replace('{old_target_elo}', tELO)
+												// 			.replace('{new_target_elo}', newTargetELO));
+												// 	});
+												// });
+											} else {
+												log.error("ERROR in confrim command");
+												message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+											}
+										});
+									} else {
+										log.error("ERROR in confrim command");
+										message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+									}
+								});
+							} else {
+								log.error("ERROR in confrim command");
+								message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+							}
+						});
+					} else {
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+					}
+				});
+				break;
 		}
 	}
 });
