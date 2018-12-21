@@ -39,7 +39,7 @@ Thumbs.db
 # Other #
 #########
 auth.json
-config.*
+config_db.js
 node_modules/
 PDLsite/
 PDLSite.js
