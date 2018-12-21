@@ -1,4 +1,4 @@
-const config = require('./config.js');
+const config = require('./config_db.js');
 const mysql = require('mysql');
 const log = require('winston');
 var con;
