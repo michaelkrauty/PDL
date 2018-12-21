@@ -34,246 +34,229 @@ client.on('message', message => {
 	// commands start with !
 	if (message.content.substring(0, 1) == '!') {
 		var args = message.content.substring(1).split(' ');
-		var cmd = args[0];
-
+		const cmd = args[0];
 		args = args.splice(1);
-		switch (cmd) {
-			case 'debug':
-				db.getUserData(message.author.id).then(function (value) {
-					if (value['success']) {
+		async function command() {
+			switch (cmd) {
+				case 'debug':
+					const user_data = await db.getUserData(message.author.id);
+					if (user_data['success']) {
 						var msg = '';
-						for (let elem in value['data']) {
-							msg += elem + ': ' + value['data'][elem] + '\n'
-							console.log(elem + ': ' + value['data'][elem]);
+						for (let elem in user_data['data']) {
+							msg += elem + ': ' + user_data['data'][elem] + '\n'
+							console.log(elem + ': ' + user_data['data'][elem]);
 						}
 						message.channel.send('```javascript\n' + msg + '```');
 					}
-				});
-				break;
-			case 'help':
-				if (args.length == 0) {
-					// help dialogue
-					message.channel.send(strings['help']);
-				}
-				break;
-			case 'register':
-				// register new user
-				if (args.length == 0) {
-					db.registerUser(message.author.id, message.author.username).then(function (value) {
-						if (value['success']) {
+					break;
+				case 'help':
+					if (args.length == 0) {
+						message.channel.send(strings['help']);
+					}
+					break;
+				case 'register':
+					if (args.length == 0) {
+						const register_user = await db.registerUser(message.author.id, message.author.username)
+						if (register_user['success']) {
 							message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
 						} else {
 							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
 						}
-					});
-				} else if (args.length == 1) {
-					// register other user
-					targetUser = message.mentions.users.values().next().value.username;
-					targetID = message.mentions.users.values().next().value.id;
-					db.registerUser(targetID, targetUser).then(function (value) {
-						if (value['success']) {
+					} else if (args.length == 1) {
+						// register other user
+						const targetUser = message.mentions.users.values().next().value.username;
+						const targetID = message.mentions.users.values().next().value.id;
+						const register_user = await db.registerUser(targetID, targetUser);
+						if (register_user['success']) {
 							message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(targetID)));
 						} else {
 							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
 						}
-					});
-				}
-				break;
-			case 'compete':
-				// register user if they're not already in the DB
-				db.registerUser(message.author.id, message.author.username).then(function () {
-					db.setUserCompeting(message.author.id, true).then(function (value) {
-						if (value['success']) {
-							message.channel.send(strings['user_now_competing'].replace('{user}', tag(message.author.id)));
+					}
+					break;
+					break;
+				case 'compete':
+					// register user if they're not already in the DB
+					await db.registerUser(message.author.id, message.author.username);
+					var user_competing = await db.setUserCompeting(message.author.id, true);
+					if (user_competing['success']) {
+						message.channel.send(strings['user_now_competing'].replace('{user}', tag(message.author.id)));
+					}
+					break;
+				case 'retire':
+					// stop competing, but keep data in DB
+					var user_exists = await db.checkUserExists(message.author.id);
+					if (user_exists['success'] && user_exists['exists']) {
+						const user_competing = await db.setUserCompeting(message.author.id, false);
+						if (user_competing['success']) {
+							message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
 						}
-					});
-				});
-				break;
-			case 'retire':
-				// stop competing, but keep data in DB
-				db.checkUserExists(message.author.id).then(function (value) {
-					if (value['success'] && value['exists']) {
-						db.setUserCompeting(message.author.id, false).then(function (value) {
-							if (value['success']) {
-								message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
-							}
-						});
 					} else {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
-				});
-				break;
-			case 'competing':
-				// check if user is currently competing
-				db.checkUserExists(message.author.id).then(function (value) {
-					if (value['success'] && value['exists']) {
-						db.isUserCompeting(message.author.id).then(function (value) {
-							if (value['success'] && value['competing']) {
-								message.channel.send(strings['user_is_competing'].replace('{user}', tag(message.author.id)));
-							} else {
-								message.channel.send(strings['user_is_not_competing'].replace('{user}', tag(message.author.id)));
-							}
-						});
+					break;
+				case 'competing':
+					// check if user is currently competing
+					var user_exists = await db.checkUserExists(message.author.id);
+					if (user_exists['success'] && user_exists['exists']) {
+						const user_competing = await db.isUserCompeting(message.author.id);
+						if (user_competing['success'] && user_competing['competing']) {
+							message.channel.send(strings['user_is_competing'].replace('{user}', tag(message.author.id)));
+						} else {
+							message.channel.send(strings['user_is_not_competing'].replace('{user}', tag(message.author.id)));
+						}
 					} else {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
-				});
-				break;
-			case 'check':
-				// check if user exists in DB
-				if (args.length == 0) {
-					db.checkUserExists(message.author.id).then(function (value) {
-						if (value['success'] && value['exists']) {
+					break;
+				case 'check':
+					// check if user exists in DB
+					if (args.length == 0) {
+						const user_exists = await db.checkUserExists(message.author.id);
+						if (user_exists['success'] && user_exists['exists']) {
 							message.channel.send(strings['user_is_registered'].replace('{user}', tag(message.author.id)));
 						} else {
 							message.channel.send(strings['user_is_not_registered'].replace('{user}', tag(message.author.id)));
 						}
-					});
-				} else if (args.length == 1) {
-					targetUser = message.mentions.users.values().next().value.username;
-					targetID = message.mentions.users.values().next().value.id;
-					db.checkUserExists(targetID).then(function (value) {
-						if (value['success'] && value['exists']) {
+					} else if (args.length == 1) {
+						const targetUser = message.mentions.users.values().next().value.username;
+						const targetID = message.mentions.users.values().next().value.id;
+						const user_exists = await db.checkUserExists(targetID);
+						if (user_exists['success'] && user_exists['exists']) {
 							message.channel.send(strings['target_is_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
 						} else {
 							message.channel.send(strings['target_is_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
 						}
-					});
-				}
-				break;
-			case 'elo':
-			case 'rating':
-			case 'skill':
-			case 'sr':
-				// get user ELO rating
-				db.checkUserExists(message.author.id).then(function (value) {
-					if (value['success'] && value['exists']) {
-						db.getUserEloRating(message.author.id).then(function (value) {
-							if (value['success']) {
-								message.channel.send(strings['target_is_not_registered'].replace('{user}', tag(message.author.id)).replace('{elo}', value['elo_rating']));
-							}
-						});
+					}
+					break;
+				case 'elo':
+				case 'rating':
+				case 'skill':
+				case 'sr':
+					// get user ELO rating
+					var user_exists = await db.checkUserExists(message.author.id);
+					if (user_exists['success'] && user_exists['exists']) {
+						const user_elo_rating = await db.getUserEloRating(message.author.id);
+						if (user_elo_rating['success']) {
+							message.channel.send(strings['target_is_not_registered'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
+						}
 					} else {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
-				});
-				break;
-			case 'submit':
-				// submit game result (win/loss)
-				if (args.length == 1) {
-					targetUser = message.mentions.users.values().next().value.username;
-					targetID = message.mentions.users.values().next().value.id;
-					db.checkUserExists(targetID).then(function (value) {
-						if (value['success'] && value['exists']) {
-							db.checkUserExists(message.author.id).then((value) => {
-								if (value['success'] && value['exists']) {
-									message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id))).then((msg) => {
-										msg.react('✅').then(() => {
-											msg.react('❎').then(() => {
-												const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
-												const collector = msg.createReactionCollector(filter, { time: 60000 });
-												collector.on('collect', r => {
-													console.log(r['_emoji']['name']);
-													msg.react('👌').then(() => {
-														var result;
-														((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
-														db.getUserIdFromDiscordId(message.author.id).then((value) => {
-															const user_db_id = value['id'];
-															db.getUserIdFromDiscordId(targetID).then((value) => {
-																const target_db_id = value['id'];
-																db.submitMatchResult(user_db_id, target_db_id, result)
-																	.then((value) => {
-																		message.channel.send(strings['confirm_game_please'].replace('{target}', tag(targetID)));
-																	});
-															})
-														})
-													});
-												});
-												collector.on('end', collected => {
-													if (collected.size < 1) {
-														message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
-													}
-												});
+					break;
+				case 'submit':
+					// submit game result (win/loss)
+					if (args.length == 1) {
+						const target_discord_username = message.mentions.users.values().next().value.username;
+						const target_discord_id = message.mentions.users.values().next().value.id;
+						const target_exists = await db.checkUserExists(target_discord_id);
+						if (target_exists['success'] && target_exists['exists']) {
+							const user_exists = await db.checkUserExists(message.author.id);
+							if (user_exists['success'] && user_exists['exists']) {
+								const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+								if (user_id_from_discord_id['success']) {
+									const user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
+									if (user_latest_match['match'] == null || user_latest_match['match']['true'] == false) {
+										const msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
+										await msg.react('✅');
+										await msg.react('❎');
+										const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
+										const collector = msg.createReactionCollector(filter, { time: 60000 });
+										collector.on('collect', r => {
+											async function collect() {
+												console.log(r['_emoji']['name']);
+												await msg.react('👌');
+												var result;
+												((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
+												const target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+												const target_db_id = target_id_from_discord_id['id'];
+												await db.submitMatchResult(user_id_from_discord_id['id'], target_db_id, result);
+												message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
+											}
+											collect().catch((err) => {
+												log.error(err);
 											});
 										});
-									});
-								}
-							});
-						} else {
-							message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
-						}
-					});
-				}
-				break;
-			case 'confirm':
-				try {
-					async function confirm() {
-						var user_exists = await db.checkUserExists(message.author.id);
-						if (user_exists['success'] && user_exists['exists']) {
-							var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-							if (user_id_from_discord_id['success']) {
-								const user_db_id = user_id_from_discord_id['id'];
-								var opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
-								if (opponent_last_match['success']) {
-									const match_id = opponent_last_match['match']['id'];
-									const match_player_id = opponent_last_match['match']['player_id'];
-									const match_opponent_id = opponent_last_match['match']['opponent_id'];
-									const match_result = opponent_last_match['match']['result'] == true;
-									const match_confirmed = opponent_last_match['match']['confirmed'] == true;
-									if (!match_confirmed) {
-										var discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
-										if (discord_id_from_user_id['success']) {
-											const match_player_discord_id = discord_id_from_user_id['discord_id'];
-											if (discord_id_from_user_id['success']) {
-												if (config.rating_method === config.RatingMethod.elo) {
-													var userELO = await db.getUserEloRating(match_opponent_id);
-													var targetELO = await db.getUserEloRating(match_player_id);
-													var uELO = userELO['elo_rating'];
-													var tELO = targetELO['elo_rating'];
-													var res = eloRating.calculate(uELO, tELO, match_result);
-
-													var newUserELO = res['playerRating'];
-													var newTargetELO = res['opponentRating'];
-													db.setUserEloRating(match_opponent_id, newUserELO);
-													db.setUserEloRating(match_player_id, newTargetELO);
-													db.setMatchResultConfirmed(match_id, true);
-
-													message.channel.send(strings['new_elo_message']
-														.replace('{user}', tag(message.author.id))
-														.replace('{target}', tag(match_player_discord_id))
-														.replace('{old_user_elo}', uELO)
-														.replace('{new_user_elo}', newUserELO)
-														.replace('{old_target_elo}', tELO)
-														.replace('{new_target_elo}', newTargetELO));
-												}
-											} else {
-												log.error("ERROR in confrim command");
-												message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+										collector.on('end', collected => {
+											if (collected.size < 1) {
+												message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
 											}
-										} else {
-											log.error("ERROR in confrim command");
-											message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
-										}
+										});
+
 									} else {
-										message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
+										message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
 									}
 								} else {
-									message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
+									log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
+									message.channel.send(strings['generic_error']);
 								}
-							} else {
-								log.error("ERROR in confrim command");
-								message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 							}
 						} else {
-							message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+							message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
 						}
 					}
-					confirm();
-				} catch (err) {
-					log.error(err);
-				}
-				break;
+					break;
+				case 'confirm':
+					var user_exists = await db.checkUserExists(message.author.id);
+					if (user_exists['success'] && user_exists['exists']) {
+						const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+						if (user_id_from_discord_id['success']) {
+							const user_db_id = user_id_from_discord_id['id'];
+							const opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
+							if (opponent_last_match['success']) {
+								const match_id = opponent_last_match['match']['id'];
+								const match_player_id = opponent_last_match['match']['player_id'];
+								const match_opponent_id = opponent_last_match['match']['opponent_id'];
+								const match_result = opponent_last_match['match']['result'] == true;
+								const match_confirmed = opponent_last_match['match']['confirmed'] == true;
+								if (!match_confirmed) {
+									const discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
+									if (discord_id_from_user_id['success']) {
+										const match_player_discord_id = discord_id_from_user_id['discord_id'];
+										if (config.rating_method === RatingMethod.elo) {
+											const userELO = await db.getUserEloRating(match_opponent_id);
+											const targetELO = await db.getUserEloRating(match_player_id);
+											const uELO = userELO['elo_rating'];
+											const tELO = targetELO['elo_rating'];
+											const res = eloRating.calculate(uELO, tELO, match_result);
+
+											const newUserELO = res['playerRating'];
+											const newTargetELO = res['opponentRating'];
+											db.setUserEloRating(match_opponent_id, newUserELO);
+											db.setUserEloRating(match_player_id, newTargetELO);
+											db.setMatchResultConfirmed(match_id, true);
+
+											message.channel.send(strings['new_elo_message']
+												.replace('{user}', tag(message.author.id))
+												.replace('{target}', tag(match_player_discord_id))
+												.replace('{old_user_elo}', uELO)
+												.replace('{new_user_elo}', newUserELO)
+												.replace('{old_target_elo}', tELO)
+												.replace('{new_target_elo}', newTargetELO));
+										}
+									} else {
+										log.error("ERROR in confrim command");
+										message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+									}
+								} else {
+									message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
+								}
+							} else {
+								message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
+							}
+						} else {
+							log.error("ERROR in confrim command");
+							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+						}
+					} else {
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+					}
+					break;
+			}
 		}
+		command().catch((err) => {
+			log.error(err);
+		});
 	}
 });
 
