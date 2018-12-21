@@ -51,7 +51,7 @@ exports.connect = function () {
  */
 exports.checkUserExists = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT id FROM users WHERE discord_id=?';
+		var sql = 'SELECT id FROM users WHERE discord_id=?;';
 		await con.query(sql, discord_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -93,7 +93,7 @@ exports.registerUser = function (discord_id, discord_username) {
  */
 exports.createUserInDB = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?)';
+		var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?);';
 		await con.query(sql, [discord_id, discord_username], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
@@ -108,7 +108,7 @@ exports.createUserInDB = function (discord_id, discord_username) {
  */
 exports.isUserCompeting = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT competing FROM users WHERE discord_id=?';
+		var sql = 'SELECT competing FROM users WHERE discord_id=?;';
 		await con.query(sql, discord_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -126,7 +126,7 @@ exports.isUserCompeting = function (discord_id) {
  */
 exports.setUserCompeting = function (discord_id, competing) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE users SET competing=? WHERE discord_id=?';
+		var sql = 'UPDATE users SET competing=? WHERE discord_id=?;';
 		await con.query(sql, [competing, discord_id], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
@@ -143,7 +143,7 @@ exports.setUserCompeting = function (discord_id, competing) {
  */
 exports.getUserData = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM users WHERE discord_id=?';
+		var sql = 'SELECT * FROM users WHERE discord_id=?;';
 		await con.query(sql, discord_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -160,7 +160,7 @@ exports.getUserData = function (discord_id) {
  */
 exports.getUserEloRating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT elo_rating FROM users WHERE id=?';
+		var sql = 'SELECT elo_rating FROM users WHERE id=?;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -177,7 +177,7 @@ exports.getUserEloRating = function (user_id) {
  */
 exports.getUserGlicko2Rating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_rating FROM users WHERE id=?';
+		var sql = 'SELECT glicko2_rating FROM users WHERE id=?;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -194,7 +194,7 @@ exports.getUserGlicko2Rating = function (user_id) {
  */
 exports.getUserGlicko2Deviation = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_deviation FROM users WHERE id=?';
+		var sql = 'SELECT glicko2_deviation FROM users WHERE id=?;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -211,7 +211,7 @@ exports.getUserGlicko2Deviation = function (user_id) {
  */
 exports.getUserGlicko2Volatility = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_volatility FROM users WHERE id=?';
+		var sql = 'SELECT glicko2_volatility FROM users WHERE id=?;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
@@ -229,7 +229,7 @@ exports.getUserGlicko2Volatility = function (user_id) {
  */
 exports.setUserEloRating = function (user_id, elo) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE users SET elo_rating=? WHERE id=?';
+		var sql = 'UPDATE users SET elo_rating=? WHERE id=?;';
 		await con.query(sql, [elo, user_id], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
@@ -246,7 +246,7 @@ exports.setUserEloRating = function (user_id, elo) {
  */
 exports.submitMatchResult = function (discord_id, opponent_discord_id, result) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?)';
+		var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?);';
 		await con.query(sql, [discord_id, opponent_discord_id, result], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
@@ -262,7 +262,7 @@ exports.submitMatchResult = function (discord_id, opponent_discord_id, result) {
  */
 exports.setMatchResultConfirmed = function (match_id, confirmed) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE matches SET confirmed=? WHERE id=?';
+		var sql = 'UPDATE matches SET confirmed=? WHERE id=?;';
 		await con.query(sql, [confirmed, match_id], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
@@ -277,7 +277,7 @@ exports.setMatchResultConfirmed = function (match_id, confirmed) {
  */
 exports.getDiscordIdFromUserId = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT discord_id FROM users WHERE id=?';
+		var sql = 'SELECT discord_id FROM users WHERE id=?;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
