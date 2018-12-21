@@ -26,6 +26,8 @@ client.once('ready', () => {
 });
 
 const MatchResult = { WIN: 1, LOSS: 0 }
+const RatingMethod = { elo: 0, glicko2_live: 1, glicko2_schedule: 2 }
+exports = MatchResult, RatingMethod;
 
 // called when the bot sees a message
 client.on('message', message => {
