@@ -281,7 +281,7 @@ exports.getDiscordIdFromUserId = function (user_id) {
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
-				resolve({ success: true, discord_id: res[0]['discord_id'] });
+				resolve({ success: true, discord_id: parseint(res[0]['discord_id']) });
 			}
 		});
 	});
@@ -294,11 +294,11 @@ exports.getDiscordIdFromUserId = function (user_id) {
  */
 exports.getUserIdFromDiscordId = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT id FROM users WHERE discord_id=?';
+		var sql = 'SELECT id FROM users WHERE discord_id=?;';
 		await con.query(sql, discord_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
-				resolve({ success: true, id: res[0]['id'] });
+				resolve({ success: true, id: parseInt(res[0]['id']) });
 			}
 		});
 	});
@@ -316,6 +316,8 @@ exports.getUserLatestMatch = function (user_id) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, match: res[0] });
+			} else {
+				resolve({ success: true, match: null });
 			}
 		});
 	});
