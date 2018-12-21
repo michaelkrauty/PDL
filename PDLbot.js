@@ -245,7 +245,7 @@ client.on('message', message => {
 								message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
 							}
 						} else {
-							log.error("ERROR in confrim command");
+							log.error("ERROR in confrim command: could not get user id from discord id");
 							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 						}
 					} else {
