@@ -328,7 +328,7 @@ exports.getUserLatestMatch = function (user_id) {
  */
 exports.getOpponentLatestMatch = function (opponent_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE opponent_id=? ORDER BY id DESC LIMIT 1';
+		var sql = 'SELECT * FROM matches WHERE opponent_id=? ORDER BY id DESC LIMIT 1;';
 		await con.query(sql, opponent_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
