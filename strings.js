@@ -19,6 +19,7 @@ const strings = {
 	new_elo_message: '{user} ELO: {old_user_elo}->{new_user_elo}\n{target} ELO: {old_target_elo}->{new_target_elo}',
 	no_recent_match: '{user} you have not participated in a recent match.',
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
+	match_already_submitted: '{user} you have already submitted your latest game.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;
