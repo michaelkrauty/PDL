@@ -311,7 +311,7 @@ exports.getUserIdFromDiscordId = function (discord_id) {
  */
 exports.getUserLatestMatch = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE player_id=? LIMIT 1;';
+		var sql = 'SELECT * FROM matches WHERE player_id=? ORDER BY id DESC LIMIT 1;';
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
