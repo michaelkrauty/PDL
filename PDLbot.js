@@ -204,67 +204,65 @@ client.on('message', message => {
 				}
 				break;
 			case 'confirm':
-				db.checkUserExists(message.author.id).then((value) => {
-					if (value['success'] && value['exists']) {
-						db.getUserIdFromDiscordId(message.author.id).then((value) => {
-							if (value['success']) {
-								const user_db_id = value['id'];
-								db.getOpponentLatestMatch(user_db_id).then((value) => {
-									if (value['success']) {
-										const match_id = value['match']['id'];
-										const match_player_id = value['match']['player_id'];
-										const match_opponent_id = value['match']['opponent_id'];
-										const match_result = value['match']['result'] == true;
-										db.getDiscordIdFromUserId(match_player_id).then((value) => {
-											if (value['success']) {
-												const match_player_discord_id = value['discord_id'];
-												if (value['success']) {
-													if (config.rating_method === config.RatingMethod.elo) {
-														db.getUserEloRating(match_opponent_id).then(userELO => {
-															db.getUserEloRating(match_player_id).then(targetELO => {
-																var uELO = userELO['elo_rating'];
-																var tELO = targetELO['elo_rating'];
-																var res = eloRating.calculate(uELO, tELO, match_result);
+				try {
+					var user_exists = await db.checkUserExists(message.author.id);
+					if (user_exists['success'] && user_exists['exists']) {
+						var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+						if (user_id_from_discord_id['success']) {
+							const user_db_id = user_id_from_discord_id['id'];
+							var opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
+							if (opponent_last_match['success']) {
+								const match_id = opponent_last_match['match']['id'];
+								const match_player_id = opponent_last_match['match']['player_id'];
+								const match_opponent_id = opponent_last_match['match']['opponent_id'];
+								const match_result = opponent_last_match['match']['result'] == true;
+								var discord_id_from_user_id = db.getDiscordIdFromUserId(match_player_id);
+								if (discord_id_from_user_id['success']) {
+									const match_player_discord_id = discord_id_from_user_id['discord_id'];
+									if (discord_id_from_user_id['success']) {
+										if (config.rating_method === config.RatingMethod.elo) {
+											var userELO = await db.getUserEloRating(match_opponent_id);
+											var targetELO = await db.getUserEloRating(match_player_id);
+											var uELO = userELO['elo_rating'];
+											var tELO = targetELO['elo_rating'];
+											var res = eloRating.calculate(uELO, tELO, match_result);
 
-																var newUserELO = res['playerRating'];
-																var newTargetELO = res['opponentRating'];
-																db.setUserEloRating(match_opponent_id, newUserELO);
-																db.setUserEloRating(match_player_id, newTargetELO);
-																db.setMatchResultConfirmed(match_id, true);
+											var newUserELO = res['playerRating'];
+											var newTargetELO = res['opponentRating'];
+											db.setUserEloRating(match_opponent_id, newUserELO);
+											db.setUserEloRating(match_player_id, newTargetELO);
+											db.setMatchResultConfirmed(match_id, true);
 
-																message.channel.send(strings['new_elo_message']
-																	.replace('{user}', tag(message.author.id))
-																	.replace('{target}', tag(match_player_discord_id))
-																	.replace('{old_user_elo}', uELO)
-																	.replace('{new_user_elo}', newUserELO)
-																	.replace('{old_target_elo}', tELO)
-																	.replace('{new_target_elo}', newTargetELO));
-															});
-														});
-													}
-												} else {
-													log.error("ERROR in confrim command");
-													message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
-												}
-											} else {
-												log.error("ERROR in confrim command");
-												message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
-											}
-										});
+											message.channel.send(strings['new_elo_message']
+												.replace('{user}', tag(message.author.id))
+												.replace('{target}', tag(match_player_discord_id))
+												.replace('{old_user_elo}', uELO)
+												.replace('{new_user_elo}', newUserELO)
+												.replace('{old_target_elo}', tELO)
+												.replace('{new_target_elo}', newTargetELO));
+										}
 									} else {
 										log.error("ERROR in confrim command");
 										message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 									}
-								});
+								} else {
+									log.error("ERROR in confrim command");
+									message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+								}
 							} else {
 								log.error("ERROR in confrim command");
 								message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 							}
-						});
+						} else {
+							log.error("ERROR in confrim command");
+							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+						}
 					} else {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					}
-				});
+				} catch (err) {
+					log.error(err);
+				}
 				break;
 		}
 	}
