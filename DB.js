@@ -317,6 +317,7 @@ exports.getUserLatestMatch = function (user_id) {
 			if (res.length > 0) {
 				resolve({ success: true, match: res[0] });
 			} else {
+				// TODO: id: null?
 				resolve({ success: true, match: null });
 			}
 		});
