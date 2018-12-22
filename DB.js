@@ -299,6 +299,9 @@ exports.getUserIdFromDiscordId = function (discord_id) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, id: parseInt(res[0]['id']) });
+			} else {
+				// TODO: id: null?
+				resolve({ success: true, id: null });
 			}
 		});
 	});
