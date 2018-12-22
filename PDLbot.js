@@ -53,6 +53,15 @@ client.on('message', message => {
 						message.channel.send('```javascript\n' + msg + '```');
 					}
 					break;
+				case 'say':
+					// TODO: remove this command before release
+					// make the bot say a message, for debug only
+					var msg = '';
+					for (i = 0; i < args.length; i++) {
+						((i - 1 < args.length) ? msg += args[i] + ' ' : msg += args[i]);
+					}
+					message.channel.send(msg);
+					break;
 				case 'help':
 					// shows help dialogue
 					if (args.length == 0) {
