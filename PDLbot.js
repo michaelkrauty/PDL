@@ -199,7 +199,13 @@ client.on('message', message => {
 						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-					// TODO: check if a user is mentioned
+
+					// check if a user is mentioned
+					if (message.mentions.users.values().next().value == undefined) {
+						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+						break;
+					}
+
 					const target_discord_username = message.mentions.users.values().next().value.username;
 					const target_discord_id = message.mentions.users.values().next().value.id;
 					// check if target is registered
