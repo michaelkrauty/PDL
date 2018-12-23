@@ -147,7 +147,7 @@ client.on('message', message => {
 					// checks if user is registered (exists in database)
 					if (args.length == 0) {
 						// check if user exists in database
-						const user_exists = await db.checkUserExists(message.author.id);
+						var user_exists = await db.checkUserExists(message.author.id);
 						if (user_exists['success'] && user_exists['exists']) {
 							// user is registered
 							message.channel.send(strings['user_is_registered'].replace('{user}', tag(message.author.id)));
@@ -162,7 +162,7 @@ client.on('message', message => {
 							// check if target user exists in database
 							const targetUser = message.mentions.users.values().next().value.username;
 							const targetID = message.mentions.users.values().next().value.id;
-							const user_exists = await db.checkUserExists(targetID);
+							var user_exists = await db.checkUserExists(targetID);
 							if (user_exists['success'] && user_exists['exists']) {
 								// target is registered
 								message.channel.send(strings['target_is_registered'].replace('{user}', tag(message.author.id)).replace('{target}', targetUser));
@@ -194,83 +194,94 @@ client.on('message', message => {
 					break;
 				case 'submit':
 					// submits a game result (win/loss)
-					if (args.length == 1) {
-						// TODO: check if a user is mentioned
-						const target_discord_username = message.mentions.users.values().next().value.username;
-						const target_discord_id = message.mentions.users.values().next().value.id;
-						// check if target is registered
-						// TODO: combine with getUserIdFromDiscordId
-						const target_exists = await db.checkUserExists(target_discord_id);
-						if (target_exists['success'] && target_exists['exists']) {
-							// check if user is registered
-							// TODO: combine with getUserIdFromDiscordId
-							const user_exists = await db.checkUserExists(message.author.id);
-							if (user_exists['success'] && user_exists['exists']) {
-								// get user id from discord id
-								const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-								if (user_id_from_discord_id['success'] && user_id_from_discord_id['id'] != null) {
-									// get user's latest match
-									const user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
-									// if the user doesn't have a most recent match
-									if (user_latest_match['match'] == null || user_latest_match['match']['true'] == false) {
-										// ask the user if they won
-										const msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
-										// add submission reactions to msg
-										// TODO: enumerate emoji reactions
-										await msg.react('✅');
-										await msg.react('❎');
-										// await y/n reaction from user for 60 seconds
-										const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
-										const collector = msg.createReactionCollector(filter, { time: 60000 });
-										// reaction collector
-										collector.on('collect', r => {
-											async function collect() {
-												// user added reaction
-												console.log(r['_emoji']['name']);
-												await msg.react('👌');
-												// did the user win the match?
-												var result;
-												((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
-												// get the target user's user id from their discord id
-												// TODO: get target ID as part of varifying they exist
-												const target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
-												const target_db_id = target_id_from_discord_id['id'];
-												// submit match result
-												await db.submitMatchResult(user_id_from_discord_id['id'], target_db_id, result);
-												// ask the target user to confirm the game
-												message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
-											}
-											collect().catch((err) => {
-												// error collecting reactions
-												log.error(err);
-											});
-										});
-										collector.on('end', collected => {
-											if (collected.size < 1) {
-												// no reactions were collected
-												message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
-											}
-										});
-
-									} else {
-										// user has a recent match
-										// TODO: allow multiple match submissions at a time
-										message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
-									}
-								} else {
-									// failed to get user id from discord id
-									log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
-									message.channel.send(strings['generic_error']);
-								}
-							}
-						} else {
-							// target is not registered
-							message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
-						}
-					} else {
+					if (args.length != 1) {
 						// args.length == 0
 						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+						break;
 					}
+					// TODO: check if a user is mentioned
+					const target_discord_username = message.mentions.users.values().next().value.username;
+					const target_discord_id = message.mentions.users.values().next().value.id;
+					// check if target is registered
+					// TODO: combine with getUserIdFromDiscordId
+					const target_exists = await db.checkUserExists(target_discord_id);
+					// if the target is not registered
+					if (!target_exists['success'] || !target_exists['exists']) {
+						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+						break;
+					}
+					// check if user is registered
+					// TODO: combine with getUserIdFromDiscordId
+					var user_exists = await db.checkUserExists(message.author.id);
+					// if the user does not exist in database
+					if (!user_exists['success'] || !user_exists['exists']) {
+						break;
+					}
+					// get user id from discord id
+					const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
+						// failed to get user id from discord id
+						log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
+						message.channel.send(strings['generic_error']);
+						break;
+					}
+					// get user's latest match
+					const user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
+
+					// if the user's latest match is not confirmed
+					if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
+						const opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match['match']['opponent_id']);
+						// return
+						message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
+						break;
+					}
+
+					// user already has an unconfirmed most recent match
+					if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
+						// TODO: allow multiple match submissions at a time
+						message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
+						break;
+					}
+					// ask the user if they won
+					var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
+					// add submission reactions to msg
+					// TODO: enumerate emoji reactions
+					await msg.react('✅');
+					await msg.react('❎');
+					// await y/n reaction from user for 60 seconds
+					const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
+					const collector = msg.createReactionCollector(filter, { time: 60000 });
+					// reaction collector
+					collector.on('collect', r => {
+						async function collect() {
+							// user added reaction
+							console.log(r['_emoji']['name']);
+							await msg.react('👌');
+							// did the user win the match?
+							var result;
+							((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
+							// TODO: readyplayersuck reacted X, when Maverick confirmed, Maverick lost elo and readyplayersuck gained elo
+							console.log('result: ' + result);
+							// get the target user's user id from their discord id
+							// TODO: get target ID as part of varifying they exist
+							const target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+							const target_db_id = target_id_from_discord_id['id'];
+							// submit match result
+							await db.submitMatchResult(user_id_from_discord_id['id'], target_db_id, !result);
+							// ask the target user to confirm the game
+							message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
+						}
+						collect().catch((err) => {
+							// error collecting reactions
+							log.error(err);
+						});
+					});
+					collector.on('end', collected => {
+						if (collected.size < 1) {
+							// no reactions were collected
+							message.channel.send(strings['match_submit_timeout'].replace('{user}', tag(message.author.id)));
+						}
+					});
 					break;
 				case 'confirm':
 					// check if user exists
