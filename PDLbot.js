@@ -177,6 +177,7 @@ client.on('message', message => {
 				break;
 			case 'elo':
 			case 'rating':
+			case 'rank':
 			case 'skill':
 			case 'sr':
 				// gets user elo rating
