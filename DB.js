@@ -239,15 +239,15 @@ exports.setUserEloRating = function (user_id, elo) {
 
 /**
  * @description submit a match result
- * @param {int} discord_id the user's discord id
- * @param {int} opponent_discord_id the opponent's discord id
- * @param {int} result the result of the match
+ * @param {int} user_id the user's discord id
+ * @param {int} opponent_user_id the opponent's discord id
+ * @param {int} result the result of the match (0 = loss, 1 = win)
  * @returns {success: boolean}
  */
-exports.submitMatchResult = function (discord_id, opponent_discord_id, result) {
+exports.submitMatchResult = function (user_id, opponent_user_id, result) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?);';
-		await con.query(sql, [discord_id, opponent_discord_id, result], function (err) {
+		await con.query(sql, [user_id, opponent_user_id, result], function (err) {
 			if (err) throw err;
 			resolve({ success: true });
 		});
