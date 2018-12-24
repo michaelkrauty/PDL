@@ -294,24 +294,46 @@ client.on('message', message => {
 					// check if user exists
 					// TODO: combine with getUserIdFromDiscordId
 					var user_exists = await db.checkUserExists(message.author.id);
-					if (user_exists['success'] && user_exists['exists']) {
+					if (!user_exists['success'] || !user_exists['exists']) {
+						// user isn't registered
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 						// get user id from discord id
-						const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-						if (user_id_from_discord_id['success'] && user_id_from_discord_id['id'] != null) {
+					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
+						// failed to get user id from discord id
+						log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')')
+						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 							const user_db_id = user_id_from_discord_id['id'];
 							// get the latest match submission where the user was the opponent
 							const opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
-							if (opponent_last_match['success'] && opponent_last_match['match'] != null) {
+					if (!opponent_last_match['success'] || opponent_last_match['match'] == null) {
+						// failed to get most recent match submission where opponent is the user
+						log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
+						message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 								const match_id = opponent_last_match['match']['id'];
 								const match_player_id = opponent_last_match['match']['player_id'];
 								const match_opponent_id = opponent_last_match['match']['opponent_id'];
 								const match_result = opponent_last_match['match']['result'] == true;
 								const match_confirmed = opponent_last_match['match']['confirmed'] == true;
-								// if the match is not confirmed
-								if (!match_confirmed) {
+					// if the most recent match is already confirmed
+					if (match_confirmed) {
+						message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 									// get the opponent's latest match
 									const discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
-									if (discord_id_from_user_id['success'] && discord_id_from_user_id['discord_id'] != null) {
+					if (!discord_id_from_user_id['success'] || discord_id_from_user_id['discord_id'] == null) {
+						// failed to get discord id from user id
+						log.error('Failed to getDiscordIdFromUserId(' + match_player_id + ')');
+						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 										const match_player_discord_id = discord_id_from_user_id['discord_id'];
 										// update elo
 										if (config.rating_method === RatingMethod.elo) {
@@ -341,29 +363,6 @@ client.on('message', message => {
 												.replace('{old_target_elo}', tELO)
 												.replace('{new_target_elo}', newTargetELO));
 										}
-									} else {
-										// failed to get discord id from user id
-										log.error('Failed to getDiscordIdFromUserId(' + match_player_id + ')');
-										message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
-									}
-								} else {
-									// most recent match is already confirmed
-									message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
-								}
-							} else {
-								// failed to get most recent match submission where opponent is the user
-								log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
-								message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
-							}
-						} else {
-							// failed to get user id from discord id
-							log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')')
-							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
-						}
-					} else {
-						// user isn't registered
-						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
-					}
 					break;
 			}
 		}
