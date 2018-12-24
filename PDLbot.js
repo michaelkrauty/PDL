@@ -89,18 +89,18 @@ client.on('message', message => {
 						message.channel.send(strings['register_no_user_specified']);
 						return;
 					}
-						// register target user
-						const targetUser = message.mentions.users.values().next().value.username;
-						const targetID = message.mentions.users.values().next().value.id;
-						const register_user = await db.registerUser(targetID, targetUser);
-						if (register_user['success']) {
-							// registered 
-							message.channel.send(strings['target_is_now_registered'].replace('{user}', tag(targetID)));
-						} else {
-							// already registered
-							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
-						}
+					// register target user
+					const targetUser = message.mentions.users.values().next().value.username;
+					const targetID = message.mentions.users.values().next().value.id;
+					const register_user = await db.registerUser(targetID, targetUser);
+					if (register_user['success']) {
+						// registered 
+						message.channel.send(strings['target_is_now_registered'].replace('{user}', tag(targetID)));
+					} else {
+						// already registered
+						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
 					}
+				}
 				break;
 			case 'compete':
 				// sets user competing state to true
