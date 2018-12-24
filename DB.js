@@ -281,7 +281,7 @@ exports.getDiscordIdFromUserId = function (user_id) {
 		await con.query(sql, user_id, function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
-				resolve({ success: true, discord_id: parseInt(res[0]['discord_id']) });
+				resolve({ success: true, discord_id: BigInt(res[0]['discord_id']) });
 			}
 		});
 	});
