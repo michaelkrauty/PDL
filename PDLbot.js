@@ -43,15 +43,16 @@ client.on('message', message => {
 					// debug command for debugging purposes
 					// get user data
 					const user_data = await db.getUserData(message.author.id);
-					if (user_data['success']) {
-						// display user data
-						var msg = '';
-						for (let elem in user_data['data']) {
-							msg += elem + ': ' + user_data['data'][elem] + '\n'
-							console.log(elem + ': ' + user_data['data'][elem]);
-						}
-						message.channel.send('```javascript\n' + msg + '```');
+					if (!user_data['success']) {
+						break;
 					}
+					// display user data
+					var msg = '';
+					for (let elem in user_data['data']) {
+						msg += elem + ': ' + user_data['data'][elem] + '\n'
+						console.log(elem + ': ' + user_data['data'][elem]);
+					}
+					message.channel.send('```javascript\n' + msg + '```');
 					break;
 				case 'say':
 					// TODO: remove this command before release
