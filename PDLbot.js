@@ -183,17 +183,30 @@ client.on('message', message => {
 				// gets user elo rating
 				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
-				if (user_exists['success'] && user_exists['exists']) {
-					// get user elo rating
-					const user_elo_rating = await db.getUserEloRating(message.author.id);
-					if (user_elo_rating['success']) {
-						// output user elo rating
-						message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
-					}
-				} else {
+				if (!user_exists['success'] || !user_exists['exists']) {
 					// user is not registered
 					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+					break;
 				}
+
+				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+
+				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
+					// could not get user id from discord id
+					message.channel.send('error');
+					break;
+				}
+
+				// get user elo rating
+				const user_elo_rating = await db.getUserEloRating(user_id_from_discord_id['id']);
+				console.log(5);
+				if (!user_elo_rating['success']) {
+					console.log(user_elo_rating);
+					message.channel.send('error');
+					break;
+				}
+				// output user elo rating
+				message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
 				break;
 			case 'submit':
 				// submits a game result (win/loss)
