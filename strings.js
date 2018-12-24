@@ -15,12 +15,12 @@ const strings = {
 	user_elo: '{user} your ELO is {elo}.',
 	did_you_win: '{user} did you win the game?',
 	match_submit_timeout: '{user} timed out, please !submit again.',
-	submit_no_user_specified: '{user} please specifiy a user (!submit <user>)',
+	submit_no_user_specified: '{user} please specifiy a user by tagging them (!submit <user>)',
 	confirm_game_please: '{target} please !confrim the game.',
 	new_elo_message: '{user} ELO: {old_user_elo}->{new_user_elo}\n{target} ELO: {old_target_elo}->{new_target_elo}',
 	no_recent_match: '{user} you have not participated in a recent match.',
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
-	match_already_submitted: '{user} you have already submitted your latest game.',
+	match_already_submitted: '{user} you have already submitted your latest game. Waiting for {target} to !confirm.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;
