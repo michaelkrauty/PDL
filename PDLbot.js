@@ -225,7 +225,7 @@ client.on('message', message => {
 						break;
 					}
 					// get user id from discord id
-					const user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
 						// failed to get user id from discord id
 						log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
@@ -299,7 +299,7 @@ client.on('message', message => {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-						// get user id from discord id
+					// get user id from discord id
 					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
 						// failed to get user id from discord id
@@ -307,62 +307,62 @@ client.on('message', message => {
 						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-							const user_db_id = user_id_from_discord_id['id'];
-							// get the latest match submission where the user was the opponent
-							const opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
+					const user_db_id = user_id_from_discord_id['id'];
+					// get the latest match submission where the user was the opponent
+					const opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
 					if (!opponent_last_match['success'] || opponent_last_match['match'] == null) {
 						// failed to get most recent match submission where opponent is the user
 						log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
 						message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-								const match_id = opponent_last_match['match']['id'];
-								const match_player_id = opponent_last_match['match']['player_id'];
-								const match_opponent_id = opponent_last_match['match']['opponent_id'];
-								const match_result = opponent_last_match['match']['result'] == true;
-								const match_confirmed = opponent_last_match['match']['confirmed'] == true;
+					const match_id = opponent_last_match['match']['id'];
+					const match_player_id = opponent_last_match['match']['player_id'];
+					const match_opponent_id = opponent_last_match['match']['opponent_id'];
+					const match_result = opponent_last_match['match']['result'] == true;
+					const match_confirmed = opponent_last_match['match']['confirmed'] == true;
 					// if the most recent match is already confirmed
 					if (match_confirmed) {
 						message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-									// get the opponent's latest match
-									const discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
+					// get the opponent's latest match
+					const discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
 					if (!discord_id_from_user_id['success'] || discord_id_from_user_id['discord_id'] == null) {
 						// failed to get discord id from user id
 						log.error('Failed to getDiscordIdFromUserId(' + match_player_id + ')');
 						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-										const match_player_discord_id = discord_id_from_user_id['discord_id'];
-										// update elo
-										if (config.rating_method === RatingMethod.elo) {
-											// get user's elo rating
-											const userELO = await db.getUserEloRating(match_opponent_id);
-											// get target's elo rating
-											const targetELO = await db.getUserEloRating(match_player_id);
-											const uELO = userELO['elo_rating'];
-											const tELO = targetELO['elo_rating'];
-											// calculate new elo
-											const res = eloRating.calculate(uELO, tELO, match_result);
-											const newUserELO = res['playerRating'];
-											const newTargetELO = res['opponentRating'];
-											// set user's new elo rating
-											db.setUserEloRating(match_opponent_id, newUserELO);
-											// set target's new elo rating
-											db.setUserEloRating(match_player_id, newTargetELO);
-											// set confirm the match
-											db.setMatchResultConfirmed(match_id, true);
+					const match_player_discord_id = discord_id_from_user_id['discord_id'];
+					// update elo
+					if (config.rating_method === RatingMethod.elo) {
+						// get user's elo rating
+						const userELO = await db.getUserEloRating(match_opponent_id);
+						// get target's elo rating
+						const targetELO = await db.getUserEloRating(match_player_id);
+						const uELO = userELO['elo_rating'];
+						const tELO = targetELO['elo_rating'];
+						// calculate new elo
+						const res = eloRating.calculate(uELO, tELO, match_result);
+						const newUserELO = res['playerRating'];
+						const newTargetELO = res['opponentRating'];
+						// set user's new elo rating
+						db.setUserEloRating(match_opponent_id, newUserELO);
+						// set target's new elo rating
+						db.setUserEloRating(match_player_id, newTargetELO);
+						// set confirm the match
+						db.setMatchResultConfirmed(match_id, true);
 
-											// message users
-											message.channel.send(strings['new_elo_message']
-												.replace('{user}', tag(message.author.id))
-												.replace('{target}', tag(match_player_discord_id))
-												.replace('{old_user_elo}', uELO)
-												.replace('{new_user_elo}', newUserELO)
-												.replace('{old_target_elo}', tELO)
-												.replace('{new_target_elo}', newTargetELO));
-										}
+						// message users
+						message.channel.send(strings['new_elo_message']
+							.replace('{user}', tag(message.author.id))
+							.replace('{target}', tag(match_player_discord_id))
+							.replace('{old_user_elo}', uELO)
+							.replace('{new_user_elo}', newUserELO)
+							.replace('{old_target_elo}', tELO)
+							.replace('{new_target_elo}', newTargetELO));
+					}
 					break;
 			}
 		}
