@@ -1,5 +1,5 @@
 const strings = {
-	help: '```PDL-bot Commands:\nSyntax: <> = required paramater, [] = optional paramater\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing [user]: Check whether you are currently competing\n!check [user]: Check registration in PDL\n!sr [user]: Get current SR\'s SR```',
+	help: '```PDL-bot Commands:\nSyntax: <> = required, [] = optional\n!register: Register in PDL\n!compete: Compete in PDL\n!retire: Stop competing in PDL\n!competing [user]: Check if user is competing\n!check [user]: Check registration in PDL\n!sr [user]: Show skill rating```',
 	user_is_registered: '{user} is registered in the Pavlov Duel League.',
 	user_is_not_registered: '{user} is not registered in the Pavlov Duel League.',
 	user_is_now_registered: '{user} is now registered in the Pavlov Duel League!',
