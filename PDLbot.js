@@ -84,8 +84,11 @@ client.on('message', message => {
 					}
 				} else if (args.length == 1) {
 					// register tagged user in database
-					// if a user is mentioned in message
-					if (message.mentions.users.values().next().value != undefined) {
+					// check if a user is mentioned in message
+					if (message.mentions.users.values().next().value == undefined) {
+						message.channel.send(strings['register_no_user_specified']);
+						return;
+					}
 						// register target user
 						const targetUser = message.mentions.users.values().next().value.username;
 						const targetID = message.mentions.users.values().next().value.id;
@@ -98,7 +101,6 @@ client.on('message', message => {
 							message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
 						}
 					}
-				}
 				break;
 			case 'compete':
 				// sets user competing state to true
