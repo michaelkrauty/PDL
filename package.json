@@ -5,6 +5,7 @@
 	"main": "PDLbot.js",
 	"author": "scorched",
 	"dependencies": {
+		"BigInt": "^5.5.3",
 		"discord": "^0.8.2",
 		"discord.js": "^11.4.2",
 		"elo-rating": "^1.0.1",
