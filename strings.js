@@ -4,6 +4,7 @@ const strings = {
 	user_is_not_registered: '{user} is not registered in the Pavlov Duel League.',
 	user_is_now_registered: '{user} is now registered in the Pavlov Duel League!',
 	user_is_already_registered: '{user} you are already registered in the Pavlov Duel League!',
+	register_no_user_specified: '{user} please specify a user by tagging them (!register <user>)',
 	error_not_registered: '{user} you are not registered in PDL. Use !register to register, or !help for help.',
 	error_target_not_registered: '{user} {target} is not registered in the Pavlov Duel League.',
 	user_is_competing: '{user} is competing.',
