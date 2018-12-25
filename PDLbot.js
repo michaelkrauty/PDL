@@ -213,8 +213,8 @@ client.on('message', message => {
 				break;
 			case 'submit':
 				// submits a game result (win/loss)
+				// check for a mention
 				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-					// args.length == 0
 					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
@@ -240,10 +240,10 @@ client.on('message', message => {
 					break;
 				}
 
-				// get user's latest match
-				var user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
+				// get user's latest match vs the target
+				var user_latest_match = await db.getUserLatestMatchVs(user_id_from_discord_id['id'], target_id_from_discord_id['id']);
 
-				// if the user's latest match is not confirmed
+				// if the user's latest match vs the target is not confirmed
 				if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
 					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match['match']['opponent_id']);
 					// return
@@ -251,12 +251,6 @@ client.on('message', message => {
 					break;
 				}
 
-				// user already has an unconfirmed most recent match
-				if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
-					// TODO: allow multiple match submissions at a time
-					message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
-					break;
-				}
 				// ask the user if they won
 				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
 				// add submission reactions to msg

@@ -328,6 +328,26 @@ exports.getUserLatestMatch = function (user_id) {
 }
 
 /**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserLatestMatchVs = function (user_id, target_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE player_id=? AND opponent_id=? ORDER BY id DESC LIMIT 1;';
+		await con.query(sql, [user_id, target_id], function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match: res[0] });
+			} else {
+				// TODO: id: null?
+				resolve({ success: true, match: null });
+			}
+		});
+	});
+}
+
+/**
  * @description get an opponent's latest match
  * @param {bigint} opponent_id the opponent's id
  * @returns {success: boolean, match: []}
