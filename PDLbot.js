@@ -71,20 +71,6 @@ client.on('message', message => {
 				// shows help dialogue
 				message.channel.send(strings['help']);
 				break;
-			case 'register':
-				// registers user in database
-				if (args.length == 0) {
-					// register message.author
-					var register_user = await db.registerUser(message.author.id, message.author.username)
-					if (register_user['success']) {
-						// registered
-						message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
-					} else {
-						// already registered
-						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
-					}
-				}
-				break;
 			case 'compete':
 				if (args.length != 0) {
 					message.channel.send('compete_try_again');
