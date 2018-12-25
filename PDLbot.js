@@ -83,30 +83,20 @@ client.on('message', message => {
 						// already registered
 						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(message.author.id)));
 					}
-				} else if (args.length == 1) {
-					// register tagged user in database
-					// check if a user is mentioned in message
-					if (message.mentions.users.values().next().value == undefined) {
-						message.channel.send(strings['register_no_user_specified']);
-						return;
-					}
-					// register target user
-					var targetUser = message.mentions.users.values().next().value.username;
-					var targetID = message.mentions.users.values().next().value.id;
-					var register_user = await db.registerUser(targetID, targetUser);
-					if (register_user['success']) {
-						// registered 
-						message.channel.send(strings['target_is_now_registered'].replace('{user}', tag(targetID)));
-					} else {
-						// already registered
-						message.channel.send(strings['user_is_already_registered'].replace('{user}', tag(targetID)));
-					}
 				}
 				break;
 			case 'compete':
+				if (args.length != 0) {
+					message.channel.send('compete_try_again');
+					break;
+				}
 				// sets user competing state to true
 				// register user if they're not already in the DB
-				await db.registerUser(message.author.id, message.author.username);
+				var register_user = await db.registerUser(message.author.id, message.author.username);
+				if (register_user['success'] == null || !register_user['success']) {
+					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+					break;
+				}
 				// set the user's competing state to true
 				var user_competing = await db.setUserCompeting(message.author.id, true);
 				if (user_competing['success']) {
