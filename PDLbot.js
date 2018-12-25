@@ -26,7 +26,7 @@ client.once('ready', () => {
 });
 
 const MatchResult = { WIN: 1, LOSS: 0 }
-const RatingMethod = { elo: 0, glicko2_live: 1, glicko2_schedule: 2 }
+const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 }
 exports = MatchResult, RatingMethod;
 
 // called when the bot sees a message
@@ -351,7 +351,7 @@ client.on('message', message => {
 				}
 				const match_player_discord_id = discord_id_from_user_id['discord_id'];
 				// update elo
-				if (config.rating_method === RatingMethod.elo) {
+				if (config.rating_method === RatingMethod.ELO) {
 					// get user's elo rating
 					const userELO = await db.getUserEloRating(match_opponent_id);
 					// get target's elo rating
