@@ -265,14 +265,11 @@ client.on('message', message => {
 				// reaction collector
 				collector.on('collect', r => {
 					async function collect() {
-						// user added reaction
-						console.log(r['_emoji']['name']);
+						// user reacted y/n
 						await msg.react(ReactionEmoji.CONFIRMED);
 						// did the user win the match?
 						var result;
 						((r['_emoji']['name'] === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
-						// TODO: readyplayersuck reacted X, when Maverick confirmed, Maverick lost elo and readyplayersuck gained elo
-						console.log('result: ' + result);
 						// submit match result
 						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], !result);
 						// ask the target user to confirm the game
