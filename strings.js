@@ -17,6 +17,7 @@ const strings = {
 	did_you_win: '{user} did you win the game?',
 	match_submit_timeout: '{user} timed out, please !submit again.',
 	submit_no_user_specified: '{user} please specifiy a user by tagging them (!submit <user>)',
+	confirm_no_user_specified: '{user} please specifiy a user by tagging them (!confirm <user>)',
 	confirm_game_please: '{target} please !confrim the game.',
 	new_elo_message: '{user} ELO: {old_user_elo}->{new_user_elo}\n{target} ELO: {old_target_elo}->{new_target_elo}',
 	no_recent_match: '{user} you have not participated in a recent match.',
