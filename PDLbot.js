@@ -209,7 +209,7 @@ client.on('message', message => {
 					// output user elo rating
 					message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
 				} else if (args.length == 1) {
-					// TODO: check other's SR
+					// TODO: check others' SR
 				}
 				break;
 			case 'submit':
