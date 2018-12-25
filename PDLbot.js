@@ -210,7 +210,41 @@ client.on('message', message => {
 					// output user skill rating
 					message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
 				} else if (args.length == 1) {
-					// TODO: check others' SR
+					// gets other user's skill rating
+					// check for a mention
+					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+						break;
+					}
+
+					// target was mentioned in message
+					var target_discord_username = message.mentions.users.values().next().value.username;
+					var target_discord_id = message.mentions.users.values().next().value.id;
+
+					// check if target is registered
+					var user_exists = await db.checkUserExists(target_discord_id);
+					if (!user_exists['success'] || !user_exists['exists']) {
+						// target is not registered
+						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+						break;
+					}
+
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+
+					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
+						// could not get target id from discord id
+						message.channel.send('error');
+						break;
+					}
+
+					// get target skill rating
+					var target_elo_rating = await db.getUserEloRating(target_id_from_discord_id['id']);
+					if (!target_elo_rating['success']) {
+						message.channel.send('error');
+						break;
+					}
+					// output target skill rating
+					message.channel.send(strings['target_elo'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
 				}
 				break;
 			case 'submit':
