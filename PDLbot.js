@@ -47,6 +47,7 @@ client.on('message', message => {
 				// get user data
 				var user_data = await db.getUserData(message.author.id);
 				if (!user_data['success']) {
+					message.channel.send('No data to display.');
 					break;
 				}
 				// display user data
