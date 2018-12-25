@@ -304,9 +304,9 @@ client.on('message', message => {
 				if (user_latest_match_vs['match'] != null && !user_latest_match_vs['match']['confirmed']) {
 					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match_vs['match']['opponent_id']);
 					if (opponent_discord_id['success'] != null || !opponent_discord_id['success']) {
-					message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
-					break;
-				}
+						message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
+						break;
+					}
 					break;
 				}
 
