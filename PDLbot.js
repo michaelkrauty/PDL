@@ -352,19 +352,18 @@ client.on('message', message => {
 					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-				var match_player_discord_id = discord_id_from_user_id['discord_id'];
-				// update elo
-				if (config.rating_method === RatingMethod.ELO) {
+				if (config.config.rating_method == RatingMethod.ELO) {
 					// get user's elo rating
 					var userELO = await db.getUserEloRating(match_opponent_id);
 					// get target's elo rating
 					var targetELO = await db.getUserEloRating(match_player_id);
 					var uELO = userELO['elo_rating'];
 					var tELO = targetELO['elo_rating'];
+
 					// calculate new elo
-					var res = eloRating.calculate(uELO, tELO, match_result);
-					var newUserELO = res['playerRating'];
-					var newTargetELO = res['opponentRating'];
+					var eloRatingCalculation = eloRating.calculate(uELO, tELO, match_result, config.config.elo_k);
+					var newUserELO = eloRatingCalculation['playerRating'];
+					var newTargetELO = eloRatingCalculation['opponentRating'];
 					// set user's new elo rating
 					db.setUserEloRating(match_opponent_id, newUserELO);
 					// set target's new elo rating
@@ -375,7 +374,7 @@ client.on('message', message => {
 					// message users
 					message.channel.send(strings['new_elo_message']
 						.replace('{user}', tag(message.author.id))
-						.replace('{target}', tag(match_player_discord_id))
+						.replace('{target}', tag(discord_id_from_user_id['discord_id']))
 						.replace('{old_user_elo}', uELO)
 						.replace('{new_user_elo}', newUserELO)
 						.replace('{old_target_elo}', tELO)
