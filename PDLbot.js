@@ -294,6 +294,9 @@ client.on('message', message => {
 					break;
 				}
 
+				var target_discord_username = message.mentions.users.values().next().value.username;
+				var target_discord_id = message.mentions.users.values().next().value.id;
+
 				// get user id from discord id
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
@@ -302,11 +305,18 @@ client.on('message', message => {
 					break;
 				}
 
+				// get target id from discord id
+				var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+				if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
+					// failed to get target id from discord id
+					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', tag(target_discord_id)));
+					break;
+				}
+
 				// get the latest match submission where the user was the opponent
-				var opponent_last_match = await db.getOpponentLatestMatch(user_id_from_discord_id['id']);
+				var opponent_last_match = await db.getOpponentLatestMatchVs(user_id_from_discord_id['id'], target_id_from_discord_id['id']);
 				if (!opponent_last_match['success'] || opponent_last_match['match'] == null) {
-					// failed to get most recent match submission where opponent is the user
-					log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
+					// failed to get most recent match submission where opponent is the user and the player is the target
 					message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
 					break;
 				}

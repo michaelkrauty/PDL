@@ -363,3 +363,20 @@ exports.getOpponentLatestMatch = function (opponent_id) {
 		});
 	});
 }
+
+/**
+ * @description get an opponent's latest match
+ * @param {bigint} opponent_id the opponent's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE opponent_id=? AND player_id=? ORDER BY id DESC LIMIT 1;';
+		await con.query(sql, [opponent_id, player_id], function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match: res[0] });
+			}
+		});
+	});
+}
