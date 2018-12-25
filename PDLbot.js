@@ -227,29 +227,25 @@ client.on('message', message => {
 
 				var target_discord_username = message.mentions.users.values().next().value.username;
 				var target_discord_id = message.mentions.users.values().next().value.id;
-				// check if target is registered
-				// TODO: combine with getUserIdFromDiscordId
-				var target_exists = await db.checkUserExists(target_discord_id);
-				// if the target is not registered
-				if (!target_exists['success'] || !target_exists['exists']) {
-					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
-					break;
-				}
-				// check if user is registered
-				// TODO: combine with getUserIdFromDiscordId
-				var user_exists = await db.checkUserExists(message.author.id);
-				// if the user does not exist in database
-				if (!user_exists['success'] || !user_exists['exists']) {
-					break;
-				}
-				// get user id from discord id
+
+				// get user id from discord id, checking if the user is registered
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
-					// failed to get user id from discord id
+					// could not get user id from discord id
+					// is the user registered, or do we just not have a discord id in the database?
 					log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
 					message.channel.send(strings['generic_error']);
 					break;
 				}
+
+				// check if target is registered
+				var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+				if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
+					// could not get target id from discord id
+					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					break;
+				}
+
 				// get user's latest match
 				var user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
 
@@ -287,12 +283,8 @@ client.on('message', message => {
 						((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
 						// TODO: readyplayersuck reacted X, when Maverick confirmed, Maverick lost elo and readyplayersuck gained elo
 						console.log('result: ' + result);
-						// get the target user's user id from their discord id
-						// TODO: get target ID as part of varifying they exist
-						var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
-						var target_db_id = target_id_from_discord_id['id'];
 						// submit match result
-						await db.submitMatchResult(user_id_from_discord_id['id'], target_db_id, !result);
+						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], !result);
 						// ask the target user to confirm the game
 						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
 					}
