@@ -184,7 +184,7 @@ client.on('message', message => {
 			case 'skill':
 			case 'sr':
 				if (args.length == 0) {
-					// gets user elo rating
+					// gets user skill rating
 					// check if user is registered
 					var user_exists = await db.checkUserExists(message.author.id);
 					if (!user_exists['success'] || !user_exists['exists']) {
@@ -201,14 +201,13 @@ client.on('message', message => {
 						break;
 					}
 
-					// get user elo rating
+					// get user skill rating
 					var user_elo_rating = await db.getUserEloRating(user_id_from_discord_id['id']);
 					if (!user_elo_rating['success']) {
-						console.log(user_elo_rating);
 						message.channel.send('error');
 						break;
 					}
-					// output user elo rating
+					// output user skill rating
 					message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
 				} else if (args.length == 1) {
 					// TODO: check others' SR
@@ -222,6 +221,7 @@ client.on('message', message => {
 					break;
 				}
 
+				// target was mentioned in message
 				var target_discord_username = message.mentions.users.values().next().value.username;
 				var target_discord_id = message.mentions.users.values().next().value.id;
 
