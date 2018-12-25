@@ -1,2 +1,2 @@
 # PDL
-Pavlov Duel League web interface
+Pavlov Duel League Discord bot.
