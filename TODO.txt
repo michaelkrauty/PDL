@@ -13,7 +13,7 @@ https://goo.gl/qq2MGo <- current data
 - allow users to submit up to n matches per week (n defined by config int)
 *- allow !submit vs multiple users
 - allow multiple !submit's vs one user
-- !confirm @user confirms the latest match vs that user
+*- !confirm @user confirms the latest match vs that user
 - !dispute @user disputes a match vs that user
 - !challengeme - enables challenges and gives Challenger role in discord
 
