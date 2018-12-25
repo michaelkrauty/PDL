@@ -1,24 +1,22 @@
 https://goo.gl/qq2MGo <- current data
 
-- Assign discord role based on rank
-- Assign ELO score as role? <- maybe
+- !confirmations - shows unconfirmed submissions by and to the user
+- !dispute <user> disputes a match vs that user
+- !adminconfirm <user> [match id] - allows admins to force confirmation of matches
+- !admindispute <user> [match id] - allows admins to nullify a match submission
+- allow users to submit up to n matches per week (n defined by config int)
+- opt into live challenges with !challenges
+*- allow !submit vs multiple users
+- allow multiple !submit's vs one user
+*- !confirm <user> confirms the latest match vs that user
+- !confirmations [user] - shows pending confirmations
+- !challengeme - enables challenges and gives Challenger role in discord
+- Assign discord role based on rank (Ultra Clapper, Grand Master, Master, Operator, Novice)
 - Allow querying of quest progress
 - Assign quest roles
 - Remove roles as needed
 - !weekly command, to run matchups and ranking algorithm updates
 - !pausematchups, to pause matchups and ranking algorithm updates
-- opt into live challenges with !challenges
-- up to x challenges per week (config variable, 3)
-- !confirmations - shows unconfirmed submissions by and to the user
-- allow users to submit up to n matches per week (n defined by config int)
-*- allow !submit vs multiple users
-- allow multiple !submit's vs one user
-*- !confirm <user> confirms the latest match vs that user
-- !confirmations [user] - shows pending confirmations
-- !dispute <user> disputes a match vs that user
-- !challengeme - enables challenges and gives Challenger role in discord
-- !adminconfirm <user> [match id] - allows admins to force confirmation of matches
-- !admindispute <user> [match id] - allows admins to nullify a match submission
 
 if cell = > 4 and less than 10 assign Role - "Column Title" + " " + "Novice"
 if cell = > 9 and less than 25 assign Role- "Column Title" + " " + "Operator". Remove Novice
