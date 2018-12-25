@@ -10,6 +10,11 @@ const glicko2lite = require('glicko2-lite');
 const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 
+const MatchResult = { WIN: 1, LOSS: 0 }
+const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 }
+const ReactionEmoji = { WIN: '✅', LOSS: '❎', CONFIRMED: '👌' }
+exports = MatchResult, RatingMethod;
+
 // configure logger settings
 log.remove(log.transports.Console);
 log.add(new log.transports.Console, {
@@ -25,9 +30,6 @@ client.once('ready', () => {
 	db.connect();
 });
 
-const MatchResult = { WIN: 1, LOSS: 0 }
-const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 }
-exports = MatchResult, RatingMethod;
 
 // called when the bot sees a message
 client.on('message', message => {
@@ -255,20 +257,20 @@ client.on('message', message => {
 				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
 				// add submission reactions to msg
 				// TODO: enumerate emoji reactions
-				await msg.react('✅');
-				await msg.react('❎');
+				await msg.react(ReactionEmoji.WIN);
+				await msg.react(ReactionEmoji.LOSS);
 				// await y/n reaction from user for 60 seconds
-				var filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
+				var filter = (reaction, user) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS) && user.id === message.author.id;
 				var collector = msg.createReactionCollector(filter, { time: 60000 });
 				// reaction collector
 				collector.on('collect', r => {
 					async function collect() {
 						// user added reaction
 						console.log(r['_emoji']['name']);
-						await msg.react('👌');
+						await msg.react(ReactionEmoji.CONFIRMED);
 						// did the user win the match?
 						var result;
-						((r['_emoji']['name'] === '✅') ? result = MatchResult.WIN : result = MatchResult.LOSS);
+						((r['_emoji']['name'] === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
 						// TODO: readyplayersuck reacted X, when Maverick confirmed, Maverick lost elo and readyplayersuck gained elo
 						console.log('result: ' + result);
 						// submit match result
