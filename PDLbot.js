@@ -295,25 +295,22 @@ client.on('message', message => {
 				});
 				break;
 			case 'confirm':
-				// check if user exists
-				// TODO: combine with getUserIdFromDiscordId
-				var user_exists = await db.checkUserExists(message.author.id);
-				if (!user_exists['success'] || !user_exists['exists']) {
-					// user isn't registered
-					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+				// check for a target user mention
+				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+					message.channel.send(strings['confirm_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
+
 				// get user id from discord id
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
 					// failed to get user id from discord id
-					log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')')
-					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-				var user_db_id = user_id_from_discord_id['id'];
+
 				// get the latest match submission where the user was the opponent
-				var opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
+				var opponent_last_match = await db.getOpponentLatestMatch(user_id_from_discord_id['id']);
 				if (!opponent_last_match['success'] || opponent_last_match['match'] == null) {
 					// failed to get most recent match submission where opponent is the user
 					log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
