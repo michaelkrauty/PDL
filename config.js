@@ -1,4 +1,3 @@
-const config = {
+module.exports.config = {
 	rating_method: 0
 };
-module.exports = config;
