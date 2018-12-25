@@ -43,13 +43,13 @@ client.on('message', message => {
 			case 'debug':
 				// debug command for debugging purposes
 				// get user data
-				const user_data = await db.getUserData(message.author.id);
+				var user_data = await db.getUserData(message.author.id);
 				if (!user_data['success']) {
 					break;
 				}
 				// display user data
 				var msg = '';
-				for (let elem in user_data['data']) {
+				for (var elem in user_data['data']) {
 					msg += elem + ': ' + user_data['data'][elem] + '\n'
 					console.log(elem + ': ' + user_data['data'][elem]);
 				}
@@ -72,7 +72,7 @@ client.on('message', message => {
 				// registers user in database
 				if (args.length == 0) {
 					// register message.author
-					const register_user = await db.registerUser(message.author.id, message.author.username)
+					var register_user = await db.registerUser(message.author.id, message.author.username)
 					if (register_user['success']) {
 						// registered
 						message.channel.send(strings['user_is_now_registered'].replace('{user}', tag(message.author.id)));
@@ -88,9 +88,9 @@ client.on('message', message => {
 						return;
 					}
 					// register target user
-					const targetUser = message.mentions.users.values().next().value.username;
-					const targetID = message.mentions.users.values().next().value.id;
-					const register_user = await db.registerUser(targetID, targetUser);
+					var targetUser = message.mentions.users.values().next().value.username;
+					var targetID = message.mentions.users.values().next().value.id;
+					var register_user = await db.registerUser(targetID, targetUser);
 					if (register_user['success']) {
 						// registered 
 						message.channel.send(strings['target_is_now_registered'].replace('{user}', tag(targetID)));
@@ -120,7 +120,7 @@ client.on('message', message => {
 					break;
 				}
 				// set the user's competing state to false
-				const user_competing = await db.setUserCompeting(message.author.id, false);
+				var user_competing = await db.setUserCompeting(message.author.id, false);
 				if (user_competing['success']) {
 					// retired
 					message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
@@ -132,7 +132,7 @@ client.on('message', message => {
 				var user_exists = await db.checkUserExists(message.author.id);
 				if (user_exists['success'] && user_exists['exists']) {
 					// check if user is currently competing
-					const user_competing = await db.isUserCompeting(message.author.id);
+					var user_competing = await db.isUserCompeting(message.author.id);
 					if (user_competing['success'] && user_competing['competing']) {
 						// user is competing
 						message.channel.send(strings['user_is_competing'].replace('{user}', tag(message.author.id)));
@@ -162,8 +162,8 @@ client.on('message', message => {
 					// if a user is mentioned in message
 					if (message.mentions.users.values().next().value != undefined) {
 						// check if target user exists in database
-						const targetUser = message.mentions.users.values().next().value.username;
-						const targetID = message.mentions.users.values().next().value.id;
+						var targetUser = message.mentions.users.values().next().value.username;
+						var targetID = message.mentions.users.values().next().value.id;
 						var user_exists = await db.checkUserExists(targetID);
 						if (user_exists['success'] && user_exists['exists']) {
 							// target is registered
@@ -199,7 +199,7 @@ client.on('message', message => {
 					}
 
 					// get user elo rating
-					const user_elo_rating = await db.getUserEloRating(user_id_from_discord_id['id']);
+					var user_elo_rating = await db.getUserEloRating(user_id_from_discord_id['id']);
 					console.log(5);
 					if (!user_elo_rating['success']) {
 						console.log(user_elo_rating);
@@ -226,11 +226,11 @@ client.on('message', message => {
 					break;
 				}
 
-				const target_discord_username = message.mentions.users.values().next().value.username;
-				const target_discord_id = message.mentions.users.values().next().value.id;
+				var target_discord_username = message.mentions.users.values().next().value.username;
+				var target_discord_id = message.mentions.users.values().next().value.id;
 				// check if target is registered
 				// TODO: combine with getUserIdFromDiscordId
-				const target_exists = await db.checkUserExists(target_discord_id);
+				var target_exists = await db.checkUserExists(target_discord_id);
 				// if the target is not registered
 				if (!target_exists['success'] || !target_exists['exists']) {
 					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
@@ -252,11 +252,11 @@ client.on('message', message => {
 					break;
 				}
 				// get user's latest match
-				const user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
+				var user_latest_match = await db.getUserLatestMatch(user_id_from_discord_id['id']);
 
 				// if the user's latest match is not confirmed
 				if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
-					const opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match['match']['opponent_id']);
+					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match['match']['opponent_id']);
 					// return
 					message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
 					break;
@@ -275,8 +275,8 @@ client.on('message', message => {
 				await msg.react('✅');
 				await msg.react('❎');
 				// await y/n reaction from user for 60 seconds
-				const filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
-				const collector = msg.createReactionCollector(filter, { time: 60000 });
+				var filter = (reaction, user) => (reaction.emoji.name === '✅' || reaction.emoji.name === '❎') && user.id === message.author.id;
+				var collector = msg.createReactionCollector(filter, { time: 60000 });
 				// reaction collector
 				collector.on('collect', r => {
 					async function collect() {
@@ -290,8 +290,8 @@ client.on('message', message => {
 						console.log('result: ' + result);
 						// get the target user's user id from their discord id
 						// TODO: get target ID as part of varifying they exist
-						const target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
-						const target_db_id = target_id_from_discord_id['id'];
+						var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+						var target_db_id = target_id_from_discord_id['id'];
 						// submit match result
 						await db.submitMatchResult(user_id_from_discord_id['id'], target_db_id, !result);
 						// ask the target user to confirm the game
@@ -326,46 +326,46 @@ client.on('message', message => {
 					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-				const user_db_id = user_id_from_discord_id['id'];
+				var user_db_id = user_id_from_discord_id['id'];
 				// get the latest match submission where the user was the opponent
-				const opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
+				var opponent_last_match = await db.getOpponentLatestMatch(user_db_id);
 				if (!opponent_last_match['success'] || opponent_last_match['match'] == null) {
 					// failed to get most recent match submission where opponent is the user
 					log.error('Failed to getOpponentLatestMatch(' + message.author.id + ')');
 					message.channel.send(strings['no_recent_match'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-				const match_id = opponent_last_match['match']['id'];
-				const match_player_id = opponent_last_match['match']['player_id'];
-				const match_opponent_id = opponent_last_match['match']['opponent_id'];
-				const match_result = opponent_last_match['match']['result'] == true;
-				const match_confirmed = opponent_last_match['match']['confirmed'] == true;
+				var match_id = opponent_last_match['match']['id'];
+				var match_player_id = opponent_last_match['match']['player_id'];
+				var match_opponent_id = opponent_last_match['match']['opponent_id'];
+				var match_result = opponent_last_match['match']['result'] == true;
+				var match_confirmed = opponent_last_match['match']['confirmed'] == true;
 				// if the most recent match is already confirmed
 				if (match_confirmed) {
 					message.channel.send(strings['recent_match_confirmed'].replace('{user}', tag(message.author.id)));
 					break;
 				}
 				// get the opponent's latest match
-				const discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
+				var discord_id_from_user_id = await db.getDiscordIdFromUserId(match_player_id);
 				if (!discord_id_from_user_id['success'] || discord_id_from_user_id['discord_id'] == null) {
 					// failed to get discord id from user id
 					log.error('Failed to getDiscordIdFromUserId(' + match_player_id + ')');
 					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-				const match_player_discord_id = discord_id_from_user_id['discord_id'];
+				var match_player_discord_id = discord_id_from_user_id['discord_id'];
 				// update elo
 				if (config.rating_method === RatingMethod.ELO) {
 					// get user's elo rating
-					const userELO = await db.getUserEloRating(match_opponent_id);
+					var userELO = await db.getUserEloRating(match_opponent_id);
 					// get target's elo rating
-					const targetELO = await db.getUserEloRating(match_player_id);
-					const uELO = userELO['elo_rating'];
-					const tELO = targetELO['elo_rating'];
+					var targetELO = await db.getUserEloRating(match_player_id);
+					var uELO = userELO['elo_rating'];
+					var tELO = targetELO['elo_rating'];
 					// calculate new elo
-					const res = eloRating.calculate(uELO, tELO, match_result);
-					const newUserELO = res['playerRating'];
-					const newTargetELO = res['opponentRating'];
+					var res = eloRating.calculate(uELO, tELO, match_result);
+					var newUserELO = res['playerRating'];
+					var newTargetELO = res['opponentRating'];
 					// set user's new elo rating
 					db.setUserEloRating(match_opponent_id, newUserELO);
 					// set target's new elo rating
