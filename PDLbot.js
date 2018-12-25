@@ -213,14 +213,8 @@ client.on('message', message => {
 				break;
 			case 'submit':
 				// submits a game result (win/loss)
-				if (args.length != 1) {
+				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
 					// args.length == 0
-					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
-					break;
-				}
-
-				// check if a user is mentioned
-				if (message.mentions.users.values().next().value == undefined) {
 					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
