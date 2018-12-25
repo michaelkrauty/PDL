@@ -119,12 +119,12 @@ client.on('message', message => {
 					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-					// set the user's competing state to false
-					const user_competing = await db.setUserCompeting(message.author.id, false);
-					if (user_competing['success']) {
-						// retired
-						message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
-					}
+				// set the user's competing state to false
+				const user_competing = await db.setUserCompeting(message.author.id, false);
+				if (user_competing['success']) {
+					// retired
+					message.channel.send(strings['user_no_longer_competing'].replace('{user}', tag(message.author.id)));
+				}
 				break;
 			case 'competing':
 				// checks if user is competing
