@@ -69,7 +69,7 @@ client.on('message', message => {
 				break;
 			case 'help':
 				// shows help dialogue
-				channel.send(strings['help']);
+				message.channel.send(strings['help']);
 				break;
 			case 'register':
 				// registers user in database
