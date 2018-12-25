@@ -200,7 +200,6 @@ client.on('message', message => {
 
 					// get user elo rating
 					var user_elo_rating = await db.getUserEloRating(user_id_from_discord_id['id']);
-					console.log(5);
 					if (!user_elo_rating['success']) {
 						console.log(user_elo_rating);
 						message.channel.send('error');
