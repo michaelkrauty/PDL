@@ -148,6 +148,8 @@ exports.getUserData = function (discord_id) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, data: res[0] });
+			} else {
+				resolve({ success: false });
 			}
 		});
 	});
@@ -301,7 +303,7 @@ exports.getUserIdFromDiscordId = function (discord_id) {
 				resolve({ success: true, id: parseInt(res[0]['id']) });
 			} else {
 				// TODO: id: null?
-				resolve({ success: true, id: null });
+				resolve({ success: false });
 			}
 		});
 	});
@@ -321,7 +323,7 @@ exports.getUserLatestMatch = function (user_id) {
 				resolve({ success: true, match: res[0] });
 			} else {
 				// TODO: id: null?
-				resolve({ success: true, match: null });
+				resolve({ success: true });
 			}
 		});
 	});
@@ -341,7 +343,7 @@ exports.getUserLatestMatchVs = function (user_id, target_id) {
 				resolve({ success: true, match: res[0] });
 			} else {
 				// TODO: id: null?
-				resolve({ success: true, match: null });
+				resolve({ success: true });
 			}
 		});
 	});
@@ -359,6 +361,8 @@ exports.getOpponentLatestMatch = function (opponent_id) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, match: res[0] });
+			} else {
+				resolve({ success: false });
 			}
 		});
 	});
@@ -376,6 +380,8 @@ exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
 			if (err) throw err;
 			if (res.length > 0) {
 				resolve({ success: true, match: res[0] });
+			} else {
+				resolve({ success: false });
 			}
 		});
 	});
