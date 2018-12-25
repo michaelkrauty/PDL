@@ -372,7 +372,7 @@ client.on('message', message => {
 				var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
 				if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
 					// failed to get target id from discord id
-					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', tag(target_discord_id)));
+					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
 					break;
 				}
 
