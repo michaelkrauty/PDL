@@ -259,13 +259,24 @@ client.on('message', message => {
 				var target_discord_username = message.mentions.users.values().next().value.username;
 				var target_discord_id = message.mentions.users.values().next().value.id;
 
+				// user mentioned themself
+				if (target_discord_id == message.author.id) {
+					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+
 				// get user id from discord id, checking if the user is registered
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
 					// could not get user id from discord id
-					// is the user registered, or do we just not have a discord id in the database?
-					log.error('Failed to getUserIdFromDiscordId(' + message.author.id + ')');
-					message.channel.send(strings['generic_error']);
+					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+
+				// check if user is competing
+				var user_is_competing = await db.isUserCompeting(message.author.id);
+				if (!user_is_competing['success'] || user_is_competing['competing'] == null || !user_is_competing['competing']) {
+					message.channel.send(strings['error_user_not_competing'].replace('{user}', tag(message.author.id)));
 					break;
 				}
 
@@ -277,16 +288,33 @@ client.on('message', message => {
 					break;
 				}
 
-				// get user's latest match vs the target
-				var user_latest_match = await db.getUserLatestMatchVs(user_id_from_discord_id['id'], target_id_from_discord_id['id']);
+				// check if target is competing
+				var is_target_competing = await db.isUserCompeting(target_discord_id);
+				if (!is_target_competing['success'] || is_target_competing['competing'] == null || !is_target_competing['competing']) {
+					message.channel.send(strings['target_is_not_competing'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					break;
+				}
 
-				// if the user's latest match vs the target is not confirmed
-				if (user_latest_match['match'] != null && !user_latest_match['match']['confirmed']) {
-					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match['match']['opponent_id']);
-					// return
+				// get user's latest match vs the target
+				var user_latest_match_vs = await db.getUserLatestMatchVs(user_id_from_discord_id['id'], target_id_from_discord_id['id']);
+				// get target's latest match vs the user
+				var target_latest_match_vs = await db.getUserLatestMatchVs(target_id_from_discord_id['id'], user_id_from_discord_id['id']);
+
+				// if the latest match between the user and the target is not confirmed
+				if (user_latest_match_vs['match'] != null && !user_latest_match_vs['match']['confirmed']) {
+					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match_vs['match']['opponent_id']);
+					if (opponent_discord_id['success'] != null || !opponent_discord_id['success']) {
 					message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
 					break;
 				}
+					break;
+				}
+
+				if (target_latest_match_vs['match'] != null && !target_latest_match_vs['match']['confirmed']) {
+					message.channel.send(strings['match_already_submitted_by_other_user'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					break;
+				}
+
 
 				// ask the user if they won
 				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
