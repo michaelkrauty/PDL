@@ -59,6 +59,7 @@ exports.checkUserExists = function (discord_id) {
 			} else {
 				resolve({ success: true, exists: false });
 			}
+			resolve({ success: false });
 		});
 	});
 }
