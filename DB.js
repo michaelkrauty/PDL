@@ -314,15 +314,14 @@ exports.getUserIdFromDiscordId = function (discord_id) {
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, match: []}
  */
-exports.getUserLatestMatch = function (user_id) {
+exports.getUserLatestMatches = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE player_id=? ORDER BY id DESC LIMIT 1;';
-		await con.query(sql, user_id, function (err, res) {
+		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id DESC;';
+		await con.query(sql, [user_id, user_id], function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
-				resolve({ success: true, match: res[0] });
+				resolve({ success: true, matches: res });
 			} else {
-				// TODO: id: null?
 				resolve({ success: true });
 			}
 		});
