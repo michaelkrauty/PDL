@@ -74,13 +74,12 @@ exports.registerUser = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
 		exports.checkUserExists(discord_id).then(function (value) {
 			if (value['success']) {
-				if (value['exists']) {
-					resolve({ success: false });
-				} else {
+				if (!value['exists']) {
 					exports.createUserInDB(discord_id, discord_username).then(function (value) {
-						resolve({ success: value['success'] });
+						resolve({ success: true, registered: value['success'] });
 					});
 				}
+				resolve({ success: true });
 			}
 		});
 	});
