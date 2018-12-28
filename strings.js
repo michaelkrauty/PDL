@@ -17,6 +17,7 @@ const strings = {
 	match_submit_timeout: '{user} timed out, please !submit again.',
 	submit_no_user_specified: '{user} please specifiy a user by tagging them (!submit @<user>).',
 	confirm_no_user_specified: '{user} please specifiy a user by tagging them (!confirm @<user>).',
+	check_no_user_specified: '{user} please specifiy a user by tagging them (!check @<user>).',
 	confirmations_no_user_specified: '{user} Usage: !confirm, or !confirm @<user>, to check pending confirmations.',
 	pending_no_user_specified: '{user} Usage: !pending, or !pending @<user>, to check pending confirmations.',
 	confirm_game_please: '{target} please !confrim the game.',
