@@ -252,7 +252,9 @@ client.on('message', message => {
 						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)).replace('{target}', message.author.username));
 						break;
 					}
+					// compose response message
 					var msg = '';
+					// loop through retrieved matches
 					for (var m in user_latest_matches['matches']) {
 						var match = user_latest_matches['matches'][m];
 						// get the other player's user id
@@ -276,11 +278,19 @@ client.on('message', message => {
 							break;
 						}
 
+						var opponent_data = await db.getUserData(opponent_discord_id['discord_id']);
+						if (!opponent_data['success'] || opponent_data['data'] == null) {
+							// could not get the other player's data from their user id
+							console.log('Could not getUserData(' + opponent_discord_id + ')');
+							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+							break;
+						}
+
 						msg += 'Game ' + match['id'] + ': ';
 						if (match['player_id'] == user_id_from_discord_id['id']) {
-							msg += tag(message.author.id) + ' submitted a ' + match_result_string + ' vs ' + tag(opponent_discord_id['discord_id']) + '\n';
+							msg += tag(message.author.id) + ' submitted a ' + match_result_string + ' vs ' + opponent_data['data']['discord_username'] + '\n';
 						} else {
-							msg += tag(opponent_discord_id['discord_id']) + ' submitted a ' + match_result_string + ' vs ' + tag(message.author.id) + '\n';
+							msg += opponent_data['data']['discord_username'] + ' submitted a ' + match_result_string + ' vs ' + tag(message.author.id) + '\n';
 						}
 					}
 					message.channel.send(msg);
@@ -288,7 +298,7 @@ client.on('message', message => {
 					// TODO: check pending for other user
 					// check for a mention
 					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-						message.channel.send(strings['confirmations_no_user_specified'].replace('{user}', tag(message.author.id)));
+						message.channel.send(strings['pending_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
 
@@ -298,11 +308,9 @@ client.on('message', message => {
 
 					// user mentioned themself
 					if (target_discord_id == message.author.id) {
-						message.channel.send(strings['confirmations_no_user_specified'].replace('{user}', tag(message.author.id)));
+						message.channel.send(strings['pending_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-
-
 
 					// show pending match submissions vs the target
 					// get target user id from target discord id, checking if the target is registered
@@ -348,21 +356,22 @@ client.on('message', message => {
 						var opponent_discord_id = await db.getDiscordIdFromUserId(opponent_id);
 						if (!opponent_discord_id['success'] || opponent_discord_id['discord_id'] == null) {
 							// could not get the other player's discord id from their user id
+							console.log('Could not getDiscordIdFromUserId(' + opponent_id + ')');
 							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 							break;
 						}
 
-						msg += 'Game ' + match['id'] + ': ';
-						if (match['player_id'] == target_id_from_discord_id['id']) {
-							msg += tag(message.author.id) + ' submitted a ' + match_result_string + ' vs ' + tag(opponent_discord_id['discord_id']) + '\n';
-						} else {
-							msg += tag(opponent_discord_id['discord_id']) + ' submitted a ' + match_result_string + ' vs ' + tag(message.author.id) + '\n';
+						var opponent_data = await db.getUserData(opponent_discord_id['discord_id']);
+						if (!opponent_data['success'] || opponent_data['data'] == null) {
+							// could not get the other player's data from their user id
+							console.log('Could not getUserData(' + opponent_discord_id + ')');
+							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+							break;
 						}
+
+						msg += 'Game ' + match['id'] + ': ' + opponent_data['data']['discord_username'] + ' submitted a ' + match_result_string + ' vs ' + target_discord_username + '\n';
 					}
 					message.channel.send(msg);
-
-
-
 				}
 				break;
 			case 'submit':
