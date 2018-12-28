@@ -25,7 +25,7 @@ const strings = {
 	no_recent_match: '{user} no recent match to confirm.',
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
 	match_already_submitted: '{user} you have already submitted your latest game. Waiting for {target} to !confirm.',
-	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm to confirm.',
+	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm @<user> to confirm.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;
