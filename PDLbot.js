@@ -382,7 +382,7 @@ client.on('message', message => {
 				var match_id = opponent_last_match['match']['id'];
 				var match_player_id = opponent_last_match['match']['player_id'];
 				var match_opponent_id = opponent_last_match['match']['opponent_id'];
-				var match_result = opponent_last_match['match']['result'] == true;
+				var match_result = opponent_last_match['match']['result'] == MatchResult.WIN;
 				var match_confirmed = opponent_last_match['match']['confirmed'] == true;
 				// if the most recent match is already confirmed
 				if (match_confirmed) {
@@ -406,7 +406,7 @@ client.on('message', message => {
 					var tELO = targetELO['elo_rating'];
 
 					// calculate new elo
-					var eloRatingCalculation = eloRating.calculate(uELO, tELO, match_result, config.config.elo_k);
+					var eloRatingCalculation = eloRating.calculate(uELO, tELO, !match_result, config.config.elo_k);
 					var newUserELO = eloRatingCalculation['playerRating'];
 					var newTargetELO = eloRatingCalculation['opponentRating'];
 					// set user's new elo rating
