@@ -159,20 +159,11 @@ client.on('message', message => {
 			case 'sr':
 				if (args.length == 0) {
 					// gets user skill rating
-					// check if user is registered
-					// TODO: combine with getUserIdFromDiscordId()
-					var user_exists = await db.checkUserExists(message.author.id);
-					if (!user_exists['success'] || !user_exists['exists']) {
-						// user is not registered
-						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
-						break;
-					}
 					// get user id from discord id
 					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
-						// could not get user id from discord id
-						log.error('Could not getUserIdFromDiscordId(' + message.author.id + ')');
-						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+						// user is not registered
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 						break;
 					}
 					// get user skill rating
@@ -193,22 +184,13 @@ client.on('message', message => {
 					// target was mentioned in message
 					var target_discord_username = message.mentions.users.values().next().value.username;
 					var target_discord_id = message.mentions.users.values().next().value.id;
-					// check if target is registered
-					// TODO: combine with getUserIdFromDiscordId()
-					var user_exists = await db.checkUserExists(target_discord_id);
-					if (!user_exists['success'] || !user_exists['exists']) {
+					// get target user id
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
 						// target is not registered
 						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
 						break;
 					}
-					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
-
-					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
-						// could not get target id from discord id
-						message.channel.send('error');
-						break;
-					}
-
 					// get target skill rating
 					var target_elo_rating = await db.getUserEloRating(target_id_from_discord_id['id']);
 					if (!target_elo_rating['success'] || target_elo_rating['elo_rating'] == null) {
