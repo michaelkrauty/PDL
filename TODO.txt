@@ -1,6 +1,6 @@
 https://goo.gl/qq2MGo <- current data
 
-- !confirmations - shows unconfirmed submissions by and to the user
+*- !pending [user] - shows unconfirmed submissions by and to the user
 - !dispute <user> disputes a match vs that user
 - !adminconfirm <user> [match id] - allows admins to force confirmation of matches
 - !admindispute <user> [match id] - allows admins to nullify a match submission
@@ -9,7 +9,6 @@ https://goo.gl/qq2MGo <- current data
 *- allow !submit vs multiple users
 - allow multiple !submit's vs one user
 *- !confirm <user> confirms the latest match vs that user
-- !confirmations [user] - shows pending confirmations
 - !challengeme - enables challenges and gives Challenger role in discord
 - Assign discord role based on rank (Ultra Clapper, Grand Master, Master, Operator, Novice)
 - Allow querying of quest progress
