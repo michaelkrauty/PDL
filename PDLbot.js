@@ -241,7 +241,8 @@ client.on('message', message => {
 					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
-
+			case 'submit':
+				// submits a game result (win/loss)
 				// get user id from discord id, checking if the user is registered
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
@@ -254,6 +255,22 @@ client.on('message', message => {
 				var user_is_competing = await db.isUserCompeting(message.author.id);
 				if (!user_is_competing['success'] || user_is_competing['competing'] == null || !user_is_competing['competing']) {
 					message.channel.send(strings['error_user_not_competing'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+
+				// check for a mention
+				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+
+				// target was mentioned in message
+				var target_discord_username = message.mentions.users.values().next().value.username;
+				var target_discord_id = message.mentions.users.values().next().value.id;
+
+				// user mentioned themself
+				if (target_discord_id == message.author.id) {
+					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
 
