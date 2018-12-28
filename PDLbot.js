@@ -224,23 +224,70 @@ client.on('message', message => {
 					message.channel.send(strings['target_elo'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
 				}
 				break;
-			case 'submit':
-				// submits a game result (win/loss)
-				// check for a mention
-				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
-					break;
-				}
+			case 'confirmations':
+			case 'pending':
+				// show pending match submissions
+				if (args.length == 0) {
+					// show pending match submissions vs the user
+					// get user id from discord id, checking if the user is registered
+					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
+						// could not get user id from discord id
+						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 
-				// target was mentioned in message
-				var target_discord_username = message.mentions.users.values().next().value.username;
-				var target_discord_id = message.mentions.users.values().next().value.id;
+					// check if user is competing
+					var user_is_competing = await db.isUserCompeting(message.author.id);
+					if (!user_is_competing['success'] || user_is_competing['competing'] == null || !user_is_competing['competing']) {
+						message.channel.send(strings['error_user_not_competing'].replace('{user}', tag(message.author.id)));
+						break;
+					}
 
-				// user mentioned themself
-				if (target_discord_id == message.author.id) {
-					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
-					break;
+					// get user's recent matches
+					var user_latest_matches = await db.getUserLatestMatches(user_id_from_discord_id['id']);
+
+					if (!user_latest_matches['success'] || user_latest_matches['matches'] == null || user_latest_matches['matches'].length == 0) {
+						// no recent unconfirmed matches
+						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)));
+						break;
+					}
+					var msg = '';
+					for (var m in user_latest_matches['matches']) {
+						var match = user_latest_matches['matches'][m];
+						// get the other player's user id
+						var opponent_id = 0;
+						if (match['player_id'] == user_id_from_discord_id['id']) {
+							// user submitted match
+							opponent_id = match['opponent_id'];
+						} else {
+							// match was submitted vs user
+							opponent_id = match['player_id'];
+						}
+						var match_result_string = 'loss';
+						if (match['result'] == 1)
+							match_result_string = 'win';
+
+						// get the other player's discord id using their user id
+						var opponent_discord_id = await db.getDiscordIdFromUserId(opponent_id);
+						if (!opponent_discord_id['success'] || opponent_discord_id['discord_id'] == null) {
+							// could not get the other player's discord id from their user id
+							message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+							break;
+						}
+
+						msg += 'Game ' + match['id'] + ': ';
+						if (match['player_id'] == user_id_from_discord_id['id']) {
+							msg += tag(message.author.id) + ' submitted a ' + match_result_string + ' vs ' + tag(opponent_discord_id['discord_id']) + '\n';
+						} else {
+							msg += tag(opponent_discord_id['discord_id']) + ' submitted a ' + match_result_string + ' vs ' + tag(message.author.id) + '\n';
+						}
+					}
+					message.channel.send(msg);
+				} else if (args.length == 1) {
+					// TODO: check pending for other user
 				}
+				break;
 			case 'submit':
 				// submits a game result (win/loss)
 				// get user id from discord id, checking if the user is registered

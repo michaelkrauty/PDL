@@ -23,6 +23,7 @@ const strings = {
 	confirm_game_please: '{target} please !confrim the game.',
 	new_elo_message: '{user} ELO: {old_user_elo}->{new_user_elo}\n{target} ELO: {old_target_elo}->{new_target_elo}',
 	no_recent_match: '{user} no recent match to confirm.',
+	no_unconfirmed_matches: '{user} no unconfirmed matches found.',
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
 	match_already_submitted: '{user} you have already submitted your latest game. Waiting for {target} to !confirm.',
 	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm @<user> to confirm.',
