@@ -551,7 +551,9 @@ client.on('message', message => {
 				}
 				break;
 			case 'top':
-			// show top 25 players (by ELO)
+				// show top 25 players (by ELO)
+				if (args.length != 0)
+					break;
 				var top_players = await db.getTopPlayers(25);
 				if (!top_players['success'] || top_players['players'] == null) {
 					message.channel.send(strings['could_not_get_top_players'].replace('{user}', tag(message.author.id)));
@@ -559,7 +561,7 @@ client.on('message', message => {
 				}
 				var msg = '';
 				for (i = 0; i < top_players['players'].length; i++) {
-					msg += (i + 1) +'. ' + top_players['players'][i]['discord_username'] + ': ' + top_players['players'][i]['elo_rating'] + ' ELO\n';
+					msg += (i + 1) + '. ' + top_players['players'][i]['discord_username'] + ': ' + top_players['players'][i]['elo_rating'] + ' ELO\n';
 				}
 				message.channel.send('Top players:\n```' + msg + '```');
 				break;
