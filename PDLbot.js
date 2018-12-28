@@ -310,7 +310,7 @@ client.on('message', message => {
 						var result;
 						((r['_emoji']['name'] === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
 						// submit match result
-						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], !result);
+						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], result);
 						// ask the target user to confirm the game
 						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
 					}
