@@ -249,7 +249,7 @@ client.on('message', message => {
 
 					if (!user_latest_matches['success'] || user_latest_matches['matches'] == null || user_latest_matches['matches'].length == 0) {
 						// no recent unconfirmed matches
-						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)));
+						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)).replace('{target}', message.author.username));
 						break;
 					}
 					var msg = '';
