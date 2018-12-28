@@ -550,6 +550,19 @@ client.on('message', message => {
 						.replace('{new_target_elo}', newTargetELO));
 				}
 				break;
+			case 'top':
+			// show top 25 players (by ELO)
+				var top_players = await db.getTopPlayers(25);
+				if (!top_players['success'] || top_players['players'] == null) {
+					message.channel.send(strings['could_not_get_top_players'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+				var msg = '';
+				for (i = 0; i < top_players['players'].length; i++) {
+					msg += (i + 1) +'. ' + top_players['players'][i]['discord_username'] + ': ' + top_players['players'][i]['elo_rating'] + ' ELO\n';
+				}
+				message.channel.send('Top players:\n```' + msg + '```');
+				break;
 		}
 	}
 	command().catch((err) => {

@@ -385,3 +385,23 @@ exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
 		});
 	});
 }
+
+/**
+ * @description get the top x players on the leaderboard
+ * @param {int} amount the amount of top players to retrieve
+ * @returns {success: boolean, players: []}
+ * @todo add rating method
+ */
+exports.getTopPlayers = function (amount, rating_method) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;';
+		await con.query(sql, amount, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, players: res });
+			} else {
+				resolve({ success: true });
+			}
+		});
+	});
+}
