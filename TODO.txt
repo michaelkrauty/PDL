@@ -1,5 +1,6 @@
 https://goo.gl/qq2MGo <- current data
 
+- allow confirming of pending games with !pending, which sends a message with y/n reaction emojis for every pending game
 *- !pending [user] - shows unconfirmed submissions by and to the user
 - !dispute <user> disputes a match vs that user
 - !adminconfirm <user> [match id] - allows admins to force confirmation of matches
