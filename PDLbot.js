@@ -369,11 +369,6 @@ client.on('message', message => {
 							msg += target_discord_username;
 						}
 						msg += '\n';
-
-						// TODO: BUG!
-
-
-						// msg += 'Game ' + match['id'] + ': ' + target_discord_username + ' submitted a ' + match_result_string + ' vs ' + opponent_username + '\n';
 					}
 					message.channel.send(msg);
 				}
