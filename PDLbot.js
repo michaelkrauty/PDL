@@ -75,8 +75,7 @@ client.on('message', message => {
 			case 'compete':
 				// sets user competing state to true
 				if (args.length != 0) {
-					// TODO: compete
-					message.channel.send('compete_try_again');
+					message.channel.send(strings['compete_try_again'].replace('{user}', tag(message.author.id)));
 					break;
 				}
 				// register user if they're not already in the DB
@@ -168,12 +167,12 @@ client.on('message', message => {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 						break;
 					}
+					// get user id from discord id
 					var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-
 					if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
 						// could not get user id from discord id
-						// TODO: error message
-						message.channel.send('error');
+						log.error('Could not getUserIdFromDiscordId(' + message.author.id + ')');
+						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 						break;
 					}
 					// get user skill rating
@@ -213,8 +212,8 @@ client.on('message', message => {
 					// get target skill rating
 					var target_elo_rating = await db.getUserEloRating(target_id_from_discord_id['id']);
 					if (!target_elo_rating['success'] || target_elo_rating['elo_rating'] == null) {
-						// TODO: error message
-						message.channel.send('error');
+						log.error('Failed to getUserEloRating(' + target_id_from_discord_id['id'] + ')');
+						message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
 						break;
 					}
 					// output target skill rating

@@ -11,6 +11,7 @@ const strings = {
 	user_now_competing: '{user} is now competing in PDL!',
 	user_no_longer_competing: '{user} is no longer competing in PDL!',
 	target_is_registered: '{user} {target} is registered in the Pavlov Duel League.',
+	compete_try_again: '{user} Usage: !compete',
 	user_elo: '{user} your ELO is {elo}.',
 	target_elo: '{user} {target}\'s elo is {elo}.',
 	did_you_win: '{user} did you win the game?',
