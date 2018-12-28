@@ -278,6 +278,7 @@ client.on('message', message => {
 
 				// if the latest match between the user and the target is not confirmed
 				if (user_latest_match_vs['match'] != null && !user_latest_match_vs['match']['confirmed']) {
+					// notify the user that the latest game vs the target is not confirmed
 					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match_vs['match']['opponent_id']);
 					if (opponent_discord_id['success'] != null || !opponent_discord_id['success']) {
 						message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
@@ -286,6 +287,7 @@ client.on('message', message => {
 					break;
 				}
 
+				// if the latest match between the target and the user is not confirmed
 				if (target_latest_match_vs['match'] != null && !target_latest_match_vs['match']['confirmed']) {
 					message.channel.send(strings['match_already_submitted_by_other_user'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
 					break;
