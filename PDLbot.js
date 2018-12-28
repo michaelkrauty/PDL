@@ -336,9 +336,6 @@ client.on('message', message => {
 					break;
 				}
 
-				var target_discord_username = message.mentions.users.values().next().value.username;
-				var target_discord_id = message.mentions.users.values().next().value.id;
-
 				// get user id from discord id
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
@@ -346,6 +343,9 @@ client.on('message', message => {
 					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 					break;
 				}
+
+				var target_discord_username = message.mentions.users.values().next().value.username;
+				var target_discord_id = message.mentions.users.values().next().value.id;
 
 				// get target id from discord id
 				var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
