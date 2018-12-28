@@ -90,6 +90,7 @@ client.on('message', message => {
 				}
 				break;
 			case 'retire':
+			case 'quit':
 				// stop competing, but keep data in DB
 				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
