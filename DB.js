@@ -487,6 +487,25 @@ exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
 }
 
 /**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserLatestMatchesOfWeek = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;';
+		await con.query(sql, [user_id, user_id], function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, matches: res });
+			} else {
+				resolve({ success: true });
+			}
+		});
+	});
+}
+
+/**
  * @description get the top x players on the leaderboard
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
