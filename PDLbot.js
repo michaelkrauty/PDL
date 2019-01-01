@@ -719,7 +719,7 @@ client.on('message', message => {
 				if (args.length != 0)
 					break;
 				// get top players
-				var top_players = await db.getTopPlayers(25);
+				var top_players = await db.getTopCompetingPlayers(25);
 				if (!top_players['success'] || top_players['players'] == null) {
 					message.channel.send(strings['could_not_get_top_players'].replace('{user}', tag(message.author.id)));
 					break;
