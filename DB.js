@@ -1,52 +1,62 @@
 const config = require('./config_db.js');
 const mysql = require('mysql');
 const log = require('winston');
-var con;
+var pool;
 
 /**
  * @description connects to SQL database and creates necessary tables
  */
 exports.connect = function () {
-	// connect to MySQL DB
-	log.info('Connecting to MySQL DB: ' + config['db']['user'] + '@' + config['db']['host'] + '...');
-	con = mysql.createConnection({
-		host: config['db']['host'],
-		user: config['db']['user'],
-		password: config['db']['password'],
+	new Promise(async function () {
+
+		// connect to MySQL DB
+		log.info('Connecting to MySQL DB: ' + config['db']['user'] + '@' + config['db']['host'] + '...');
+		var con = await mysql.createConnection({
+			host: config.db.host,
+			user: config.db.user,
+			password: config.db.password
+		});
+		await con.connect(function (err) {
+			if (err) throw err;
+			log.info('Connected to MySQL DB!');
+		});
+		// create DB if it doesn't already exist
+		await con.query('CREATE DATABASE IF NOT EXISTS `' + config['db']['database'] + '`', function (err) {
+			if (err) throw err;
+		});
+		// select DB
+		await con.query('USE `' + config['db']['database'] + '`', function (err) {
+			if (err) throw err;
+		});
+		// create DB tables if they don't already exist
+		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false)', function (err, res) {
+			if (err) throw err;
+			if (res['warningCount'] == 0)
+				log.info('Created MySQL table `users`');
+		});
+		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, timestamp timestamp not null default current_timestamp)', function (err, res) {
+			if (err) throw err;
+			if (res['warningCount'] == 0)
+				log.info('Created MySQL table `matches`');
+		});
+		await con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null)', function (err, res) {
+			if (err) throw err;
+			if (res['warningCount'] == 0)
+				log.info('Created MySQL table `pending_matches`');
+		});
+		await con.end();
+		// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
+		// 	if (err) throw err;
+		// 	if (res['warningCount'] == 0)
+		// 		log.info('Created MySQL table `quests`');
+		// });
+		pool = await mysql.createPool({
+			host: config.db.host,
+			database: config.db.database,
+			user: config.db.user,
+			password: config.db.password
+		});
 	});
-	con.connect(function (err) {
-		if (err) throw err;
-		log.info('Connected to MySQL DB!');
-	});
-	// create DB if it doesn't already exist
-	con.query('CREATE DATABASE IF NOT EXISTS `' + config['db']['database'] + '`', function (err) {
-		if (err) throw err;
-	});
-	// select DB
-	con.query('USE `' + config['db']['database'] + '`', function (err) {
-		if (err) throw err;
-	});
-	// create DB tables if they don't already exist
-	con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false)', function (err, res) {
-		if (err) throw err;
-		if (res['warningCount'] == 0)
-			log.info('Created MySQL table `users`');
-	});
-	con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, timestamp timestamp not null default current_timestamp)', function (err, res) {
-		if (err) throw err;
-		if (res['warningCount'] == 0)
-			log.info('Created MySQL table `matches`');
-	});
-	con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null)', function (err, res) {
-		if (err) throw err;
-		if (res['warningCount'] == 0)
-			log.info('Created MySQL table `pending_matches`');
-	});
-	// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
-	// 	if (err) throw err;
-	// 	if (res['warningCount'] == 0)
-	// 		log.info('Created MySQL table `quests`');
-	// });
 }
 
 /**
@@ -56,15 +66,19 @@ exports.connect = function () {
  */
 exports.checkUserExists = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT id FROM users WHERE discord_id=?;';
-		await con.query(sql, discord_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, exists: true });
-			} else {
-				resolve({ success: true, exists: false });
-			}
-			resolve({ success: false });
+			var sql = 'SELECT id FROM users WHERE discord_id=?;';
+			con.query(sql, discord_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, exists: true });
+				} else {
+					resolve({ success: true, exists: false });
+				}
+				resolve({ success: false });
+			});
 		});
 	});
 }
@@ -98,10 +112,14 @@ exports.registerUser = function (discord_id, discord_username) {
  */
 exports.createUserInDB = function (discord_id, discord_username) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?);';
-		await con.query(sql, [discord_id, discord_username], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?);';
+			con.query(sql, [discord_id, discord_username], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -113,12 +131,16 @@ exports.createUserInDB = function (discord_id, discord_username) {
  */
 exports.isUserCompeting = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT competing FROM users WHERE discord_id=?;';
-		await con.query(sql, discord_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, competing: res[0]['competing'] });
-			}
+			var sql = 'SELECT competing FROM users WHERE discord_id=?;';
+			con.query(sql, discord_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, competing: res[0]['competing'] });
+				}
+			});
 		});
 	});
 }
@@ -131,10 +153,14 @@ exports.isUserCompeting = function (discord_id) {
  */
 exports.setUserCompeting = function (discord_id, competing) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE users SET competing=? WHERE discord_id=?;';
-		await con.query(sql, [competing, discord_id], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'UPDATE users SET competing=? WHERE discord_id=?;';
+			con.query(sql, [competing, discord_id], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -148,14 +174,18 @@ exports.setUserCompeting = function (discord_id, competing) {
  */
 exports.getUserData = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM users WHERE discord_id=?;';
-		await con.query(sql, discord_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, data: res[0] });
-			} else {
-				resolve({ success: false });
-			}
+			var sql = 'SELECT * FROM users WHERE discord_id=?;';
+			con.query(sql, discord_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, data: res[0] });
+				} else {
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -167,12 +197,16 @@ exports.getUserData = function (discord_id) {
  */
 exports.getUserEloRating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT elo_rating FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, elo_rating: res[0]['elo_rating'] });
-			}
+			var sql = 'SELECT elo_rating FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, elo_rating: res[0]['elo_rating'] });
+				}
+			});
 		});
 	});
 }
@@ -184,12 +218,16 @@ exports.getUserEloRating = function (user_id) {
  */
 exports.getUserEloRanking = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT id, elo_rating, FIND_IN_SET( elo_rating, (SELECT GROUP_CONCAT( DISTINCT elo_rating ORDER BY elo_rating DESC ) FROM users)) AS rank FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, rank: res[0]['rank'] });
-			}
+			var sql = 'SELECT id, elo_rating, FIND_IN_SET( elo_rating, (SELECT GROUP_CONCAT( DISTINCT elo_rating ORDER BY elo_rating DESC ) FROM users)) AS rank FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, rank: res[0]['rank'] });
+				}
+			});
 		});
 	});
 }
@@ -201,12 +239,16 @@ exports.getUserEloRanking = function (user_id) {
  */
 exports.getUserGlicko2Rating = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_rating FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, glicko2_rating: res[0]['glicko2_rating'] });
-			}
+			var sql = 'SELECT glicko2_rating FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, glicko2_rating: res[0]['glicko2_rating'] });
+				}
+			});
 		});
 	});
 }
@@ -218,12 +260,16 @@ exports.getUserGlicko2Rating = function (user_id) {
  */
 exports.getUserGlicko2Deviation = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_deviation FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, glicko2_deviation: res[0]['glicko2_deviation'] });
-			}
+			var sql = 'SELECT glicko2_deviation FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, glicko2_deviation: res[0]['glicko2_deviation'] });
+				}
+			});
 		});
 	});
 }
@@ -235,12 +281,16 @@ exports.getUserGlicko2Deviation = function (user_id) {
  */
 exports.getUserGlicko2Volatility = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT glicko2_volatility FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, glicko2_volatility: res[0]['glicko2_volatility'] });
-			}
+			var sql = 'SELECT glicko2_volatility FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, glicko2_volatility: res[0]['glicko2_volatility'] });
+				}
+			});
 		});
 	});
 }
@@ -253,10 +303,14 @@ exports.getUserGlicko2Volatility = function (user_id) {
  */
 exports.setUserEloRating = function (user_id, elo) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE users SET elo_rating=? WHERE id=?;';
-		await con.query(sql, [elo, user_id], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'UPDATE users SET elo_rating=? WHERE id=?;';
+			con.query(sql, [elo, user_id], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -270,10 +324,14 @@ exports.setUserEloRating = function (user_id, elo) {
  */
 exports.submitMatchResult = function (user_id, opponent_user_id, result) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?);';
-		await con.query(sql, [user_id, opponent_user_id, result], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?);';
+			con.query(sql, [user_id, opponent_user_id, result], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -286,10 +344,14 @@ exports.submitMatchResult = function (user_id, opponent_user_id, result) {
  */
 exports.setMatchResultConfirmed = function (match_id, confirmed) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'UPDATE matches SET confirmed=? WHERE id=?;';
-		await con.query(sql, [confirmed, match_id], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'UPDATE matches SET confirmed=? WHERE id=?;';
+			con.query(sql, [confirmed, match_id], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -302,10 +364,14 @@ exports.setMatchResultConfirmed = function (match_id, confirmed) {
  */
 exports.putPendingMatch = function (message_id, match_id, user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'INSERT INTO pending_matches (message_id, match_id, user_id) VALUES (?,?,?);';
-		await con.query(sql, [message_id, match_id, user_id], function (err) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			resolve({ success: true });
+			var sql = 'INSERT INTO pending_matches (message_id, match_id, user_id) VALUES (?,?,?);';
+			con.query(sql, [message_id, match_id, user_id], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
 		});
 	});
 }
@@ -317,15 +383,19 @@ exports.putPendingMatch = function (message_id, match_id, user_id) {
  */
 exports.getPendingMatch = function (message_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT match_id FROM pending_matches WHERE message_id=?;';
-		await con.query(sql, message_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, match_id: parseInt(res[0]['match_id']) });
-			} else {
-				// TODO: id: null?
-				resolve({ success: false });
-			}
+			var sql = 'SELECT match_id FROM pending_matches WHERE message_id=?;';
+			con.query(sql, message_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, match_id: parseInt(res[0]['match_id']) });
+				} else {
+					// TODO: id: null?
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -339,15 +409,19 @@ exports.removePendingMatch = function (message_id, match_id, user_id) {
 	match_id = match_id || 0;
 	user_id = user_id || 0;
 	return new Promise(async function (resolve, reject) {
-		var sql = 'DELETE FROM pending_matches WHERE (message_id=? OR match_id=? OR user_id=?);';
-		await con.query(sql, [message_id, match_id, user_id], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true });
-			} else {
-				// TODO: id: null?
-				resolve({ success: false });
-			}
+			var sql = 'DELETE FROM pending_matches WHERE (message_id=? OR match_id=? OR user_id=?);';
+			con.query(sql, [message_id, match_id, user_id], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true });
+				} else {
+					// TODO: id: null?
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -359,15 +433,19 @@ exports.removePendingMatch = function (message_id, match_id, user_id) {
  */
 exports.getUserPendingMatches = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM pending_matches WHERE user_id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, matches: res });
-			} else {
-				// TODO: id: null?
-				resolve({ success: false });
-			}
+			var sql = 'SELECT * FROM pending_matches WHERE user_id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, matches: res });
+				} else {
+					// TODO: id: null?
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -379,12 +457,16 @@ exports.getUserPendingMatches = function (user_id) {
  */
 exports.getDiscordIdFromUserId = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT discord_id FROM users WHERE id=?;';
-		await con.query(sql, user_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, discord_id: BigInt(res[0]['discord_id']) });
-			}
+			var sql = 'SELECT discord_id FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, discord_id: BigInt(res[0]['discord_id']) });
+				}
+			});
 		});
 	});
 }
@@ -396,15 +478,19 @@ exports.getDiscordIdFromUserId = function (user_id) {
  */
 exports.getUserIdFromDiscordId = function (discord_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT id FROM users WHERE discord_id=?;';
-		await con.query(sql, discord_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, id: parseInt(res[0]['id']) });
-			} else {
-				// TODO: id: null?
-				resolve({ success: false });
-			}
+			var sql = 'SELECT id FROM users WHERE discord_id=?;';
+			con.query(sql, discord_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, id: parseInt(res[0]['id']) });
+				} else {
+					// TODO: id: null?
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -416,14 +502,18 @@ exports.getUserIdFromDiscordId = function (discord_id) {
  */
 exports.getUserLatestMatches = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;';
-		await con.query(sql, [user_id, user_id], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, matches: res });
-			} else {
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;';
+			con.query(sql, [user_id, user_id], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, matches: res });
+				} else {
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -435,15 +525,19 @@ exports.getUserLatestMatches = function (user_id) {
  */
 exports.getUserLatestMatchVs = function (user_id, target_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE player_id=? AND opponent_id=? ORDER BY id DESC LIMIT 1;';
-		await con.query(sql, [user_id, target_id], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, match: res[0] });
-			} else {
-				// TODO: id: null?
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM matches WHERE player_id=? AND opponent_id=? ORDER BY id DESC LIMIT 1;';
+			con.query(sql, [user_id, target_id], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, match: res[0] });
+				} else {
+					// TODO: id: null?
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -455,14 +549,18 @@ exports.getUserLatestMatchVs = function (user_id, target_id) {
  */
 exports.getOpponentLatestMatch = function (opponent_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE opponent_id=? ORDER BY id DESC LIMIT 1;';
-		await con.query(sql, opponent_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, match: res[0] });
-			} else {
-				resolve({ success: false });
-			}
+			var sql = 'SELECT * FROM matches WHERE opponent_id=? ORDER BY id DESC LIMIT 1;';
+			con.query(sql, opponent_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, match: res[0] });
+				} else {
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -474,14 +572,18 @@ exports.getOpponentLatestMatch = function (opponent_id) {
  */
 exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE opponent_id=? AND player_id=? ORDER BY id DESC LIMIT 1;';
-		await con.query(sql, [opponent_id, player_id], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, match: res[0] });
-			} else {
-				resolve({ success: false });
-			}
+			var sql = 'SELECT * FROM matches WHERE opponent_id=? AND player_id=? ORDER BY id DESC LIMIT 1;';
+			con.query(sql, [opponent_id, player_id], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, match: res[0] });
+				} else {
+					resolve({ success: false });
+				}
+			});
 		});
 	});
 }
@@ -493,14 +595,18 @@ exports.getOpponentLatestMatchVs = function (opponent_id, player_id) {
  */
 exports.getUserLatestMatchesOfWeek = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;';
-		await con.query(sql, [user_id, user_id], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, matches: res });
-			} else {
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;';
+			con.query(sql, [user_id, user_id], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, matches: res });
+				} else {
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -512,15 +618,19 @@ exports.getUserLatestMatchesOfWeek = function (user_id) {
  */
 exports.getMatch = function (match_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE id=?;';
-		await con.query(sql, match_id, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, match: res[0] });
-			} else {
-				// TODO: id: null?
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM matches WHERE id=?;';
+			con.query(sql, match_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, match: res[0] });
+				} else {
+					// TODO: id: null?
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -533,14 +643,18 @@ exports.getMatch = function (match_id) {
  */
 exports.getTopPlayers = function (amount, rating_method) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;';
-		await con.query(sql, amount, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, players: res });
-			} else {
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;';
+			con.query(sql, amount, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, players: res });
+				} else {
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -553,14 +667,18 @@ exports.getTopPlayers = function (amount, rating_method) {
  */
 exports.getTopCompetingPlayers = function (amount, rating_method) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;';
-		await con.query(sql, amount, function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, players: res });
-			} else {
-				resolve({ success: true });
-			}
+			var sql = 'SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;';
+			con.query(sql, amount, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, players: res });
+				} else {
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
@@ -573,14 +691,18 @@ exports.getTopCompetingPlayers = function (amount, rating_method) {
  */
 exports.getNearbyPlayers = function (user_id, amount) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);';
-		await con.query(sql, [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount], function (err, res) {
+		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			if (res.length > 0) {
-				resolve({ success: true, players: res });
-			} else {
-				resolve({ success: true });
-			}
+			var sql = 'SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);';
+			con.query(sql, [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount], function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, players: res });
+				} else {
+					resolve({ success: true });
+				}
+			});
 		});
 	});
 }
