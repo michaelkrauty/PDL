@@ -41,7 +41,7 @@ client.once('ready', () => {
 		discord_channels_to_use = require('./channels.json');
 		await fm.checkFile('./admins.json');
 		admin_discord_ids = require('./admins.json');
-});
+	});
 });
 
 // called when the bot sees a message
@@ -652,8 +652,8 @@ client.on('message', message => {
 				if (!user_latest_matches['success']) {
 					// success = false
 					message.channel.send('error');
-						break;
-					}
+					break;
+				}
 				// get the target's latest matches
 				var target_latest_matches = await db.getUserLatestMatches(target_id_from_discord_id['id']);
 				if (!target_latest_matches['success']) {
