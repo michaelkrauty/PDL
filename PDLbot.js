@@ -680,7 +680,7 @@ client.on('message', message => {
 				// 	break;
 				// }
 				// ask the user if they won
-				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
+				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 				// add submission reactions to msg
 				await msg.react(ReactionEmoji.WIN);
 				await msg.react(ReactionEmoji.LOSS);
