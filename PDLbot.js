@@ -4,11 +4,15 @@ const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 const log = require('winston');
 const schedule = require('node-schedule');
+const fs = require('fs');
 
 const auth = require('./auth.json');
 const config = require('./config.js');
 const db = require('./DB.js');
 const strings = require('./strings.js');
+const fm = require('./filemanager.js');
+var discord_channels_to_use;
+var admin_discord_ids;
 
 
 // enums
@@ -31,6 +35,13 @@ client.once('ready', () => {
 	log.info('Logged in as: ' + client.username + ' - (' + client.id + ')');
 	// connect to database
 	db.connect();
+	// setup json storage files
+	new Promise(async function (resolve, reject) {
+		await fm.checkFile('./channels.json');
+		discord_channels_to_use = require('./channels.json');
+		await fm.checkFile('./admins.json');
+		admin_discord_ids = require('./admins.json');
+});
 });
 
 // called when the bot sees a message
