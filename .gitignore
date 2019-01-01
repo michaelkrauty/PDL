@@ -45,3 +45,5 @@ PDLsite/
 PDLSite.js
 *.tmp
 .vscode/
+admins.json
+channels.json
