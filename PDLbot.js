@@ -96,6 +96,9 @@ client.on('message', message => {
 		if (!discord_channels_to_use['data'].includes(message.channel.id))
 			return;
 		switch (cmd) {
+			case 'version':
+				message.channel.send(client.user.username + ' v' + package.version);
+				break;
 			case 'debug':
 				// debug command for debugging purposes, displays user data
 				if (admin && args.length == 1) {
