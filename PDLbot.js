@@ -455,11 +455,12 @@ client.on('message', message => {
 									var opponent_discord_id = await db.getDiscordIdFromUserId(match['match']['player_id']);
 									var opponent_data = await db.getUserData(opponent_discord_id['discord_id']);
 									if (!confirm) {
+										await r.message.clearReactions();
 										await r.message.react(ReactionEmoji.LOSS);
 										await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id['match_id'] + ' vs ' + tag(opponent_data['data']['discord_id']) + ' @Admin');
-										await r.message.react(ReactionEmoji.CONFIRMED);
 									} else {
-										r.message.react(ReactionEmoji.WIN);
+										await r.message.clearReactions();
+										await r.message.react(ReactionEmoji.WIN);
 										if (config.config.rating_method == RatingMethod.ELO) {
 											// get user's elo rating
 											var userElo = await db.getUserEloRating(match['match']['player_id']);
@@ -496,9 +497,9 @@ client.on('message', message => {
 												.replace('{new_user_elo}', newUserELO)
 												.replace('{old_target_elo}', tELO)
 												.replace('{new_target_elo}', newTargetELO));
-											r.message.react(ReactionEmoji.CONFIRMED);
 										}
 									}
+									await r.message.react(ReactionEmoji.CONFIRMED);
 									db.removePendingMatch(r.message.id, match['match']['id']);
 								}
 							}
@@ -516,6 +517,7 @@ client.on('message', message => {
 								async function removePendingMatch() {
 									await db.removePendingMatch(match['id'], msg.id, user_id_from_discord_id['id']);
 								}
+								msg.clearReactions();
 								removePendingMatch().catch((err) => {
 									log.error(err);
 								});
