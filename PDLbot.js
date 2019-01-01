@@ -11,6 +11,7 @@ const config = require('./config.js');
 const db = require('./DB.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
+const package = require('./package.json');
 var discord_channels_to_use;
 var admin_discord_ids;
 
@@ -32,7 +33,7 @@ log.level = 'debug';
 const client = new discord.Client();
 client.login(auth.token);
 client.once('ready', () => {
-	log.info('Logged in as: ' + client.username + ' - (' + client.id + ')');
+	log.info('Starting ' + client.user.username + ' v' + package.version + ' - (' + client.user.id + ')');
 	// connect to database
 	db.connect();
 	// setup json storage files
