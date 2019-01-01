@@ -416,7 +416,7 @@ exports.getUserIdFromDiscordId = function (discord_id) {
  */
 exports.getUserLatestMatches = function (user_id) {
 	return new Promise(async function (resolve, reject) {
-		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id DESC;';
+		var sql = 'SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;';
 		await con.query(sql, [user_id, user_id], function (err, res) {
 			if (err) throw err;
 			if (res.length > 0) {
