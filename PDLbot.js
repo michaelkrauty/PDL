@@ -398,6 +398,7 @@ client.on('message', message => {
 					// compose response message
 					var text = '';
 					// loop through retrieved matches
+					var collected = [];
 					for (var m in user_latest_matches['matches']) {
 						var match = user_latest_matches['matches'][m];
 						// was the submitter the user?
@@ -410,6 +411,7 @@ client.on('message', message => {
 						var match_result_string;
 						(match['result'] == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
 						// get the other player's discord id using their user id
+						// TODO: combine with db.getUserData()
 						var opponent_discord_id = await db.getDiscordIdFromUserId(opponent_id);
 						if (!opponent_discord_id['success'] || opponent_discord_id['discord_id'] == null) {
 							// could not get the other player's discord id from their user id
@@ -450,7 +452,11 @@ client.on('message', message => {
 						// collect reactions
 						collector.on('collect', r => {
 							async function collect() {
+								if (collected.includes(r.message.id))
+									return;
+								collected.push(r.message.id);
 								// user reacted y/n
+								await msg.react(r['_emoji']['name']);
 								var confirm;
 								((r['_emoji']['name'] === ReactionEmoji.WIN) ? confirm = MatchResult.WIN : confirm = MatchResult.LOSS);
 								var match_id = await db.getPendingMatch(r.message.id);
@@ -459,11 +465,9 @@ client.on('message', message => {
 									var opponent_discord_id = await db.getDiscordIdFromUserId(match['match']['player_id']);
 									var opponent_data = await db.getUserData(opponent_discord_id['discord_id']);
 									if (!confirm) {
-										await r.message.clearReactions();
 										await r.message.react(ReactionEmoji.LOSS);
 										await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id['match_id'] + ' vs ' + tag(opponent_data['data']['discord_id']) + ' @Admin');
 									} else {
-										await r.message.clearReactions();
 										await r.message.react(ReactionEmoji.WIN);
 										if (config.config.rating_method == RatingMethod.ELO) {
 											// get user's elo rating
@@ -503,8 +507,8 @@ client.on('message', message => {
 												.replace('{new_target_elo}', newTargetELO));
 										}
 									}
+									await db.removePendingMatch(r.message.id, match['match']['id']);
 									await r.message.react(ReactionEmoji.CONFIRMED);
-									db.removePendingMatch(r.message.id, match['match']['id']);
 								}
 							}
 							collect().catch((err) => {
@@ -692,9 +696,12 @@ client.on('message', message => {
 				var filter = (reaction, user) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS) && user.id === message.author.id;
 				var collector = msg.createReactionCollector(filter, { time: 60000 });
 				// reaction collector
+				var collected = [];
 				collector.on('collect', r => {
 					async function collect() {
-						await msg.clearReactions();
+						if (collected.includes(r.message.id))
+							return;
+						collected.push(r.message.id);
 						// user reacted y/n
 						await msg.react(r['_emoji']['name']);
 						// did the user win the match?
@@ -705,6 +712,7 @@ client.on('message', message => {
 						// ask the target user to confirm the game
 						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(mention.id)).replace('{user}', message.author.username).replace('{game_id}'));
 						collector.stop();
+						msg.react(ReactionEmoji.CONFIRMED);
 					}
 					collect().catch((err) => {
 						// error collecting reactions
