@@ -289,8 +289,14 @@ client.on('message', message => {
 						message.channel.send('error');
 						break;
 					}
+					// get user rank
+					var user_rank = await db.getUserEloRanking(user_id_from_discord_id['id']);
+					if (!user_rank['success'] || user_rank['rank'] == null) {
+						message.channel.send('error');
+						break;
+					}
 					// output user skill rating
-					message.channel.send(strings['user_elo'].replace('{user}', tag(message.author.id)).replace('{elo}', user_elo_rating['elo_rating']));
+					message.channel.send(strings['user_skill_rating'].replace('{user}', tag(message.author.id)).replace('{skill_rating}', user_elo_rating['elo_rating']).replace('{user_rank}', user_rank['rank']));
 				} else if (args.length == 1) {
 					// gets other user's skill rating
 					// check for a mention
@@ -316,7 +322,7 @@ client.on('message', message => {
 						break;
 					}
 					// output target skill rating
-					message.channel.send(strings['target_elo'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
+					message.channel.send(strings['target_skill_rating'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
 				}
 				break;
 			case 'confirmations':
