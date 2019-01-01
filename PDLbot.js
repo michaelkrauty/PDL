@@ -97,18 +97,46 @@ client.on('message', message => {
 		switch (cmd) {
 			case 'debug':
 				// debug command for debugging purposes, displays user data
+				if (admin && args.length == 1) {
+					// check for a mention
+					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
+						break;
+					}
+					// target was mentioned in message
+					var target_discord_username = message.mentions.users.values().next().value.username;
+					var target_discord_id = message.mentions.users.values().next().value.id;
+					// get target user id
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
+						// target is not registered
+						message.channel.send(tag(message.author.id) + ' no data to display.');
+						break;
+					}
+					var target_data = await db.getUserData(target_discord_id);
+					if (!target_data['success']) {
+						message.channel.send(tag(message.author.id) + ' no data to display.');
+						break;
+					}
+					// display user data
+					var msg = tag(message.author.id) + '\n';
+					for (var elem in target_data['data']) {
+						msg += elem + ': ' + target_data['data'][elem] + '\n'
+					}
+					message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
+					break;
+				}
 				var user_data = await db.getUserData(message.author.id);
 				if (!user_data['success']) {
-					message.channel.send('No data to display.');
+					message.channel.send(tag(message.author.id) + ' no data to display.');
 					break;
 				}
 				// display user data
 				var msg = '';
 				for (var elem in user_data['data']) {
 					msg += elem + ': ' + user_data['data'][elem] + '\n'
-					console.log(elem + ': ' + user_data['data'][elem]);
 				}
-				message.channel.send('```javascript\n' + msg + '```');
+				message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
 				break;
 			case 'say':
 				// TODO: remove this command before release
