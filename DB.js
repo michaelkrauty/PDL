@@ -544,3 +544,23 @@ exports.getTopPlayers = function (amount, rating_method) {
 		});
 	});
 }
+
+/**
+ * @description get the top x players on the leaderboard
+ * @param {int} amount the amount of top players to retrieve
+ * @returns {success: boolean, players: []}
+ * @todo add rating method
+ */
+exports.getNearbyPlayers = function (user_id, amount) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);';
+		await con.query(sql, [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount], function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, players: res });
+			} else {
+				resolve({ success: true });
+			}
+		});
+	});
+}
