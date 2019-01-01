@@ -138,6 +138,40 @@ client.on('message', message => {
 				}
 				message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
 				break;
+			case 'channels':
+				if (!admin)
+					break;
+				var msg = '';
+				for (i = 0; i < discord_channels_to_use['data'].length; i++) {
+					msg += discord_channels_to_use['data'][i] + ':"' + client.channels.get(discord_channels_to_use['data'][i]) + '"\n';
+				}
+				message.channel.send(msg);
+				break;
+			case 'deinit':
+				if (!admin)
+					break;
+				var channels = discord_channels_to_use['data'];
+				if (channels == undefined || !channels.includes(message.channel.id)) {
+					message.channel.send('Currently not using channel ' + message.channel.id + ':"' + message.channel.name + '"');
+					break;
+				}
+				channels.splice(channels.indexOf(message.channel.id), 1);
+
+				new Promise(async function (resolve, reject) {
+					await fs.exists('./channels.json', async function (exists) {
+						if (exists)
+							await fs.writeFileSync('./channels.json', JSON.stringify({ data: channels }), (err) => {
+								log.error(err);
+							});
+					});
+					discord_channels_to_use = require('./channels.json')
+				});
+				var msg = 'Success, using channels: \n';
+				for (i = 0; i < discord_channels_to_use['data'].length; i++) {
+					msg += discord_channels_to_use['data'][i] + ':"' + client.channels.get(discord_channels_to_use['data'][i]) + '"\n';
+				}
+				message.channel.send(msg);
+				break;
 			case 'say':
 				// TODO: remove this command before release
 				// make the bot say a message, for debug only
