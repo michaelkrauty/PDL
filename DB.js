@@ -295,6 +295,84 @@ exports.setMatchResultConfirmed = function (match_id, confirmed) {
 }
 
 /**
+ * @description confirm a match result
+ * @param {int} match_id the match to confirm
+ * @param {boolean} confirmed is the match confirmed?
+ * @returns {success: boolean}
+ */
+exports.putPendingMatch = function (message_id, match_id, user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'INSERT INTO pending_matches (message_id, match_id, user_id) VALUES (?,?,?);';
+		await con.query(sql, [message_id, match_id, user_id], function (err) {
+			if (err) throw err;
+			resolve({ success: true });
+		});
+	});
+}
+
+/**
+ * @description get user id from Discord id
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, id: bigint}
+ */
+exports.getPendingMatch = function (message_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT match_id FROM pending_matches WHERE message_id=?;';
+		await con.query(sql, message_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match_id: parseInt(res[0]['match_id']) });
+			} else {
+				// TODO: id: null?
+				resolve({ success: false });
+			}
+		});
+	});
+}
+
+/**
+ * @description get user id from Discord id
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, id: bigint}
+ */
+exports.removePendingMatch = function (message_id, match_id, user_id) {
+	match_id = match_id || 0;
+	user_id = user_id || 0;
+	return new Promise(async function (resolve, reject) {
+		var sql = 'DELETE FROM pending_matches WHERE (message_id=? OR match_id=? OR user_id=?);';
+		await con.query(sql, [message_id, match_id, user_id], function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true });
+			} else {
+				// TODO: id: null?
+				resolve({ success: false });
+			}
+		});
+	});
+}
+
+/**
+ * @description get user id from Discord id
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, id: bigint}
+ */
+exports.getUserPendingMatches = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM pending_matches WHERE user_id=?;';
+		await con.query(sql, user_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, matches: res });
+			} else {
+				// TODO: id: null?
+				resolve({ success: false });
+			}
+		});
+	});
+}
+
+/**
  * @description get Discord id from user id
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, discord_id: bigint}
