@@ -551,6 +551,26 @@ exports.getTopPlayers = function (amount, rating_method) {
  * @returns {success: boolean, players: []}
  * @todo add rating method
  */
+exports.getTopCompetingPlayers = function (amount, rating_method) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;';
+		await con.query(sql, amount, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, players: res });
+			} else {
+				resolve({ success: true });
+			}
+		});
+	});
+}
+
+/**
+ * @description get the top x players on the leaderboard
+ * @param {int} amount the amount of top players to retrieve
+ * @returns {success: boolean, players: []}
+ * @todo add rating method
+ */
 exports.getNearbyPlayers = function (user_id, amount) {
 	return new Promise(async function (resolve, reject) {
 		var sql = 'SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);';
