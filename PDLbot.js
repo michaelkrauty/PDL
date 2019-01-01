@@ -627,52 +627,48 @@ client.on('message', message => {
 					break;
 				}
 				// check for a mention
-				if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
-					break;
-				}
-				// target was mentioned in message
-				var target_discord_username = message.mentions.users.values().next().value.username;
-				var target_discord_id = message.mentions.users.values().next().value.id;
-				// user mentioned themself
-				if (target_discord_id == message.author.id) {
+				var mention = message.mentions.users.values().next().value;
+				if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
+					// no mentions, too many arguments, or user mentioned self
 					message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 					break;
 				}
 				// check if target is registered
-				var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
 				if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
 					// could not get target id from discord id
-					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 					break;
 				}
 				// check if target is competing
-				var is_target_competing = await db.isUserCompeting(target_discord_id);
+				var is_target_competing = await db.isUserCompeting(mention.id);
 				if (!is_target_competing['success'] || is_target_competing['competing'] == null || !is_target_competing['competing']) {
 					// target is not competing
-					message.channel.send(strings['target_is_not_competing'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					message.channel.send(strings['target_is_not_competing'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 					break;
 				}
-				// get user's latest match vs the target
-				var user_latest_match_vs = await db.getUserLatestMatchVs(user_id_from_discord_id['id'], target_id_from_discord_id['id']);
-				// get target's latest match vs the user
-				var target_latest_match_vs = await db.getUserLatestMatchVs(target_id_from_discord_id['id'], user_id_from_discord_id['id']);
-				// if the latest match between the user and the target is not confirmed
-				if (user_latest_match_vs['match'] != null && !user_latest_match_vs['match']['confirmed']) {
-					// notify the user that the latest game vs the target is not confirmed
-					var opponent_discord_id = await db.getDiscordIdFromUserId(user_latest_match_vs['match']['opponent_id']);
-					if (opponent_discord_id['success'] != null || !opponent_discord_id['success']) {
-						message.channel.send(strings['match_already_submitted'].replace('{user}', tag(message.author.id)).replace('{target}', tag(opponent_discord_id['discord_id'])));
+				// get the user's latest matches
+				var user_latest_matches = await db.getUserLatestMatches(user_id_from_discord_id['id']);
+				if (!user_latest_matches['success']) {
+					// success = false
+					message.channel.send('error');
 						break;
 					}
+				// get the target's latest matches
+				var target_latest_matches = await db.getUserLatestMatches(target_id_from_discord_id['id']);
+				if (!target_latest_matches['success']) {
+					// target has no recent matches
+					message.channel.send('target no recent matches');
 					break;
 				}
-				// check if the latest match between the target and the user is confirmed
-				if (target_latest_match_vs['match'] != null && !target_latest_match_vs['match']['confirmed']) {
-					// the latest match between the target and the user is not confirmed
-					message.channel.send(strings['match_already_submitted_by_other_user'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
-					break;
-				}
+				// get the amount of matches the user has played within the last week
+				// TODO
+				// if the user has less match submissions than the weekly limit as set in the config
+				// if (user_latest_matches['matches'].length + target_latest_matches['matches'].length >= config.config.maximum_weekly_challenges) {
+				// 	// user has already played the maximum amount of matches for the week
+				// 	message.channel.send('maximum weekly matches: ' + config.config.maximum_weekly_challenges);
+				// 	break;
+				// }
 				// ask the user if they won
 				var msg = await message.channel.send(strings['did_you_win'].replace('{user}', tag(message.author.id)));
 				// add submission reactions to msg
@@ -692,7 +688,7 @@ client.on('message', message => {
 						// submit match result
 						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], result);
 						// ask the target user to confirm the game
-						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(target_discord_id)));
+						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(mention.id)).replace('{user}', message.author.username));
 					}
 					collect().catch((err) => {
 						// error collecting reactions
