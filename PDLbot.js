@@ -183,7 +183,10 @@ client.on('message', message => {
 				break;
 			case 'help':
 				// shows help dialogue
-				message.channel.send(strings['help']);
+				msg = strings['help'];
+				if (admin)
+					msg += strings['admin_help'];
+				message.channel.send(msg);
 				break;
 			case 'compete':
 				// sets user competing state to true
