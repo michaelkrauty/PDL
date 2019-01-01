@@ -188,6 +188,7 @@ client.on('message', message => {
 					msg += strings['admin_help'];
 				message.channel.send(msg);
 				break;
+			case 'register':
 			case 'compete':
 				// sets user competing state to true
 				if (args.length != 0) {
