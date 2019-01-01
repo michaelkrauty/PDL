@@ -690,15 +690,17 @@ client.on('message', message => {
 				// reaction collector
 				collector.on('collect', r => {
 					async function collect() {
+						await msg.clearReactions();
 						// user reacted y/n
-						await msg.react(ReactionEmoji.CONFIRMED);
+						await msg.react(r['_emoji']['name']);
 						// did the user win the match?
 						var result;
 						((r['_emoji']['name'] === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
 						// submit match result
 						await db.submitMatchResult(user_id_from_discord_id['id'], target_id_from_discord_id['id'], result);
 						// ask the target user to confirm the game
-						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(mention.id)).replace('{user}', message.author.username));
+						message.channel.send(strings['confirm_game_please'].replace('{target}', tag(mention.id)).replace('{user}', message.author.username).replace('{game_id}'));
+						collector.stop();
 					}
 					collect().catch((err) => {
 						// error collecting reactions
