@@ -37,6 +37,11 @@ exports.connect = function () {
 		if (res['warningCount'] == 0)
 			log.info('Created MySQL table `matches`');
 	});
+	con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null)', function (err, res) {
+		if (err) throw err;
+		if (res['warningCount'] == 0)
+			log.info('Created MySQL table `pending_matches`');
+	});
 	// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
 	// 	if (err) throw err;
 	// 	if (res['warningCount'] == 0)
