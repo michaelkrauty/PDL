@@ -51,9 +51,49 @@ client.on('message', message => {
 		return;
 	var args = message.content.substring(1).split(' ');
 	const cmd = args[0];
+	var admin = admin_discord_ids['data'].includes(message.author.id);
 	args = args.splice(1);
 	// running the command must be async due to database interactions
 	async function command() {
+		// initialize a channel for use by the bot
+		if (cmd == 'init') {
+			// require admin privileges
+			if (!admin)
+				return;
+			var channels = discord_channels_to_use['data'];
+			if (channels != undefined) {
+				if (channels.includes(message.channel.id)) {
+					message.channel.send('Already using channel ' + message.channel.id + ':"' + message.channel.name + '"');
+					return;
+				}
+				channels.push(message.channel.id);
+			} else
+				channels = [message.channel.id];
+
+			var exists = await fm.checkFile('./channels.json');
+			await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+				log.error(err);
+			});
+			discord_channels_to_use = require('./channels.json');
+
+			var msg = 'Success, using channels: \n';
+			for (i = 0; i < discord_channels_to_use['data'].length; i++) {
+				msg += discord_channels_to_use['data'][i] + ':"' + client.channels.get(discord_channels_to_use['data'][i]) + '"\n';
+			}
+			message.channel.send(msg);
+			return;
+
+
+			// await fs.exists('./channels.json', async function (exists) {
+			// 	if (exists)
+			// 		await fs.writeFileSync('./channels.json', JSON.stringify({ channels: channels }), (err) => {
+			// 			log.error(err);
+			// 		});
+			// });
+			// discord_channels_to_use = require('./channels.json')
+		}
+		if (!discord_channels_to_use['data'].includes(message.channel.id))
+			return;
 		switch (cmd) {
 			case 'debug':
 				// debug command for debugging purposes, displays user data
