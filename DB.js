@@ -506,6 +506,26 @@ exports.getUserLatestMatchesOfWeek = function (user_id) {
 }
 
 /**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getMatch = function (match_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT * FROM matches WHERE id=?;';
+		await con.query(sql, match_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, match: res[0] });
+			} else {
+				// TODO: id: null?
+				resolve({ success: true });
+			}
+		});
+	});
+}
+
+/**
  * @description get the top x players on the leaderboard
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
