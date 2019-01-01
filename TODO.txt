@@ -17,6 +17,7 @@ https://goo.gl/qq2MGo <- current data
 - Remove roles as needed
 - !weekly command, to run matchups and ranking algorithm updates
 - !pausematchups, to pause matchups and ranking algorithm updates
+- make !submit confirm message show both players, game result, and game ID
 
 if cell = > 4 and less than 10 assign Role - "Column Title" + " " + "Novice"
 if cell = > 9 and less than 25 assign Role- "Column Title" + " " + "Operator". Remove Novice
