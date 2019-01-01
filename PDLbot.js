@@ -325,6 +325,44 @@ client.on('message', message => {
 					message.channel.send(strings['target_skill_rating'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
 				}
 				break;
+			case 'sr2':
+				// show player rank plus 2 above and below
+				// get user id from discord id
+				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
+				if (!user_id_from_discord_id['success'] || user_id_from_discord_id['id'] == null) {
+					// user is not registered
+					message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
+					break;
+				}
+
+				// get player and nearby players
+				var nearby_players = await db.getNearbyPlayers(user_id_from_discord_id['id'], 2);
+				if (!nearby_players['players'] || nearby_players['players'] == null) {
+					message.channel.send(strings['generic_error'].replace('{user}', tag(message.author.id)));
+					error.log('could not getNearbyPlayers(' + user_id_from_discord_id['id'] + ')');
+					break;
+				}
+				// construct message
+				nearby_players['players'].sort(function (a, b) {
+					return !(a['elo_rating'] > b['elo_rating']);
+				});
+				var msg = '';
+				for (i = 0; i < nearby_players['players'].length; i++) {
+					var rank = await db.getUserEloRanking(nearby_players['players'][i]['id']);
+					if (!rank['success'] || rank['rank'] == null) {
+						log.error('Could not getUserEloRanking(' + nearby_players['players'][i]['id'] + ')');
+						break;
+					}
+					var p; nearby_players['players'][i]['id'] == user_id_from_discord_id['id'] ? p = true : p = false;
+					var username = nearby_players['players'][i]['discord_username'];
+					if (p)
+						msg += rank['rank'] + '. **' + username + '**: ' + nearby_players['players'][i]['elo_rating'] + ' ELO\n';
+					else
+						msg += rank['rank'] + '. ' + username + ': ' + nearby_players['players'][i]['elo_rating'] + ' ELO\n';
+
+				}
+				message.channel.send('' + msg + '');
+				break;
 			case 'confirmations':
 			case 'pending':
 				// show pending match submissions
