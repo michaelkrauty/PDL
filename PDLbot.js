@@ -375,12 +375,6 @@ client.on('message', message => {
 						message.channel.send(strings['error_not_registered'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-					// check if user is competing
-					var user_is_competing = await db.isUserCompeting(message.author.id);
-					if (!user_is_competing['success'] || user_is_competing['competing'] == null || !user_is_competing['competing']) {
-						message.channel.send(strings['error_user_not_competing'].replace('{user}', tag(message.author.id)));
-						break;
-					}
 					// get user's recent matches
 					var user_latest_matches = await db.getUserLatestMatches(user_id_from_discord_id['id']);
 					if (!user_latest_matches['success'] || user_latest_matches['matches'] == null || user_latest_matches['matches'].length == 0) {
@@ -388,14 +382,18 @@ client.on('message', message => {
 						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)).replace('{target}', message.author.username));
 						break;
 					}
+					var waiting_for_input = false;
 					// compose response message
-					var msg = '';
+					var text = '';
 					// loop through retrieved matches
 					for (var m in user_latest_matches['matches']) {
 						var match = user_latest_matches['matches'][m];
+						// was the submitter the user?
+						var submitter_was_user;
+						match['player_id'] == user_id_from_discord_id['id'] ? submitter_was_user = true : submitter_was_user = false;
 						// get the other player's user id
 						var opponent_id;
-						(match['player_id'] == user_id_from_discord_id['id'] ? opponent_id = match['opponent_id'] : opponent_id = match['player_id']);
+						(submitter_was_user ? opponent_id = match['opponent_id'] : opponent_id = match['player_id']);
 						// create a string of the match result (win/loss)
 						var match_result_string;
 						(match['result'] == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
@@ -416,14 +414,111 @@ client.on('message', message => {
 							break;
 						}
 						// compose message with match id, tag the author, show other player's name in plaintext (no tag)
-						msg += 'Game ' + match['id'] + ': ';
-						(match['player_id'] == user_id_from_discord_id['id'] ?
-							msg += tag(message.author.id) + ' submitted a ' + match_result_string + ' vs ' + opponent_data['data']['discord_username'] + '\n' :
-							msg += opponent_data['data']['discord_username'] + ' submitted a ' + match_result_string + ' vs ' + tag(message.author.id) + '\n');
+						text = '';
+						(submitter_was_user ?
+							text += tag(message.author.id) + ' submitted a **' + match_result_string + '** vs **' + opponent_data['data']['discord_username'] + '** in Game ' + match['id'] + '\n' :
+							text += '**' + opponent_data['data']['discord_username'] + '** submitted a **' + match_result_string + '** vs ' + tag(message.author.id) + ' in Game ' + match['id'] + '\n');
+						// send it
+						if (submitter_was_user) {
+							message.channel.send(text);
+							continue;
+						}
+						waiting_for_input = true;
+						// ask the user if they won
+						var msg = await message.channel.send(text);
+
+						await db.putPendingMatch(msg.id, match['id'], user_id_from_discord_id['id']);
+
+						// add submission reactions to msg
+						await msg.react(ReactionEmoji.WIN);
+						await msg.react(ReactionEmoji.LOSS);
+						// await y/n reaction from user for 60 seconds
+						var filter = (reaction, user) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS) && user.id === message.author.id;
+						var collector = msg.createReactionCollector(filter, { time: 60000 });
+						// collect reactions
+						collector.on('collect', r => {
+							async function collect() {
+								// user reacted y/n
+								var confirm;
+								((r['_emoji']['name'] === ReactionEmoji.WIN) ? confirm = MatchResult.WIN : confirm = MatchResult.LOSS);
+								var match_id = await db.getPendingMatch(r.message.id);
+								if (match_id['success'] && match_id['match_id'] != null) {
+									var match = await db.getMatch(match_id['match_id']);
+									var opponent_discord_id = await db.getDiscordIdFromUserId(match['match']['player_id']);
+									var opponent_data = await db.getUserData(opponent_discord_id['discord_id']);
+									if (!confirm) {
+										await r.message.react(ReactionEmoji.LOSS);
+										await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id['match_id'] + ' vs ' + tag(opponent_data['data']['discord_id']) + ' @Admin');
+										await r.message.react(ReactionEmoji.CONFIRMED);
+									} else {
+										r.message.react(ReactionEmoji.WIN);
+										if (config.config.rating_method == RatingMethod.ELO) {
+											// get user's elo rating
+											var userElo = await db.getUserEloRating(match['match']['player_id']);
+											// get opponent's elo rating
+											var opponentElo = await db.getUserEloRating(match['match']['opponent_id']);
+											var uELO = userElo['elo_rating'];
+											var tELO = opponentElo['elo_rating'];
+											// calculate new elo
+											var eloRatingCalculation = eloRating.calculate(uELO, tELO, match['match']['result'], config.config.elo_k);
+											var newUserELO = eloRatingCalculation['playerRating'] + config.config.bonus_elo;
+											var newTargetELO = eloRatingCalculation['opponentRating'] + config.config.bonus_elo;
+											// set user's new elo rating
+											db.setUserEloRating(match['match']['player_id'], newUserELO);
+											// set target's new elo rating
+											db.setUserEloRating(match['match']['opponent_id'], newTargetELO);
+											// set confirm the match
+											db.setMatchResultConfirmed(match['match']['id'], true);
+											// get users' new ranks
+											var user_rank = await db.getUserEloRanking(match['match']['player_id']);
+											var target_rank = await db.getUserEloRanking(match['match']['opponent_id']);
+											// message users
+											var winloss;
+											match['match']['result'] ? winloss = 'win' : winloss = 'loss';
+											await message.channel.send(strings['new_elo_message']
+												.replace('{game_id}', match['match']['id'])
+												.replace('{winloss}', winloss)
+												.replace('{user}', tag(opponent_data['data']['discord_id']))
+												.replace('{target}', tag(message.author.id))
+												.replace('{user_name}', opponent_data['data']['discord_username'])
+												.replace('{target_name}', message.author.username)
+												.replace('{user_elo_rank}', user_rank['rank'])
+												.replace('{target_elo_rank}', target_rank['rank'])
+												.replace('{old_user_elo}', uELO)
+												.replace('{new_user_elo}', newUserELO)
+												.replace('{old_target_elo}', tELO)
+												.replace('{new_target_elo}', newTargetELO));
+											r.message.react(ReactionEmoji.CONFIRMED);
+										}
+									}
+									db.removePendingMatch(r.message.id, match['match']['id']);
+								}
+							}
+							collect().catch((err) => {
+								// error collecting reactions
+								log.error(err);
+							});
+						});
+						collector.on('end', collected => {
+							if (collected.size < 1) {
+								// console.log(collector.message);
+								// var match_id = await db.getPendingMatch(collector.message.id);
+								// no y/n reaction was collected
+								message.channel.send(strings['pending_submit_timeout'].replace('{user}', tag(message.author.id)));
+								async function removePendingMatch() {
+									await db.removePendingMatch(match['id'], msg.id, user_id_from_discord_id['id']);
+								}
+								removePendingMatch().catch((err) => {
+									log.error(err);
+								});
+							}
+						});
+
 					}
-					// send it
-					message.channel.send(msg);
-				} else if (args.length == 1) {
+					if (waiting_for_input) {
+						message.channel.send(tag(message.author.id) + ' Use the check to confirm, or X to dispute.');
+					}
+				}/* else if (args.length == 1) {
 					// check for a mention
 					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
 						message.channel.send(strings['pending_no_user_specified'].replace('{user}', tag(message.author.id)));
@@ -513,7 +608,7 @@ client.on('message', message => {
 						msg += '\n';
 					}
 					message.channel.send(msg);
-				}
+				}*/
 				break;
 			case 'submit':
 				// submits a game result (win/loss)
