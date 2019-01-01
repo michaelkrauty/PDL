@@ -346,8 +346,16 @@ client.on('message', message => {
 				nearby_players['players'].sort(function (a, b) {
 					return !(a['elo_rating'] > b['elo_rating']);
 				});
+				var player_index = 0;
+				for (i = 0; i < nearby_players['players'].length; i++) {
+					if (nearby_players['players'][i]['id'] == user_id_from_discord_id['id']) {
+						player_index = i;
+					}
+				}
 				var msg = '';
 				for (i = 0; i < nearby_players['players'].length; i++) {
+					if (i < player_index - 2 || i > player_index + 2)
+						continue;
 					var rank = await db.getUserEloRanking(nearby_players['players'][i]['id']);
 					if (!rank['success'] || rank['rank'] == null) {
 						log.error('Could not getUserEloRanking(' + nearby_players['players'][i]['id'] + ')');
