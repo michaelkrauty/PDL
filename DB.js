@@ -178,6 +178,23 @@ exports.getUserEloRating = function (user_id) {
 }
 
 /**
+ * @description get user's ELO rating
+ * @param {bigint} id the user's id
+ * @returns {success: boolean, rank: int}
+ */
+exports.getUserEloRanking = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		var sql = 'SELECT id, elo_rating, FIND_IN_SET( elo_rating, (SELECT GROUP_CONCAT( DISTINCT elo_rating ORDER BY elo_rating DESC ) FROM users)) AS rank FROM users WHERE id=?;';
+		await con.query(sql, user_id, function (err, res) {
+			if (err) throw err;
+			if (res.length > 0) {
+				resolve({ success: true, rank: res[0]['rank'] });
+			}
+		});
+	});
+}
+
+/**
  * @description get user's glicko2 rating
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, glicko2_rating: int}
