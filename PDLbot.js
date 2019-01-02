@@ -189,7 +189,7 @@ client.on('message', message => {
 				msg = strings.help;
 				if (admin)
 					msg += strings.admin_help;
-				message.channel.send(msg);
+				message.channel.send(msg.replace('{user}', tag(message.author.id)));
 				break;
 			case 'challengeme':
 				let challengeme = message.guild.roles.find(role => role.name === "challengeme");
