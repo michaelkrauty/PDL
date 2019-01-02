@@ -146,21 +146,19 @@ client.on('message', message => {
 				// debug command for debugging purposes, displays user data
 				if (admin && args.length == 1) {
 					// check for a mention
-					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+					var mention = message.mentions.users.values().next().value;
+					if (args.length != 1 || mention == undefined) {
+						// no mentions, too many arguments
 						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-					// target was mentioned in message
-					var target_discord_username = message.mentions.users.values().next().value.username;
-					var target_discord_id = message.mentions.users.values().next().value.id;
 					// get target user id
-					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
-					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
 						// target is not registered
 						message.channel.send(tag(message.author.id) + ' no data to display.');
 						break;
 					}
-					var target_data = await db.getUserData(target_discord_id);
+					var target_data = await db.getUserData(mention.id);
 					if (!target_data['success']) {
 						message.channel.send(tag(message.author.id) + ' no data to display.');
 						break;
@@ -255,22 +253,21 @@ client.on('message', message => {
 				} else if (args.length == 1) {
 					// check if tagged user is registered
 					// check for a mention
-					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-						message.channel.send(strings['check_no_user_specified'].replace('{user}', tag(message.author.id)));
+					var mention = message.mentions.users.values().next().value;
+					if (args.length != 1 || mention == undefined) {
+						// no mentions, too many arguments
+						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-					// target was mentioned in message
-					var target_discord_username = message.mentions.users.values().next().value.username;
-					var target_discord_id = message.mentions.users.values().next().value.id;
 					// check if target is registered
-					var user_exists = await db.checkUserExists(target_discord_id);
+					var user_exists = await db.checkUserExists(mention.id);
 					if (!user_exists['success'] || !user_exists['exists']) {
 						// target is not registered
-						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 						break;
 					}
 					// target is registered
-					message.channel.send(strings['target_is_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+					message.channel.send(strings['target_is_registered'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 				}
 				break;
 			case 'elo':
@@ -304,18 +301,17 @@ client.on('message', message => {
 				} else if (args.length == 1) {
 					// gets other user's skill rating
 					// check for a mention
-					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
+					var mention = message.mentions.users.values().next().value;
+					if (args.length != 1 || mention == undefined) {
+						// no mentions, too many arguments
 						message.channel.send(strings['submit_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
-					// target was mentioned in message
-					var target_discord_username = message.mentions.users.values().next().value.username;
-					var target_discord_id = message.mentions.users.values().next().value.id;
 					// get target user id
-					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
 					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
 						// target is not registered
-						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 						break;
 					}
 					// get target skill rating
@@ -326,7 +322,7 @@ client.on('message', message => {
 						break;
 					}
 					// output target skill rating
-					message.channel.send(strings['target_skill_rating'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username).replace('{elo}', target_elo_rating['elo_rating']));
+					message.channel.send(strings['target_skill_rating'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username).replace('{elo}', target_elo_rating['elo_rating']));
 				}
 				break;
 			case 'sr2':
@@ -538,23 +534,17 @@ client.on('message', message => {
 					}
 				}/* else if (args.length == 1) {
 					// check for a mention
-					if (args.length != 1 || message.mentions.users.values().next().value == undefined) {
-						message.channel.send(strings['pending_no_user_specified'].replace('{user}', tag(message.author.id)));
-						break;
-					}
-					// target was mentioned in message
-					var target_discord_username = message.mentions.users.values().next().value.username;
-					var target_discord_id = message.mentions.users.values().next().value.id;
-					// user mentioned themself
-					if (target_discord_id == message.author.id) {
+					var mention = message.mentions.users.values().next().value;
+					if (args.length != 1 || mention == undefined) {
+						// no mentions, too many arguments
 						message.channel.send(strings['pending_no_user_specified'].replace('{user}', tag(message.author.id)));
 						break;
 					}
 					// get target user id from target discord id, checking if the target is registered
-					var target_id_from_discord_id = await db.getUserIdFromDiscordId(target_discord_id);
+					var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
 					if (!target_id_from_discord_id['success'] || target_id_from_discord_id['id'] == null) {
 						// could not get target user id from discord id
-						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id).replace('{target}', target_discord_username)));
+						message.channel.send(strings['error_target_not_registered'].replace('{user}', tag(message.author.id).replace('{target}', mention.username)));
 						break;
 					}
 					// get user id from discord id, checking if the user is registered
@@ -568,7 +558,7 @@ client.on('message', message => {
 					var target_latest_matches = await db.getUserLatestMatches(target_id_from_discord_id['id']);
 					if (!target_latest_matches['success'] || target_latest_matches['matches'] == null || target_latest_matches['matches'].length == 0) {
 						// no recent unconfirmed matches
-						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)).replace('{target}', target_discord_username));
+						message.channel.send(strings['no_unconfirmed_matches'].replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 						break;
 					}
 					// compose response message
@@ -613,7 +603,7 @@ client.on('message', message => {
 						// construct message
 						msg += 'Game ' + match['id'] + ': ';
 						if (match_submitted_by_target) {
-							msg += target_discord_username;
+							msg += mention.username;
 						} else {
 							msg += opponent_username;
 						}
@@ -621,12 +611,12 @@ client.on('message', message => {
 						if (match_submitted_by_target) {
 							msg += opponent_username;
 						} else {
-							msg += target_discord_username;
+							msg += mention.username;
 						}
 						msg += '\n';
 					}
 					message.channel.send(msg);
-				}*/
+				}
 				break;
 			case 'submit':
 				// submits a game result (win/loss)
