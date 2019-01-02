@@ -188,7 +188,7 @@ client.on('message', message => {
 				// shows help dialogue
 				msg = strings.help;
 				if (admin)
-					msg += strings.admin_help;
+					msg += '\n' + strings.admin_help;
 				message.channel.send(msg.replace('{user}', tag(message.author.id)));
 				break;
 			case 'challengeme':
