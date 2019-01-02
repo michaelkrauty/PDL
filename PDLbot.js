@@ -7,7 +7,7 @@ const schedule = require('node-schedule');
 const fs = require('fs');
 
 const auth = require('./auth.json');
-const config = require('./config.js');
+const config = require('./config.js').config;
 const db = require('./DB.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
@@ -498,7 +498,7 @@ client.on('message', message => {
 										await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id.match_id + ' vs ' + tag(opponent_data.data.discord_id) + ' @Admin');
 									} else {
 										await r.message.react(ReactionEmoji.WIN);
-										if (config.config.rating_method == RatingMethod.ELO) {
+										if (config.rating_method == RatingMethod.ELO) {
 											// get user's elo rating
 											var userElo = await db.getUserEloRating(match.match.player_id);
 											// get opponent's elo rating
@@ -506,9 +506,9 @@ client.on('message', message => {
 											var uELO = userElo.elo_rating;
 											var tELO = opponentElo.elo_rating;
 											// calculate new elo
-											var eloRatingCalculation = eloRating.calculate(uELO, tELO, match.match.result, config.config.elo_k);
-											var newUserELO = eloRatingCalculation.playerRating + config.config.bonus_elo;
-											var newTargetELO = eloRatingCalculation.opponentRating + config.config.bonus_elo;
+											var eloRatingCalculation = eloRating.calculate(uELO, tELO, match.match.result, config.elo_k);
+											var newUserELO = eloRatingCalculation.playerRating + config.bonus_elo;
+											var newTargetELO = eloRatingCalculation.opponentRating + config.bonus_elo;
 											// set user's new elo rating
 											db.setUserEloRating(match.match.player_id, newUserELO);
 											// set target's new elo rating
@@ -706,9 +706,9 @@ client.on('message', message => {
 				// get the amount of matches the user has played within the last week
 				// TODO
 				// if the user has less match submissions than the weekly limit as set in the config
-				// if (user_latest_matches['matches'].length + target_latest_matches['matches'].length >= config.config.maximum_weekly_challenges) {
+				// if (user_latest_matches['matches'].length + target_latest_matches['matches'].length >= config.maximum_weekly_challenges) {
 				// 	// user has already played the maximum amount of matches for the week
-				// 	message.channel.send('maximum weekly matches: ' + config.config.maximum_weekly_challenges);
+				// 	message.channel.send('maximum weekly matches: ' + config.maximum_weekly_challenges);
 				// 	break;
 				// }
 				// ask the user if they won
