@@ -22,7 +22,7 @@ const strings = {
 	confirm_no_user_specified: '{user} please specifiy a user by tagging them (!confirm @<user>).',
 	check_no_user_specified: '{user} please specifiy a user by tagging them (!check @<user>).',
 	confirmations_no_user_specified: '{user} Usage: !confirm, or !confirm @<user>, to check pending confirmations.',
-	pending_no_user_specified: '{user} Usage: !pending, or !pending @<user>, to check pending confirmations.',
+	pending_no_user_specified: '{user} Usage: !pending [@user]',
 	confirm_game_please: '{target} use !pending to confirm your match.',
 	new_elo_message: '-----------------------------------------------\n**{user_name}** {winloss} vs. **{target_name}**\n#{user_elo_rank} {user} ELO: {old_user_elo}->{new_user_elo}\n#{target_elo_rank} {target} ELO: {old_target_elo}->{new_target_elo}\n-----------------------------------------------',
 	no_recent_match: '{user} no recent match to confirm.',
