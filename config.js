@@ -7,5 +7,5 @@ module.exports.config = {
 	maximum_weekly_challenges: 3,
 	// bonus elo per game simply for playing
 	bonus_elo: 5,
-	admin_discord_ids: []
+	admin_discord_ids: [89798561553739776, 396793965174718464]
 };
