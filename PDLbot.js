@@ -30,23 +30,32 @@ log.add(new log.transports.Console, {
 log.level = 'debug';
 
 // initialize Discord bot
+var started = false;
 const client = new discord.Client();
 client.login(auth.token);
 client.once('ready', () => {
-	log.info('Starting ' + client.user.username + ' v' + package.version + ' - (' + client.user.id + ')');
-	// connect to database
-	db.connect();
-	// setup json storage files
 	new Promise(async function (resolve, reject) {
+		log.info('Starting ' + client.user.username + ' v' + package.version + ' - (' + client.user.id + ')');
+		// setup json storage files
 		await fm.checkFile('./channels.json');
 		discord_channels_to_use = require('./channels.json');
 		await fm.checkFile('./admins.json');
 		admin_discord_ids = require('./admins.json');
+		// connect to database
+		await db.connect();
+		// startup complete
+		started = true;
+		for (var e in discord_channels_to_use.data) {
+			client.channels.get(discord_channels_to_use.data[e]).send('Started ' + client.user.username + ' v' + package.version);
+		}
 	});
 });
 
 // called when the bot sees a message
 client.on('message', message => {
+	// check if the bot is ready to handle commands
+	if (!started)
+		return;
 	// commands start with !
 	if (message.content.substring(0, 1) != '!')
 		return;
