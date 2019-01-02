@@ -45,9 +45,9 @@ client.once('ready', () => {
 		await db.connect();
 		// startup complete
 		started = true;
-		for (var e in discord_channels_to_use.data) {
-			client.channels.get(discord_channels_to_use.data[e]).send('Started ' + client.user.username + ' v' + package.version);
-		}
+		// for (var e in discord_channels_to_use.data) {
+		// 	client.channels.get(discord_channels_to_use.data[e]).send('Started ' + client.user.username + ' v' + package.version);
+		// }
 	});
 });
 
