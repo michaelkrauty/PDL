@@ -404,12 +404,10 @@ client.on('message', message => {
 						log.error('Could not getUserEloRanking(' + nearby_players.players[i].id + ')');
 						break;
 					}
-					var p; nearby_players.players[i].id == user_id_from_discord_id.id ? p = true : p = false;
 					var username = nearby_players.players[i].discord_username;
-					if (p)
-						msg += rank.rank + '. **' + username + '**: ' + nearby_players.players[i].elo_rating + ' ELO\n';
-					else
-						msg += rank.rank + '. ' + username + ': ' + nearby_players.players[i].elo_rating + ' ELO\n';
+					if (nearby_players.players[i].id == user_id_from_discord_id.id)
+						username = '**' + username + '**'
+					msg += rank.rank + '. ' + username + ': ' + nearby_players.players[i].elo_rating + ' ELO\n';
 
 				}
 				message.channel.send('' + msg + '');
