@@ -303,11 +303,7 @@ client.on('message', message => {
 					message.channel.send(strings.target_is_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 				}
 				break;
-			case 'elo':
-			case 'rating':
-			case 'rank':
-			case 'skill':
-			case 'sr':
+			case 'oldsr':
 				if (args.length == 0) {
 					// gets user skill rating
 					// get user id from discord id
@@ -358,6 +354,11 @@ client.on('message', message => {
 					message.channel.send(strings.target_skill_rating.replace('{user}', tag(message.author.id)).replace('{target}', mention.username).replace('{elo}', target_elo_rating.elo_rating));
 				}
 				break;
+			case 'elo':
+			case 'rating':
+			case 'rank':
+			case 'skill':
+			case 'sr':
 			case 'sr2':
 				// show player rank plus 2 above and below
 				// get user id from discord id
