@@ -6,5 +6,10 @@ module.exports.config = {
 	// weekly limit on challenges submitted per user
 	maximum_weekly_challenges: 3,
 	// bonus elo per game simply for playing
+<<<<<<< Updated upstream
 	bonus_elo: 5
+=======
+	bonus_elo: 5,
+	admin_discord_ids: [89798561553739776, 396793965174718464]
+>>>>>>> Stashed changes
 };
