@@ -532,7 +532,8 @@ client.on('message', message => {
 					if (waiting_for_input) {
 						message.channel.send(tag(message.author.id) + ' Use the check to confirm, or X to dispute.');
 					}
-				}/* else if (args.length == 1) {
+				} else if (args.length == 1 && admin) {
+					// admins can confirm or reject other users' pending games
 					// check for a mention
 					var mention = message.mentions.users.values().next().value;
 					if (args.length != 1 || mention == undefined) {
