@@ -630,6 +630,7 @@ client.on('message', message => {
 							break;
 						}
 						// get the opponent's user data
+						// TODO: getUserData with user id or discord id
 						var opponent_data = await db.getUserData(opponent_discord_id.discord_id);
 						if (!opponent_data.success || opponent_data.data == null) {
 							// could not get the other player's data from their user id
