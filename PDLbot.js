@@ -644,17 +644,9 @@ client.on('message', message => {
 							opponent_username = opponent_data.data.discord_username);
 						// construct message
 						msg += 'Game ' + match.id + ': ';
-						if (match_submitted_by_target) {
-							msg += mention.username;
-						} else {
-							msg += opponent_username;
-						}
+						match_submitted_by_target ? msg += mention.username : msg += opponent_username;
 						msg += ' submitted a ' + match_result_string + ' vs ';
-						if (match_submitted_by_target) {
-							msg += opponent_username;
-						} else {
-							msg += mention.username;
-						}
+						match_submitted_by_target ? msg += opponent_username : msg += mention.username;
 						msg += '\n';
 					}
 					message.channel.send(msg);
