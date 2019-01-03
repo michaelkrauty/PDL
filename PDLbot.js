@@ -609,15 +609,11 @@ client.on('message', message => {
 					for (var m in target_latest_matches.matches) {
 						var match = target_latest_matches.matches[m];
 						// get the other player's user id
-						var opponent_id = 0;
+						var opponent_id;
 						var match_submitted_by_target = match.player_id == target_id_from_discord_id.id;
-						if (match_submitted_by_target) {
-							// target submitted match
-							opponent_id = match.opponent_id;
-						} else {
-							// match was submitted vs target
+						match_submitted_by_target ?
+							opponent_id = match.opponent_id :
 							opponent_id = match.player_id;
-						}
 						// match result ? 'win' : 'loss'
 						var match_result_string;
 						(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
