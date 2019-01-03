@@ -33,8 +33,7 @@ log.level = 'debug';
 var started = false;
 const client = new discord.Client();
 client.login(auth.token);
-client.once('ready', () => {
-	new Promise(async function (resolve, reject) {
+client.once('ready', async () => {
 		log.info('Starting ' + client.user.username + ' v' + package.version + ' - (' + client.user.id + ')');
 		// setup json storage files
 		await fm.checkFile('./channels.json');
@@ -49,10 +48,9 @@ client.once('ready', () => {
 		// 	client.channels.get(discord_channels_to_use.data[e]).send('Started ' + client.user.username + ' v' + package.version);
 		// }
 	});
-});
 
 // called when the bot sees a message
-client.on('message', message => {
+client.on('message', async (message) => {
 	// check if the bot is ready to handle commands
 	if (!started)
 		return;
@@ -63,8 +61,6 @@ client.on('message', message => {
 	const cmd = args[0];
 	var admin = admin_discord_ids.data.includes(message.author.id);
 	args = args.splice(1);
-	// running the command must be async due to database interactions
-	async function command() {
 		// initialize a channel for use by the bot
 		if (cmd == 'init') {
 			// require admin privileges
@@ -765,10 +761,6 @@ client.on('message', message => {
 				message.channel.send('Top players:\n```' + msg + '```');
 				break;
 		}
-	}
-	command().catch((err) => {
-		log.error(err);
-	});
 });
 
 // tag a user by userID
