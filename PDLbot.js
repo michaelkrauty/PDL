@@ -201,18 +201,18 @@ client.on('message', async (message) => {
 			// get challengeme role
 			let challengeme = message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme.id == undefined) {
-				message.channel.send(`${tag(message.author.id)} could not find role challengeme`);
+				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
 			}
 			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
 				message.member.removeRole(challengeme);
-				message.channel.send(`${tag(message.author.id)} no longer has role challengeme`);
+				message.channel.send(`${tag(message.author.id)} no longer has role challengeme.`);
 			} else {
 				// toggle on
 				message.member.addRole(challengeme);
-				message.channel.send(`${tag(message.author.id)} now has role challengeme`);
+				message.channel.send(`${tag(message.author.id)} now has role challengeme.`);
 			}
 			break;
 		// challenging command, shows users with challengeme rank
@@ -223,18 +223,18 @@ client.on('message', async (message) => {
 			// get questme role
 			let questme = message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
-				message.channel.send(`${tag(message.author.id)} could not find role questme`);
+				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
 				break;
 			}
 			// toggle questme role on/off
 			if (message.member._roles.includes(questme.id)) {
 				// toggle off
 				message.member.removeRole(questme);
-				message.channel.send(`${tag(message.author.id)} no longer has role questme`);
+				message.channel.send(`${tag(message.author.id)} no longer has role questme.`);
 			} else {
 				// toggle on
 				message.member.addRole(questme);
-				message.channel.send(`${tag(message.author.id)} now has role questme`);
+				message.channel.send(`${tag(message.author.id)} now has role questme.`);
 			}
 			break;
 		// questing command, shows users with questme rank
