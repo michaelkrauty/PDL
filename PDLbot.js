@@ -245,21 +245,25 @@ client.on('message', async (message) => {
 		case 'compete':
 			// require no arguments
 			if (args.length != 0) {
-				message.channel.send(strings.compete_try_again.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.compete_try_again.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// register user if they're not already in the DB
 			var register_user = await db.registerUser(message.author.id, message.author.username);
-			if (register_user.success == null || !register_user.success) {
+			if (!register_user.success) {
 				// error registering
-				log.error('Error executing db.registerUser(' + message.author.id + ', ' + message.author.username + ')');
-				message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+				log.error(`Could not registerUser(${message.author.id}, ${message.author.username})`);
 				break;
 			}
 			// set the user's competing state to true
 			var user_competing = await db.setUserCompeting(message.author.id, true);
-			if (user_competing.success)
-				message.channel.send(strings.user_now_competing.replace('{user}', tag(message.author.id)));
+			if (!user_competing.success) {
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+				log.error(`Could not setUserCompeting(${message.author.id}, true)`);
+			break;
+			}
+			message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// quit command, disables competing for the user
 		case 'retire':
