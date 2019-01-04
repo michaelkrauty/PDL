@@ -10,7 +10,7 @@ exports.connect = function () {
 	new Promise(async function () {
 
 		// connect to MySQL DB
-		log.info(`Connecting to MySQL DB: ${config.db.user}@${$config.db.host}...`);
+		log.info(`Connecting to MySQL DB: ${config.db.user}@${config.db.host}...`);
 		var con = await mysql.createConnection({
 			host: config.db.host,
 			user: config.db.user,
