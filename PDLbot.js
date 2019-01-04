@@ -287,14 +287,14 @@ client.on('message', async (message) => {
 			var user_exists = await db.checkUserExists(message.author.id);
 			if (!user_exists.success || !user_exists.exists) {
 				// not registered
-				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// check if user is currently competing
 			var user_competing = await db.isUserCompeting(message.author.id);
-			((user_competing.success && user_competing.competing) ?
-				(message.channel.send(strings.user_is_competing.replace('{user}', tag(message.author.id)))) :
-				(message.channel.send(strings.user_is_not_competing.replace('{user}', tag(message.author.id)))));
+			user_competing.success && user_competing.competing ?
+				message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
+				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// check command, shows if user is registered in the database
 		case 'check':
