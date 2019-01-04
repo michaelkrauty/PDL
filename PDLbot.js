@@ -328,52 +328,59 @@ client.on('message', async (message) => {
 			if (args.length == 0) {
 				// gets user skill rating
 				// get user id from discord id
-				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-				if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
+				var user_id = await db.getUserIdFromDiscordId(message.author.id);
+				if (!user_id.success || user_id.id == null) {
 					// user is not registered
-					message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
+				user_id = user_id.id;
 				// get user skill rating
-				var user_elo_rating = await db.getUserEloRating(user_id_from_discord_id.id);
-				if (!user_elo_rating.success) {
-					message.channel.send('error');
+				var user_elo = await db.getUserEloRating(user_id);
+				if (!user_elo.success) {
+					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+					log.error(`Could not getUserEloRating(${user_id}, true)`);
 					break;
 				}
+				user_elo = user_elo.elo_rating;
 				// get user elo rank
-				var user_rank = await db.getUserEloRanking(user_id_from_discord_id.id);
+				var user_rank = await db.getUserEloRanking(user_id);
 				if (!user_rank.success || user_rank.rank == null) {
-					message.channel.send('error');
+					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+					log.error(`Could not getUserEloRanking(${user_id}, true)`);
 					break;
 				}
+				user_rank = user_rank.rank;
 				// output user skill rating
-				message.channel.send(strings.user_skill_rating.replace('{user}', tag(message.author.id)).replace('{skill_rating}', user_elo_rating.elo_rating).replace('{user_rank}', user_rank.rank));
+				message.channel.send(strings.user_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{skill_rating}', user_elo).replaceAll('{user_rank}', user_rank));
 			} else if (args.length == 1) {
 				// gets other user's skill rating
 				// check for a mention
 				var mention = message.mentions.users.values().next().value;
 				if (mention == undefined) {
 					// no mentions
-					message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
+					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
 				// get target user id
-				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!target_id_from_discord_id.success || target_id_from_discord_id.id == null) {
+				var target_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!target_id.success || target_id.id == null) {
 					// target is not registered
-					message.channel.send(strings.error_target_not_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 					break;
 				}
+				target_id = target_id.id;
 				// get target skill rating
-				var target_elo_rating = await db.getUserEloRating(target_id_from_discord_id.id);
-				if (!target_elo_rating.success || target_elo_rating.elo_rating == null) {
+				var target_elo = await db.getUserEloRating(target_id);
+				if (!target_elo.success || target_elo.elo_rating == null) {
 					// failed to get user elo rating
-					log.error('Could not getUserEloRating(' + target_id_from_discord_id.id + ')');
-					message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
+					log.error(`Could not getUserEloRating(${target_id})`);
+					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
+				target_elo = target_elo.elo_rating;
 				// output target skill rating
-				message.channel.send(strings.target_skill_rating.replace('{user}', tag(message.author.id)).replace('{target}', mention.username).replace('{elo}', target_elo_rating.elo_rating));
+				message.channel.send(strings.target_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username).replaceAll('{elo}', target_elo));
 			}
 			break;
 		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
