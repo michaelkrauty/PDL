@@ -87,7 +87,7 @@ client.on('message', async (message) => {
 		// success, list channels
 		var msg = 'Success, using channels: \n';
 		for (i = 0; i < discord_channels_to_use.length; i++) {
-			msg += discord_channels_to_use[i] + ':' + client.channels.get(discord_channels_to_use[i]) + '\n';
+			msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
 		}
 		message.channel.send(msg);
 		return;
