@@ -744,64 +744,60 @@ client.on('message', async (message) => {
 		// submit command, submits a match result vs another user
 		case 'submit':
 			// get user id from discord id, checking if the user is registered
-			var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-			if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id.success || user_id.id == null) {
 				// could not get user id from discord id
-				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// check if user is competing
-			var user_is_competing = await db.isUserCompeting(message.author.id);
-			if (!user_is_competing.success || user_is_competing.competing == null || !user_is_competing.competing) {
-				// user is not competing
-				message.channel.send(strings.error_user_not_competing.replace('{user}', tag(message.author.id)));
-				break;
-			}
+			user_id = user_id.id;
 			// check for a mention
 			var mention = message.mentions.users.values().next().value;
 			if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
 				// no mentions, too many arguments, or user mentioned self
-				message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// check if target is registered
-			var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
-			if (!target_id_from_discord_id.success || target_id_from_discord_id.id == null) {
-				// could not get target id from discord id
-				message.channel.send(strings.error_target_not_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+			// get mention data
+			var mention_data = await db.getUserData(mention.id);
+			if (!mention_data.success || mention_data.data == null) {
+				// mention is not registered
+				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 				break;
 			}
-			// check if target is competing
-			var is_target_competing = await db.isUserCompeting(mention.id);
-			if (!is_target_competing.success || is_target_competing.competing == null || !is_target_competing.competing) {
-				// target is not competing
-				message.channel.send(strings.target_is_not_competing.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+			mention_data = mention_data.data;
+			// check if mention is competing
+			if (!mention_data.competing) {
+				// mention is not competing
+				message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 				break;
 			}
-			// get the user's latest matches
-			var user_latest_matches = await db.getUserLatestMatches(user_id_from_discord_id.id);
-			if (!user_latest_matches.success) {
-				// success = false
-				message.channel.send('error');
-				break;
-			}
-			// get the target's latest matches
-			var target_latest_matches = await db.getUserLatestMatches(target_id_from_discord_id.id);
-			if (!target_latest_matches.success) {
-				// target has no recent matches
-				message.channel.send('target no recent matches');
-				break;
-			}
-			// get the amount of matches the user has played within the last week
 			// TODO
 			// if the user has less match submissions than the weekly limit as set in the config
+			// // get the user's latest matches
+			// var user_latest_matches = await db.getUserLatestMatches(user_id);
+			// if (!user_latest_matches.success) {
+			// 	// could not get user's latest matches
+			// 	message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+			// 	console.log(`Could not getUserLatestMatches(${user_id})`);
+			// 	break;
+			// }
+			// // get the mention's latest matches
+			// var target_latest_matches = await db.getUserLatestMatches(mention_data.id);
+			// if (!target_latest_matches.success) {
+			// 	// mention has no recent matches
+			// 	message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+			// 	console.log(`Could not getUserLatestMatches(${mention_data.id})`);
+			// 	break;
+			// }
+			// get the amount of matches the user has played within the last week
 			// if (user_latest_matches['matches'].length + target_latest_matches['matches'].length >= config.maximum_weekly_challenges) {
 			// 	// user has already played the maximum amount of matches for the week
 			// 	message.channel.send('maximum weekly matches: ' + config.maximum_weekly_challenges);
 			// 	break;
 			// }
 			// ask the user if they won
-			var msg = await message.channel.send(strings.did_you_win.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// add submission reactions to msg
 			await msg.react(ReactionEmoji.WIN);
 			await msg.react(ReactionEmoji.LOSS);
@@ -816,14 +812,35 @@ client.on('message', async (message) => {
 						return;
 					collected.push(r.message.id);
 					// user reacted y/n
-					await msg.react(r._emoji.name);
 					// did the user win the match?
 					var result;
 					((r._emoji.name === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
+					// get user data
+					var user_data = await db.getUserData(message.author.id);
+					if (!user_data.success || user_data.data == null) {
+						// could not get user data
+						message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+						return;
+					}
+					user_data = user_data.data;
+					// get player's elo rating
+					var playerElo = await db.getUserEloRating(user_data.id);
+					if (!playerElo.success || playerElo.elo_rating == null) {
+						log.error(`Could not getUserEloRating(${user_data.id})`);
+						return;
+					}
+					playerElo = playerElo.elo_rating;
+					// get opponent's elo rating
+					var opponentElo = await db.getUserEloRating(mention_data.id);
+					if (!opponentElo.success || opponentElo.elo_rating == null) {
+						log.error(`Could not getUserEloRating(${mention_data.id})`);
+						return;
+					}
+					opponentElo = opponentElo.elo_rating;
 					// submit match result
-					await db.submitMatchResult(user_id_from_discord_id.id, target_id_from_discord_id.id, result);
+					await db.submitMatchResult(user_id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo);
 					// ask the target user to confirm the game
-					message.channel.send(strings.confirm_game_please.replace('{target}', tag(mention.id)).replace('{user}', message.author.username).replace('{game_id}'));
+					message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{game_id}'));
 					collector.stop();
 					msg.react(ReactionEmoji.CONFIRMED);
 				}
@@ -835,7 +852,7 @@ client.on('message', async (message) => {
 			collector.on('end', collected => {
 				if (collected.size < 1) {
 					// no y/n reaction was collected
-					message.channel.send(strings.match_submit_timeout.replace('{user}', tag(message.author.id)));
+					message.channel.send(strings.match_submit_timeout.replaceAll('{user}', tag(message.author.id)));
 				}
 			});
 			break;
