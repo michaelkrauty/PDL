@@ -301,26 +301,26 @@ client.on('message', async (message) => {
 			if (args.length == 0) {
 				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
-				(user_exists.success && user_exists.exists ?
-					message.channel.send(strings.user_is_registered.replace('{user}', tag(message.author.id))) :
-					message.channel.send(strings.user_is_not_registered.replace('{user}', tag(message.author.id))));
+				user_exists.success && user_exists.exists ?
+					message.channel.send(strings.user_is_registered.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.user_is_not_registered.replaceAll('{user}', tag(message.author.id)));
 			} else if (args.length == 1) {
 				// check for a mention
 				var mention = message.mentions.users.values().next().value;
 				if (mention == undefined) {
 					// no mentions
-					message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
+					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
 				// check if target is registered
-				var user_exists = await db.checkUserExists(mention.id);
-				if (!user_exists.success || !user_exists.exists) {
+				var mention_exists = await db.checkUserExists(mention.id);
+				if (!mention_exists.success || !mention_exists.exists) {
 					// target is not registered
-					message.channel.send(strings.error_target_not_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 					break;
 				}
 				// target is registered
-				message.channel.send(strings.target_is_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
+				message.channel.send(strings.target_is_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			}
 			break;
 		// oldsr command, shows rank and skill rating (deprecated)
