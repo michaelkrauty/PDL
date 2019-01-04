@@ -533,7 +533,7 @@ client.on('message', async (message) => {
 									var opponentElo = await db.getUserEloRating(match.match.opponent_id);
 									var tELO = opponentElo.elo_rating;
 									// calculate new elo
-									var eloRatingCalculation = eloRating.calculate(uELO, tELO, match.match.result, config.elo_k);
+									var eloRatingCalculation = calculateElo(uELO, tELO, match.match.result);
 									var newUserELO = eloRatingCalculation.playerRating + config.bonus_elo;
 									var newTargetELO = eloRatingCalculation.opponentRating + config.bonus_elo;
 									// set user's new elo rating
@@ -793,6 +793,10 @@ function tag(userID) {
 // tag a role by userID
 function tagRole(userID) {
 	return '<@&' + userID + '>';
+}
+
+function calculateElo(uELO, tELO, result) {
+	return eloRating.calculate(uELO, tELO, result, config.elo_k);
 }
 
 function updateRatings() {
