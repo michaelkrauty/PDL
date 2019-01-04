@@ -342,17 +342,25 @@ exports.setUserEloRating = function (user_id, elo) {
 
 /**
  * @description submit a match result
- * @param {int} user_id the user's discord id
- * @param {int} opponent_user_id the opponent's discord id
+ * @param {int} player_id the player's user id
+ * @param {int} opponent_id the opponent's user id
  * @param {int} result the result of the match (0 = loss, 1 = win)
+ * @param {int} userElo @default null the user's current elo
+ * @param {int} opponentElo @default null the opponent's current elo
+ * @param {int} userEndElo @default null the user's elo after match elo calculation
+ * @param {int} opponentEndElo @default null the opponent's elo after match elo calculation
  * @returns {success: boolean}
  */
-exports.submitMatchResult = function (user_id, opponent_user_id, result) {
+exports.submitMatchResult = function (player_id, opponent_id, result, userElo, opponentElo, userEndElo, opponentEndElo) {
 	return new Promise(async function (resolve, reject) {
+		userElo = userElo || null;
+		opponentElo = opponentElo || null;
+		userEndElo = userEndElo || null;
+		opponentEndElo = opponentEndElo || null;
 		pool.getConnection(function (err, con) {
 			if (err) throw err;
-			var sql = 'INSERT INTO matches (player_id, opponent_id, result) VALUES (?, ?, ?);';
-			con.query(sql, [user_id, opponent_user_id, result], function (err) {
+			var sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) VALUES (?,?,?,?,?,?,?);';
+			con.query(sql, [player_id, opponent_id, result, userElo, opponentElo, userEndElo, opponentEndElo], function (err) {
 				con.release();
 				if (err) throw err;
 				resolve({ success: true });
