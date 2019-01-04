@@ -190,6 +190,31 @@ exports.getUserData = function (discord_id) {
 	});
 }
 
+
+/**
+ * @todo
+ * @description get all of a user's data
+ * @param {bigint} user_id the user's user id
+ * @returns {success: boolean, userdata[]}
+ */
+exports.getUserDataUsingId = function (user_id) {
+	return new Promise(async function (resolve, reject) {
+		pool.getConnection(function (err, con) {
+			if (err) throw err;
+			var sql = 'SELECT * FROM users WHERE id=?;';
+			con.query(sql, user_id, function (err, res) {
+				con.release();
+				if (err) throw err;
+				if (res.length > 0) {
+					resolve({ success: true, data: res[0] });
+				} else {
+					resolve({ success: false });
+				}
+			});
+		});
+	});
+}
+
 /**
  * @description get user's ELO rating
  * @param {bigint} id the user's id
