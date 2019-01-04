@@ -872,6 +872,107 @@ client.on('message', async (message) => {
 			message.channel.send(`\`\`\`${msg}\`\`\``);
 			break;
 		// confirm command, allows admins to manually confirm pending matches with match id
+		case 'confirm':
+			// require admin and one argument
+			if (args.length != 1 || !admin)
+				break;
+			// get match info
+			var match = await db.getMatch(args[0]);
+			if (!match.success || match.match == null) {
+				message.channel.send(`No match found with ID ${args[0]} `);
+				break;
+			}
+			match = match.match;
+			// get player discord id
+			var player_discord_id = await db.getDiscordIdFromUserId(match.player_id);
+			if (!player_discord_id.success || player_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			player_discord_id = player_discord_id.discord_id;
+			// get opponent discord id
+			var opponent_discord_id = await db.getDiscordIdFromUserId(match.opponent_id);
+			if (!opponent_discord_id.success || opponent_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			opponent_discord_id = opponent_discord_id.discord_id;
+			// get player data
+			// TODO: use player id for getUserData()
+			var player_data = await db.getUserData(player_discord_id);
+			if (!player_data.success || player_data.data == null) {
+				log.error(`Could not getUserData(${player_discord_id})`);
+			}
+			player_data = player_data.data;
+			// get opponent data
+			// TODO: use player id for getUserData()
+			var opponent_data = await db.getUserData(opponent_discord_id);
+			if (!opponent_data.success || opponent_data.data == null) {
+				log.error(`Could not getUserData(${opponent_discord_id})`);
+			}
+			opponent_data = opponent_data.data;
+			// is the match already confirmed?
+			if (match.confirmed) {
+				message.channel.send(`Game ${match.id} is already confirmed.`);
+				break;
+			}
+			// get player's elo rating
+			var playerElo = await db.getUserEloRating(match.player_id);
+			if (!playerElo.success || playerElo.elo_rating == null) {
+				log.error(`Could not getUserEloRating(${match.player_id})`);
+				break;
+			}
+			playerElo = playerElo.elo_rating;
+			// get opponent's elo rating
+			var opponentElo = await db.getUserEloRating(match.opponent_id);
+			if (!opponentElo.success || opponentElo.elo_rating == null) {
+				log.error(`Could not getUserEloRating(${match.opponent_id})`);
+				break;
+			}
+			opponentElo = opponentElo.elo_rating;
+			// calculate new elo
+			var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
+			var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
+			var newOpponentElo = eloRatingCalculation.opponentRating + config.bonus_elo;
+			// set player's new elo rating
+			db.setUserEloRating(match.player_id, newPlayerElo);
+			// set target's new elo rating
+			db.setUserEloRating(match.opponent_id, newOpponentElo);
+			db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
+			// get player's new rank
+			var player_rank = await db.getUserEloRanking(match.player_id);
+			if (!player_rank.success || player_rank.rank == null) {
+				log.error(`Could not getUserEloRanking(${match.player_id})`);
+				break;
+			}
+			player_rank = player_rank.rank;
+			// get opponent's new rank
+			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
+			if (!opponent_rank.success || opponent_rank.rank == null) {
+				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
+				break;
+			}
+			opponent_rank = opponent_rank.rank;
+			// message players
+			var winloss;
+			match.result ? winloss = 'win' : winloss = 'loss';
+			await message.channel.send(strings.new_elo_message
+				.replaceAll('{game_id}', match.id)
+				.replaceAll('{winloss}', winloss)
+				.replaceAll('{user}', tag(message.author.id))
+				.replaceAll('{player}', tag(player_discord_id))
+				.replaceAll('{opponent}', tag(opponent_discord_id))
+				.replaceAll('{player_name}', player_data.discord_username)
+				.replaceAll('{opponent_name}', opponent_data.discord_username)
+				.replaceAll('{player_elo_rank}', player_rank)
+				.replaceAll('{opponent_elo_rank}', opponent_rank)
+				.replaceAll('{old_player_elo}', playerElo)
+				.replaceAll('{new_player_elo}', newPlayerElo)
+				.replaceAll('{old_opponent_elo}', opponentElo)
+				.replaceAll('{new_opponent_elo}', newOpponentElo));
+			message.channel.send(`${tag(message.author.id)} confirmed match ${match.id}.`);
+			break;
+		// cancel command, allows admins to nullify a pending match with match id
 			}
 			message.channel.send('```' + msg + '```');
 			break;
