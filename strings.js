@@ -24,7 +24,7 @@ const strings = {
 	confirmations_no_user_specified: '{user} Usage: !confirm, or !confirm @<user>, to check pending confirmations.',
 	pending_no_user_specified: '{user} Usage: !pending [@user]',
 	confirm_game_please: '{target} use !pending to confirm your match.',
-	new_elo_message: '----------**Game {game_id}**----------\n**{user_name}** {winloss} vs. **{target_name}**\n#{user_elo_rank} {user} ELO: {old_user_elo}->{new_user_elo}\n#{target_elo_rank} {target} ELO: {old_target_elo}->{new_target_elo}\n-------------------------------------',
+	new_elo_message: '----------**Game {game_id}**----------\n**{player_name}** __{winloss}__ vs. **{opponent_name}**\n#{player_elo_rank} {player} ELO: {old_player_elo}->{new_player_elo}\n#{opponent_elo_rank} {opponent} ELO: {old_opponent_elo}->{new_opponent_elo}\n-------------------------------------',
 	no_recent_match: '{user} no recent match to confirm.',
 	no_unconfirmed_matches: '{user} no unconfirmed matches found for {target}.',
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
