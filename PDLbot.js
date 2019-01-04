@@ -272,15 +272,14 @@ client.on('message', async (message) => {
 			var user_exists = await db.checkUserExists(message.author.id);
 			if (!user_exists.success || !user_exists.exists) {
 				// not registered
-				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// set the user's competing state to false
 			var user_competing = await db.setUserCompeting(message.author.id, false);
-			if (user_competing.success) {
+			if (user_competing.success)
 				// retired
-				message.channel.send(strings.user_no_longer_competing.replace('{user}', tag(message.author.id)));
-			}
+				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// competing command, shows if user is competing or not
 		case 'competing':
