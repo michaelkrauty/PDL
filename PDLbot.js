@@ -12,14 +12,14 @@ const db = require('./DB.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
 const package = require('./package.json');
+
 var discord_channels_to_use;
 var admin_discord_ids;
+var started = false;
 
-
-// enums
-const MatchResult = { WIN: 1, LOSS: 0 }
-const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 }
-const ReactionEmoji = { WIN: '✅', LOSS: '❎', CONFIRMED: '👌' }
+const MatchResult = { WIN: 1, LOSS: 0 };
+const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
+const ReactionEmoji = { WIN: '✅', LOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌' };
 exports = MatchResult, RatingMethod;
 
 // configure logger settings
@@ -30,7 +30,6 @@ log.add(new log.transports.Console, {
 log.level = 'debug';
 
 // initialize Discord bot
-var started = false;
 const client = new discord.Client();
 client.login(auth.token);
 client.once('ready', async () => {
@@ -44,6 +43,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// startup complete
 	started = true;
+	// announce startup
 	// for (var e in discord_channels_to_use) {
 	// 	client.channels.get(discord_channels_to_use[e]).send('Started ' + client.user.username + ' v' + package.version);
 	// }
@@ -57,106 +57,100 @@ client.on('message', async (message) => {
 	// commands start with !
 	if (message.content.substring(0, 1) != '!')
 		return;
+	// set variables
 	var args = message.content.substring(1).split(' ');
 	const cmd = args[0];
 	var admin = admin_discord_ids.includes(message.author.id);
 	args = args.splice(1);
-	// initialize a channel for use by the bot
+	// init command, to initialize a channel for use by the bot
 	if (cmd == 'init') {
-		// require admin privileges
+		// requires admin
 		if (!admin)
 			return;
+		// loop through channels, check if current channel is already added
 		var channels = discord_channels_to_use;
 		if (channels != undefined) {
 			if (channels.includes(message.channel.id)) {
-				message.channel.send('Already using channel ' + message.channel.id + ':"' + message.channel.name + '"');
+				message.channel.send('Already using channel ' + message.channel.id + ':' + message.channel.name + '');
 				return;
 			}
+			// add current channel to channels list
 			channels.push(message.channel.id);
 		} else
+			// add current channel to channels list
 			channels = [message.channel.id];
-
-		var exists = await fm.checkFile('./channels.json');
+		// write data to file
 		await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
 			log.error(err);
 		});
 		discord_channels_to_use = require('./channels.json').data;
-
+		// success, list channels
 		var msg = 'Success, using channels: \n';
 		for (i = 0; i < discord_channels_to_use.length; i++) {
-			msg += discord_channels_to_use[i] + ':"' + client.channels.get(discord_channels_to_use[i]) + '"\n';
+			msg += discord_channels_to_use[i] + ':' + client.channels.get(discord_channels_to_use[i]) + '\n';
 		}
 		message.channel.send(msg);
 		return;
-
-
-		// await fs.exists('./channels.json', async function (exists) {
-		// 	if (exists)
-		// 		await fs.writeFileSync('./channels.json', JSON.stringify({ channels: channels }), (err) => {
-		// 			log.error(err);
-		// 		});
-		// });
-		// discord_channels_to_use = require('./channels.json')
 	}
+	// is the channel being used by the bot?
 	if (!discord_channels_to_use.includes(message.channel.id))
 		return;
 	switch (cmd) {
 		case 'version':
 			message.channel.send(client.user.username + ' v' + package.version);
 			break;
+		// channels command, shows channels being used by bot
 		case 'channels':
+			// requires admin
 			if (!admin)
 				break;
+			// list channels
 			var msg = '';
 			for (i = 0; i < discord_channels_to_use.length; i++) {
 				msg += discord_channels_to_use[i] + ':"' + client.channels.get(discord_channels_to_use[i]) + '"\n';
 			}
 			message.channel.send(msg);
 			break;
+		// deinit command, makes the bot stop using a channel
 		case 'deinit':
+			// requires admin
 			if (!admin)
 				break;
+			// check if channel is being used currently
 			var channels = discord_channels_to_use;
 			if (channels == undefined || !channels.includes(message.channel.id)) {
-				message.channel.send('Currently not using channel ' + message.channel.id + ':"' + message.channel.name + '"');
+				message.channel.send('Currently not using channel ' + message.channel.id + ':' + message.channel.name + '');
 				break;
 			}
+			// stop using this channel
 			channels.splice(channels.indexOf(message.channel.id), 1);
-
-			new Promise(async function (resolve, reject) {
-				await fs.exists('./channels.json', async function (exists) {
-					if (exists)
-						await fs.writeFileSync('./channels.json', JSON.stringify({ data: channels }), (err) => {
-							log.error(err);
-						});
-				});
-				discord_channels_to_use = require('./channels.json').data;
+			await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+				log.error(err);
 			});
+			discord_channels_to_use = require('./channels.json').data;
+			// list channels
 			var msg = 'Success, using channels: \n';
 			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += discord_channels_to_use[i] + ':"' + client.channels.get(discord_channels_to_use[i]) + '"\n';
+				msg += discord_channels_to_use[i] + ':' + client.channels.get(discord_channels_to_use[i]) + '\n';
 			}
 			message.channel.send(msg);
 			break;
+		// TODO: remove this command before release, for debug only
+		// say command, makes the bot say a message
 		case 'say':
-			// TODO: remove this command before release
-			// make the bot say a message, for debug only
 			var msg = '';
 			for (i = 0; i < args.length; i++) {
 				((i - 1 < args.length) ? msg += args[i] + ' ' : msg += args[i]);
 			}
 			message.channel.send(msg);
 			break;
+		// TODO: remove this command before release, for debug only
+		// debug command, displays user data
 		case 'debug':
-			// debug command for debugging purposes, displays user data
-			if (admin && args.length == 1) {
-				// check for a mention
-				var mention = message.mentions.users.values().next().value;
-				if (args.length != 1 || mention == undefined) {
-					// no mentions, too many arguments
-					message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
-					break;
-				}
+			// mention
+			var mention = message.mentions.users.values().next().value;
+			// require admin and 1 argument
+			if (admin && args.length == 1 && mention != undefined) {
 				// get target user id
 				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
 				if (!target_id_from_discord_id.success || target_id_from_discord_id.id == null) {
@@ -164,6 +158,8 @@ client.on('message', async (message) => {
 					message.channel.send(tag(message.author.id) + ' no data to display.');
 					break;
 				}
+				// get target data
+				// TODO: getUserData() with user id, not discord id
 				var target_data = await db.getUserData(mention.id);
 				if (!target_data.success) {
 					message.channel.send(tag(message.author.id) + ' no data to display.');
@@ -177,6 +173,7 @@ client.on('message', async (message) => {
 				message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
 				break;
 			}
+			// get user data
 			var user_data = await db.getUserData(message.author.id);
 			if (!user_data.success) {
 				message.channel.send(tag(message.author.id) + ' no data to display.');
@@ -189,48 +186,60 @@ client.on('message', async (message) => {
 			}
 			message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
 			break;
+		// help command, shows help dialogue
 		case 'help':
-			// shows help dialogue
 			msg = strings.help;
 			if (admin)
 				msg += '\n' + strings.admin_help;
 			message.channel.send(msg.replace('{user}', tag(message.author.id)));
 			break;
+		// challengeme command, toggles challengeme rank
 		case 'challengeme':
+			// get challengeme role
 			let challengeme = message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme.id == undefined) {
 				message.channel.send(tag(message.author.id) + ' could not find role challengeme');
 				break;
 			}
+			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
+				// toggle off
 				message.member.removeRole(challengeme);
 				message.channel.send(tag(message.author.id) + ' no longer has role challengeme');
 			} else {
+				// toggle on
 				message.member.addRole(challengeme);
 				message.channel.send(tag(message.author.id) + ' now has role challengeme');
 			}
 			break;
+		// challenging command, shows users with challengeme rank
 		case 'challenging':
 			break;
+		// questme command, toggles questme rank
 		case 'questme':
+			// get questme role
 			let questme = message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
 				message.channel.send(tag(message.author.id) + ' could not find role questme');
 				break;
 			}
+			// toggle questme role on/off
 			if (message.member._roles.includes(questme.id)) {
+				// toggle off
 				message.member.removeRole(questme);
 				message.channel.send(tag(message.author.id) + ' no longer has role questme');
 			} else {
+				// toggle on
 				message.member.addRole(questme);
 				message.channel.send(tag(message.author.id) + ' now has role questme');
 			}
 			break;
+		// questing command, shows users with questme rank
 		case 'questing':
 			break;
+		// compete command, registers the user in the database and/or enables competing for the user
 		case 'register':
 		case 'compete':
-			// sets user competing state to true
 			if (args.length != 0) {
 				message.channel.send(strings.compete_try_again.replace('{user}', tag(message.author.id)));
 				break;
@@ -238,20 +247,19 @@ client.on('message', async (message) => {
 			// register user if they're not already in the DB
 			var register_user = await db.registerUser(message.author.id, message.author.username);
 			if (register_user.success == null || !register_user.success) {
-				// error
+				// error registering
 				log.error('Error executing db.registerUser(' + message.author.id + ', ' + message.author.username + ')');
 				message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
 				break;
 			}
 			// set the user's competing state to true
 			var user_competing = await db.setUserCompeting(message.author.id, true);
-			if (user_competing.success) {
+			if (user_competing.success)
 				message.channel.send(strings.user_now_competing.replace('{user}', tag(message.author.id)));
-			}
 			break;
+		// quit command, disables competing for the user
 		case 'retire':
 		case 'quit':
-			// stop competing, but keep data in DB
 			// check if user is registered
 			var user_exists = await db.checkUserExists(message.author.id);
 			if (!user_exists.success || !user_exists.exists) {
@@ -266,8 +274,9 @@ client.on('message', async (message) => {
 				message.channel.send(strings.user_no_longer_competing.replace('{user}', tag(message.author.id)));
 			}
 			break;
+		// competing command, shows if user is competing or not
 		case 'competing':
-			// checks if user is competing
+			// check if user is registered
 			var user_exists = await db.checkUserExists(message.author.id);
 			if (!user_exists.success || !user_exists.exists) {
 				// not registered
@@ -280,20 +289,19 @@ client.on('message', async (message) => {
 				(message.channel.send(strings.user_is_competing.replace('{user}', tag(message.author.id)))) :
 				(message.channel.send(strings.user_is_not_competing.replace('{user}', tag(message.author.id)))));
 			break;
+		// check command, shows if user is registered in the database
 		case 'check':
-			// checks if user is registered (exists in database)
 			if (args.length == 0) {
-				// check if user exists in database
+				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
 				(user_exists.success && user_exists.exists ?
 					message.channel.send(strings.user_is_registered.replace('{user}', tag(message.author.id))) :
 					message.channel.send(strings.user_is_not_registered.replace('{user}', tag(message.author.id))));
 			} else if (args.length == 1) {
-				// check if tagged user is registered
 				// check for a mention
 				var mention = message.mentions.users.values().next().value;
-				if (args.length != 1 || mention == undefined) {
-					// no mentions, too many arguments
+				if (mention == undefined) {
+					// no mentions
 					message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
 					break;
 				}
@@ -308,6 +316,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.target_is_registered.replace('{user}', tag(message.author.id)).replace('{target}', mention.username));
 			}
 			break;
+		// oldsr command, shows rank and skill rating (deprecated)
 		case 'oldsr':
 			if (args.length == 0) {
 				// gets user skill rating
@@ -324,7 +333,7 @@ client.on('message', async (message) => {
 					message.channel.send('error');
 					break;
 				}
-				// get user rank
+				// get user elo rank
 				var user_rank = await db.getUserEloRanking(user_id_from_discord_id.id);
 				if (!user_rank.success || user_rank.rank == null) {
 					message.channel.send('error');
@@ -336,8 +345,8 @@ client.on('message', async (message) => {
 				// gets other user's skill rating
 				// check for a mention
 				var mention = message.mentions.users.values().next().value;
-				if (args.length != 1 || mention == undefined) {
-					// no mentions, too many arguments
+				if (mention == undefined) {
+					// no mentions
 					message.channel.send(strings.submit_no_user_specified.replace('{user}', tag(message.author.id)));
 					break;
 				}
@@ -351,7 +360,8 @@ client.on('message', async (message) => {
 				// get target skill rating
 				var target_elo_rating = await db.getUserEloRating(target_id_from_discord_id.id);
 				if (!target_elo_rating.success || target_elo_rating.elo_rating == null) {
-					log.error('Failed to getUserEloRating(' + target_id_from_discord_id.id + ')');
+					// failed to get user elo rating
+					log.error('Could not getUserEloRating(' + target_id_from_discord_id.id + ')');
 					message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
 					break;
 				}
@@ -359,13 +369,13 @@ client.on('message', async (message) => {
 				message.channel.send(strings.target_skill_rating.replace('{user}', tag(message.author.id)).replace('{target}', mention.username).replace('{elo}', target_elo_rating.elo_rating));
 			}
 			break;
+		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
 		case 'elo':
 		case 'rating':
 		case 'rank':
 		case 'skill':
 		case 'sr':
 		case 'sr2':
-			// show player rank plus 2 above and below
 			// get user id from discord id
 			var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 			if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
@@ -373,15 +383,15 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
 				break;
 			}
-
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user_id_from_discord_id.id, 2);
 			if (!nearby_players.players || nearby_players.players == null) {
+				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
 				error.log('could not getNearbyPlayers(' + user_id_from_discord_id.id + ')');
 				break;
 			}
-			// construct message
+			// find the user in the list
 			nearby_players.players.sort(function (a, b) {
 				return !(a.elo_rating > b.elo_rating);
 			});
@@ -390,15 +400,21 @@ client.on('message', async (message) => {
 				if (nearby_players.players[i].id == user_id_from_discord_id.id)
 					player_index = i;
 			}
+			// construct message
 			var msg = '';
 			for (i = 0; i < nearby_players.players.length; i++) {
+				// do nothing if not within 2 above and 2 below the player
 				if (i < player_index - 2 || i > player_index + 2)
 					continue;
+				// get user elo rank
 				var rank = await db.getUserEloRanking(nearby_players.players[i].id);
 				if (!rank.success || rank.rank == null) {
+					// failed to get similarly ranked players
+					message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
 					log.error('Could not getUserEloRanking(' + nearby_players.players[i].id + ')');
 					break;
 				}
+				// list top players
 				var username = nearby_players.players[i].discord_username;
 				if (nearby_players.players[i].id == user_id_from_discord_id.id)
 					username = '**' + username + '**'
@@ -407,9 +423,9 @@ client.on('message', async (message) => {
 			}
 			message.channel.send('' + msg + '');
 			break;
+		// pending command, shows pending match submissions
 		case 'confirmations':
 		case 'pending':
-			// show pending match submissions
 			if (args.length == 0) {
 				// show pending match submissions vs the user
 				// get user id from discord id, checking if the user is registered
@@ -426,10 +442,10 @@ client.on('message', async (message) => {
 					message.channel.send(strings.no_unconfirmed_matches.replace('{user}', tag(message.author.id)).replace('{target}', message.author.username));
 					break;
 				}
-				var waiting_for_input = false;
 				// compose response message
 				var text = '';
 				// loop through retrieved matches
+				var waiting_for_input = false;
 				var collected = [];
 				for (var m in user_latest_matches.matches) {
 					var match = user_latest_matches.matches[m];
@@ -465,16 +481,13 @@ client.on('message', async (message) => {
 						text += tag(message.author.id) + ' submitted a **' + match_result_string + '** vs **' + opponent_data.data.discord_username + '** in Game ' + match.id + '\n' :
 						text += '**' + opponent_data.data.discord_username + '** submitted a **' + match_result_string + '** vs ' + tag(message.author.id) + ' in Game ' + match.id + '\n');
 					// send it
-					if (submitter_was_user) {
-						message.channel.send(text);
-						continue;
-					}
-					waiting_for_input = true;
-					// ask the user if they won
 					var msg = await message.channel.send(text);
-
+					// if the submitter was the user, no emojis necessary.
+					if (submitter_was_user)
+						continue;
+					// ask the user if they won
+					waiting_for_input = true;
 					await db.putPendingMatch(msg.id, match.id, user_id_from_discord_id.id);
-
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
 					await msg.react(ReactionEmoji.LOSS);
@@ -486,62 +499,72 @@ client.on('message', async (message) => {
 						async function collect() {
 							if (collected.includes(r.message.id))
 								return;
-							collected.push(r.message.id);
 							// user reacted y/n
-							await msg.react(r._emoji.name);
+							collected.push(r.message.id);
 							var confirm;
-							((r._emoji.name === ReactionEmoji.WIN) ? confirm = MatchResult.WIN : confirm = MatchResult.LOSS);
-							var match_id = await db.getPendingMatch(r.message.id);
-							if (match_id.success && match_id.match_id != null) {
-								var match = await db.getMatch(match_id.match_id);
-								var opponent_discord_id = await db.getDiscordIdFromUserId(match.match.player_id);
-								var opponent_data = await db.getUserData(opponent_discord_id.discord_id);
-								if (!confirm) {
-									await r.message.react(ReactionEmoji.LOSS);
-									await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id.match_id + ' vs ' + tag(opponent_data.data.discord_id) + ' @Admin');
-								} else {
-									await r.message.react(ReactionEmoji.WIN);
-									if (config.rating_method == RatingMethod.ELO) {
-										// get user's elo rating
-										var userElo = await db.getUserEloRating(match.match.player_id);
-										// get opponent's elo rating
-										var opponentElo = await db.getUserEloRating(match.match.opponent_id);
-										var uELO = userElo.elo_rating;
-										var tELO = opponentElo.elo_rating;
-										// calculate new elo
-										var eloRatingCalculation = eloRating.calculate(uELO, tELO, match.match.result, config.elo_k);
-										var newUserELO = eloRatingCalculation.playerRating + config.bonus_elo;
-										var newTargetELO = eloRatingCalculation.opponentRating + config.bonus_elo;
-										// set user's new elo rating
-										db.setUserEloRating(match.match.player_id, newUserELO);
-										// set target's new elo rating
-										db.setUserEloRating(match.match.opponent_id, newTargetELO);
-										// set confirm the match
-										db.setMatchResultConfirmed(match.match.id, true);
-										// get users' new ranks
-										var user_rank = await db.getUserEloRanking(match.match.player_id);
-										var target_rank = await db.getUserEloRanking(match.match.opponent_id);
-										// message users
-										var winloss;
-										match.match.result ? winloss = 'win' : winloss = 'loss';
-										await message.channel.send(strings.new_elo_message
-											.replace('{game_id}', match.match.id)
-											.replace('{winloss}', winloss)
-											.replace('{user}', tag(opponent_data.data.discord_id))
-											.replace('{target}', tag(message.author.id))
-											.replace('{user_name}', opponent_data.data.discord_username)
-											.replace('{target_name}', message.author.username)
-											.replace('{user_elo_rank}', user_rank.rank)
-											.replace('{target_elo_rank}', target_rank.rank)
-											.replace('{old_user_elo}', uELO)
-											.replace('{new_user_elo}', newUserELO)
-											.replace('{old_target_elo}', tELO)
-											.replace('{new_target_elo}', newTargetELO));
-									}
-								}
-								await db.removePendingMatch(r.message.id, match.match.id);
-								await r.message.react(ReactionEmoji.CONFIRMED);
+							if (r._emoji.name === ReactionEmoji.WIN) {
+								await r.message.react(ReactionEmoji.WIN_CONFIRM);
+								confirm = MatchResult.WIN;
+							} else {
+								await r.message.react(ReactionEmoji.LOSS_CONFIRM);
+								confirm = MatchResult.LOSS;
 							}
+							// get match id
+							var match_id = await db.getPendingMatch(r.message.id);
+							if (!match_id.success || match_id.match_id == null)
+								return;
+							// get match
+							var match = await db.getMatch(match_id.match_id);
+							var opponent_discord_id = await db.getDiscordIdFromUserId(match.match.player_id);
+							var opponent_data = await db.getUserData(opponent_discord_id.discord_id);
+							if (!confirm) {
+								// the match was disputed
+								await r.message.react(ReactionEmoji.LOSS);
+								let admin_tag = message.guild.roles.find(role => role.name === "admin");
+								await message.channel.send(tag(message.author.id) + ' disputes match ' + match_id.match_id + ' vs ' + tag(opponent_data.data.discord_id) + ' ' + tagRole(admin_tag.id));
+							} else {
+								// the match was confirmed
+								await r.message.react(ReactionEmoji.WIN);
+								if (config.rating_method == RatingMethod.ELO) {
+									// get user's elo rating
+									var userElo = await db.getUserEloRating(match.match.player_id);
+									var uELO = userElo.elo_rating;
+									// get opponent's elo rating
+									var opponentElo = await db.getUserEloRating(match.match.opponent_id);
+									var tELO = opponentElo.elo_rating;
+									// calculate new elo
+									var eloRatingCalculation = eloRating.calculate(uELO, tELO, match.match.result, config.elo_k);
+									var newUserELO = eloRatingCalculation.playerRating + config.bonus_elo;
+									var newTargetELO = eloRatingCalculation.opponentRating + config.bonus_elo;
+									// set user's new elo rating
+									db.setUserEloRating(match.match.player_id, newUserELO);
+									// set target's new elo rating
+									db.setUserEloRating(match.match.opponent_id, newTargetELO);
+									// set confirm the match
+									db.setMatchResultConfirmed(match.match.id, true);
+									// get users' new ranks
+									var user_rank = await db.getUserEloRanking(match.match.player_id);
+									var target_rank = await db.getUserEloRanking(match.match.opponent_id);
+									// message users
+									var winloss;
+									match.match.result ? winloss = 'win' : winloss = 'loss';
+									await message.channel.send(strings.new_elo_message
+										.replace('{game_id}', match.match.id)
+										.replace('{winloss}', winloss)
+										.replace('{user}', tag(opponent_data.data.discord_id))
+										.replace('{target}', tag(message.author.id))
+										.replace('{user_name}', opponent_data.data.discord_username)
+										.replace('{target_name}', message.author.username)
+										.replace('{user_elo_rank}', user_rank.rank)
+										.replace('{target_elo_rank}', target_rank.rank)
+										.replace('{old_user_elo}', uELO)
+										.replace('{new_user_elo}', newUserELO)
+										.replace('{old_target_elo}', tELO)
+										.replace('{new_target_elo}', newTargetELO));
+								}
+							}
+							await db.removePendingMatch(r.message.id, match.match.id);
+							await r.message.react(ReactionEmoji.CONFIRMED);
 						}
 						collect().catch((err) => {
 							// error collecting reactions
@@ -557,7 +580,6 @@ client.on('message', async (message) => {
 							async function removePendingMatch() {
 								await db.removePendingMatch(match.id, msg.id, user_id_from_discord_id.id);
 							}
-							msg.clearReactions();
 							removePendingMatch().catch((err) => {
 								log.error(err);
 							});
@@ -565,6 +587,7 @@ client.on('message', async (message) => {
 					});
 
 				}
+				// a match has confirm and dispute options
 				if (waiting_for_input) {
 					message.channel.send(tag(message.author.id) + ' Use the check to confirm, or X to dispute.');
 				}
@@ -572,7 +595,7 @@ client.on('message', async (message) => {
 				// admins can confirm or reject other users' pending games
 				// check for a mention
 				var mention = message.mentions.users.values().next().value;
-				if (args.length != 1 || mention == undefined) {
+				if (mention == undefined) {
 					// no mentions, too many arguments
 					message.channel.send(strings.pending_no_user_specified.replace('{user}', tag(message.author.id)));
 					break;
@@ -644,8 +667,8 @@ client.on('message', async (message) => {
 				message.channel.send(msg);
 			}
 			break;
+		// submit command, submits a match result vs another user
 		case 'submit':
-			// submits a game result (win/loss)
 			// get user id from discord id, checking if the user is registered
 			var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
 			if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
@@ -742,8 +765,8 @@ client.on('message', async (message) => {
 				}
 			});
 			break;
+		// top command, shows top 25 competing players by elo
 		case 'top':
-			// show top 25 players (by ELO)
 			if (args.length != 0)
 				break;
 			// get top players
@@ -765,6 +788,11 @@ client.on('message', async (message) => {
 // tag a user by userID
 function tag(userID) {
 	return '<@' + userID + '>';
+}
+
+// tag a role by userID
+function tagRole(userID) {
+	return '<@&' + userID + '>';
 }
 
 function updateRatings() {
