@@ -391,18 +391,19 @@ client.on('message', async (message) => {
 		case 'sr':
 		case 'sr2':
 			// get user id from discord id
-			var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-			if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id.success || user_id.id == null) {
 				// user is not registered
-				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			user_id = user_id.id;
 			// get player and nearby players
-			var nearby_players = await db.getNearbyPlayers(user_id_from_discord_id.id, 2);
+			var nearby_players = await db.getNearbyPlayers(user_id, 2);
 			if (!nearby_players.players || nearby_players.players == null) {
 				// failed to get similarly ranked players
-				message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
-				error.log('could not getNearbyPlayers(' + user_id_from_discord_id.id + ')');
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+				error.log(`could not getNearbyPlayers(${user_id})`);
 				break;
 			}
 			// find the user in the list
@@ -411,7 +412,7 @@ client.on('message', async (message) => {
 			});
 			var player_index = 0;
 			for (i = 0; i < nearby_players.players.length; i++) {
-				if (nearby_players.players[i].id == user_id_from_discord_id.id)
+				if (nearby_players.players[i].id == user_id)
 					player_index = i;
 			}
 			// construct message
@@ -424,18 +425,19 @@ client.on('message', async (message) => {
 				var rank = await db.getUserEloRanking(nearby_players.players[i].id);
 				if (!rank.success || rank.rank == null) {
 					// failed to get similarly ranked players
-					message.channel.send(strings.generic_error.replace('{user}', tag(message.author.id)));
-					log.error('Could not getUserEloRanking(' + nearby_players.players[i].id + ')');
+					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+					log.error(`Could not getUserEloRanking(${nearby_players.players[i].id})`);
 					break;
 				}
+				rank = rank.rank;
 				// list top players
 				var username = nearby_players.players[i].discord_username;
-				if (nearby_players.players[i].id == user_id_from_discord_id.id)
-					username = '**' + username + '**'
-				msg += rank.rank + '. ' + username + ': ' + nearby_players.players[i].elo_rating + ' ELO\n';
+				if (nearby_players.players[i].id == user_id)
+					username = `**${username}**`;
+				msg += `${rank}. ${username}: ${nearby_players.players[i].elo_rating} ELO\n`;
 
 			}
-			message.channel.send('' + msg + '');
+			message.channel.send(msg);
 			break;
 		// pending command, shows pending match submissions
 		case 'confirmations':
