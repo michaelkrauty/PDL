@@ -34,7 +34,7 @@ exports.connect = function () {
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `users`');
 		});
-		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, timestamp timestamp not null default current_timestamp)', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp)', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matches`');
