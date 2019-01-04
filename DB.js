@@ -360,6 +360,30 @@ exports.setMatchResultConfirmed = function (match_id, confirmed) {
  * @description confirm a match result
  * @param {int} match_id the match to confirm
  * @param {boolean} confirmed is the match confirmed?
+ * @param {int} old_user_elo the user's old elo
+ * @param {int} new_user_elo the user's new elo
+ * @param {int} old_opponent_elo the opponent's old elo
+ * @param {int} new_opponent_elo the opponent's new elo
+ * @returns {success: boolean}
+ */
+exports.updateMatch = function (match_id, confirmed, player_start_elo, player_end_elo, opponent_start_elo, opponent_end_elo) {
+	return new Promise(async function (resolve, reject) {
+		pool.getConnection(function (err, con) {
+			if (err) throw err;
+			var sql = 'UPDATE matches SET confirmed=?, player_start_elo=?, player_end_elo=?, opponent_start_elo=?, opponent_end_elo=? WHERE id=?;';
+			con.query(sql, [confirmed, player_start_elo, player_end_elo, opponent_start_elo, opponent_end_elo, match_id], function (err) {
+				con.release();
+				if (err) throw err;
+				resolve({ success: true });
+			});
+		});
+	});
+}
+
+/**
+ * @description confirm a match result
+ * @param {int} match_id the match to confirm
+ * @param {boolean} confirmed is the match confirmed?
  * @returns {success: boolean}
  */
 exports.putPendingMatch = function (message_id, match_id, user_id) {
