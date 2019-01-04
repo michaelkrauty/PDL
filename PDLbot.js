@@ -33,7 +33,7 @@ log.level = 'debug';
 const client = new discord.Client();
 client.login(auth.token);
 client.once('ready', async () => {
-	log.info('Starting ' + client.user.username + ' v' + package.version + ' - (' + client.user.id + ')');
+	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// setup json storage files
 	await fm.checkFile('./channels.json');
 	discord_channels_to_use = require('./channels.json').data;
@@ -71,7 +71,7 @@ client.on('message', async (message) => {
 		var channels = discord_channels_to_use;
 		if (channels != undefined) {
 			if (channels.includes(message.channel.id)) {
-				message.channel.send('Already using channel ' + message.channel.id + ':' + message.channel.name + '');
+				message.channel.send(`Already using channel ${message.channel.id}:${message.channel.name}`);
 				return;
 			}
 			// add current channel to channels list
@@ -96,8 +96,9 @@ client.on('message', async (message) => {
 	if (!discord_channels_to_use.includes(message.channel.id))
 		return;
 	switch (cmd) {
+		// version command, shows current bot version
 		case 'version':
-			message.channel.send(client.user.username + ' v' + package.version);
+			message.channel.send(`${client.user.username} v${package.version}`);
 			break;
 		// channels command, shows channels being used by bot
 		case 'channels':
@@ -107,7 +108,7 @@ client.on('message', async (message) => {
 			// list channels
 			var msg = '';
 			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += discord_channels_to_use[i] + ':"' + client.channels.get(discord_channels_to_use[i]) + '"\n';
+				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
 			}
 			message.channel.send(msg);
 			break;
@@ -119,7 +120,7 @@ client.on('message', async (message) => {
 			// check if channel is being used currently
 			var channels = discord_channels_to_use;
 			if (channels == undefined || !channels.includes(message.channel.id)) {
-				message.channel.send('Currently not using channel ' + message.channel.id + ':' + message.channel.name + '');
+				message.channel.send(`Currently not using channel ${message.channel.id}:${message.channel.name}`);
 				break;
 			}
 			// stop using this channel
@@ -131,13 +132,14 @@ client.on('message', async (message) => {
 			// list channels
 			var msg = 'Success, using channels: \n';
 			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += discord_channels_to_use[i] + ':' + client.channels.get(discord_channels_to_use[i]) + '\n';
+				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
 			}
 			message.channel.send(msg);
 			break;
 		// TODO: remove this command before release, for debug only
 		// say command, makes the bot say a message
 		case 'say':
+			// construct and send message
 			var msg = '';
 			for (i = 0; i < args.length; i++) {
 				((i - 1 < args.length) ? msg += args[i] + ' ' : msg += args[i]);
@@ -151,65 +153,66 @@ client.on('message', async (message) => {
 			var mention = message.mentions.users.values().next().value;
 			// require admin and 1 argument
 			if (admin && args.length == 1 && mention != undefined) {
-				// get target user id
-				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!target_id_from_discord_id.success || target_id_from_discord_id.id == null) {
+				// get mention user id
+				var mention_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!mention_id.success || mention_id.id == null) {
 					// target is not registered
-					message.channel.send(tag(message.author.id) + ' no data to display.');
+					message.channel.send(`${tag(message.author.id)} no data to display.`);
 					break;
 				}
-				// get target data
-				// TODO: getUserData() with user id, not discord id
-				var target_data = await db.getUserData(mention.id);
-				if (!target_data.success) {
-					message.channel.send(tag(message.author.id) + ' no data to display.');
+				mention_id = mention_id.id;
+				// get mention data
+				var mention_data = await db.getUserDataUsingId(mention_id);
+				if (!mention_data.success || mention_data.data == null) {
+					message.channel.send(`${tag(message.author.id)} no data to display.`);
 					break;
 				}
-				// display user data
+				mention_data = mention_data.data;
+				// compose and send message containing user data
 				var msg = tag(message.author.id) + '\n';
-				for (var elem in target_data.data) {
-					msg += elem + ': ' + target_data.data[elem] + '\n'
+				for (var elem in mention_data) {
+					msg += `${elem}: ${mention_data[elem]}\n`;
 				}
-				message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
+				message.channel.send(`${tag(message.author.id)}\n\`\`\`javascript\n${msg}\`\`\``);
 				break;
 			}
 			// get user data
 			var user_data = await db.getUserData(message.author.id);
-			if (!user_data.success) {
-				message.channel.send(tag(message.author.id) + ' no data to display.');
+			if (!user_data.success || user_data.data == null) {
+				message.channel.send(`${tag(message.author.id)} no data to display.`);
 				break;
 			}
-			// display user data
+			user_data = user_data.data;
+			// compose and send message containing user data
 			var msg = '';
-			for (var elem in user_data.data) {
-				msg += elem + ': ' + user_data.data[elem] + '\n'
+			for (var elem in user_data) {
+				msg += `${elem}: ${user_data[elem]}\n`;
 			}
-			message.channel.send(tag(message.author.id) + '\n```javascript\n' + msg + '```');
+			message.channel.send(`${tag(message.author.id)}\n\`\`\`javascript\n${msg}\`\`\``);
 			break;
 		// help command, shows help dialogue
 		case 'help':
 			msg = strings.help;
-			if (admin)
-				msg += '\n' + strings.admin_help;
-			message.channel.send(msg.replace('{user}', tag(message.author.id)));
+			if (admin) msg += `\n${strings.admin_help}`;
+			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
 			let challengeme = message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme.id == undefined) {
-				message.channel.send(tag(message.author.id) + ' could not find role challengeme');
+				message.channel.send(`${tag(message.author.id)} could not find role challengeme`);
 				break;
 			}
 			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
 				message.member.removeRole(challengeme);
-				message.channel.send(tag(message.author.id) + ' no longer has role challengeme');
+				message.channel.send(`${tag(message.author.id)} no longer has role challengeme`);
 			} else {
 				// toggle on
 				message.member.addRole(challengeme);
-				message.channel.send(tag(message.author.id) + ' now has role challengeme');
+				message.channel.send(`${tag(message.author.id)} now has role challengeme`);
 			}
 			break;
 		// challenging command, shows users with challengeme rank
@@ -220,18 +223,18 @@ client.on('message', async (message) => {
 			// get questme role
 			let questme = message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
-				message.channel.send(tag(message.author.id) + ' could not find role questme');
+				message.channel.send(`${tag(message.author.id)} could not find role questme`);
 				break;
 			}
 			// toggle questme role on/off
 			if (message.member._roles.includes(questme.id)) {
 				// toggle off
 				message.member.removeRole(questme);
-				message.channel.send(tag(message.author.id) + ' no longer has role questme');
+				message.channel.send(`${tag(message.author.id)} no longer has role questme`);
 			} else {
 				// toggle on
 				message.member.addRole(questme);
-				message.channel.send(tag(message.author.id) + ' now has role questme');
+				message.channel.send(`${tag(message.author.id)} now has role questme`);
 			}
 			break;
 		// questing command, shows users with questme rank
@@ -240,6 +243,7 @@ client.on('message', async (message) => {
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'register':
 		case 'compete':
+			// require no arguments
 			if (args.length != 0) {
 				message.channel.send(strings.compete_try_again.replace('{user}', tag(message.author.id)));
 				break;
@@ -785,32 +789,37 @@ client.on('message', async (message) => {
 			// get top players
 			var top_players = await db.getTopCompetingPlayers(25);
 			if (!top_players.success || top_players.players == null) {
-				message.channel.send(strings.could_not_get_top_players.replace('{user}', tag(message.author.id)));
+				message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// construct message
 			var msg = '';
 			for (i = 0; i < top_players.players.length; i++) {
-				msg += (i + 1) + '. ' + top_players.players[i].discord_username + ': ' + top_players.players[i].elo_rating + ' ELO\n';
+				msg += `${(i + 1)}. ${top_players.players[i].discord_username}: ${top_players.players[i].elo_rating} ELO\n`;
 			}
-			message.channel.send('Top players:\n```' + msg + '```');
+			message.channel.send(`Top players:\n\`\`\`${msg}\`\`\``);
 			break;
 	}
 });
 
 // tag a user by userID
 function tag(userID) {
-	return '<@' + userID + '>';
+	return `<@${userID}>`;
 }
 
 // tag a role by userID
 function tagRole(userID) {
-	return '<@&' + userID + '>';
+	return `<@${userID}>`;
 }
 
-function calculateElo(uELO, tELO, result) {
-	return eloRating.calculate(uELO, tELO, result, config.elo_k);
+function calculateElo(playerElo, opponentElo, result) {
+	return eloRating.calculate(playerElo, opponentElo, result, config.elo_k);
 }
+
+String.prototype.replaceAll = function (search, replacement) {
+	var target = this;
+	return target.split(search).join(replacement);
+};
 
 function updateRatings() {
 	// just testing, for now.
@@ -823,7 +832,7 @@ function updateRatings() {
 	matches.push([maverick, scorched, 1]);
 	matches.push([scorched, maverick, 1]);
 	ranking.updateRatings(matches);
-	console.log("scorched rating: " + scorched.getRating());
-	console.log("scorched deviation: " + scorched.getRd());
-	console.log("scorched volatility: " + scorched.getVol());
+	console.log(`scorched rating: ${scorched.getRating()}`);
+	console.log(`scorched deviation: ${scorched.getRd()}`);
+	console.log(`scorched volatility: ${scorched.getVol()}`);
 }
