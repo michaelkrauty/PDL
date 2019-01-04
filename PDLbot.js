@@ -45,7 +45,7 @@ client.once('ready', async () => {
 	started = true;
 	// announce startup
 	// for (var e in discord_channels_to_use) {
-	// 	client.channels.get(discord_channels_to_use[e]).send('Started ' + client.user.username + ' v' + package.version);
+	// 	client.channels.get(discord_channels_to_use[e]).send(`Started ${client.user.username} v${package.version}`);
 	// }
 });
 

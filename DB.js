@@ -10,7 +10,7 @@ exports.connect = function () {
 	new Promise(async function () {
 
 		// connect to MySQL DB
-		log.info('Connecting to MySQL DB: ' + config['db']['user'] + '@' + config['db']['host'] + '...');
+		log.info(`Connecting to MySQL DB: ${config.db.user}@${$config.db.host}...`);
 		var con = await mysql.createConnection({
 			host: config.db.host,
 			user: config.db.user,
@@ -21,35 +21,37 @@ exports.connect = function () {
 			log.info('Connected to MySQL DB!');
 		});
 		// create DB if it doesn't already exist
-		await con.query('CREATE DATABASE IF NOT EXISTS `' + config['db']['database'] + '`', function (err) {
+		await con.query(`CREATE DATABASE IF NOT EXISTS ${config.db.database};`, function (err) {
 			if (err) throw err;
 		});
 		// select DB
-		await con.query('USE `' + config['db']['database'] + '`', function (err) {
+		await con.query(`USE ${config.db.database};`, function (err) {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
-		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false)', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `users`');
 		});
-		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp)', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matches`');
 		});
-		await con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null)', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `pending_matches`');
 		});
+		// end connection to database
 		await con.end();
-		// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int)', function (err, res) {
+		// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int);', function (err, res) {
 		// 	if (err) throw err;
 		// 	if (res['warningCount'] == 0)
 		// 		log.info('Created MySQL table `quests`');
 		// });
+		// create mysql connection pool
 		pool = await mysql.createPool({
 			host: config.db.host,
 			database: config.db.database,
