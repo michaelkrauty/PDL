@@ -765,6 +765,19 @@ client.on('message', async (message) => {
 				}
 			});
 			break;
+		// matchinfo command, allows admins to see match information with match id
+		case 'matchinfo':
+			if (args.length != 1 || !admin)
+				break;
+			var match = await db.getMatch(args[0]);
+			if (!match.success || match.match == null)
+				break;
+			var msg = '';
+			for (var e in match.match) {
+				msg += e + ': ' + match.match[e] + '\n';
+			}
+			message.channel.send('```' + msg + '```');
+			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
 			if (args.length != 0)
