@@ -261,7 +261,7 @@ client.on('message', async (message) => {
 			if (!user_competing.success) {
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				log.error(`Could not setUserCompeting(${message.author.id}, true)`);
-			break;
+				break;
 			}
 			message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
