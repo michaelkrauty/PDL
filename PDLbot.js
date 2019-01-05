@@ -258,16 +258,11 @@ client.on('message', async (message) => {
 			// check if the user is currently competing
 			var user_competing = await db.isUserCompeting(message.author.id);
 			if (user_competing) {
-				message.channel.send(`${tag(message.author.id)} Already competing.`);
+				message.channel.send(`${tag(message.author.id)} already competing in PDL.`);
 				break;
 			}
 			// set the user's competing state to true
-			var user_competing = await db.setUserCompeting(message.author.id, true);
-			if (!user_competing) {
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not setUserCompeting(${message.author.id}, true)`);
-				break;
-			}
+			await db.setUserCompeting(message.author.id, true);
 			message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// quit command, disables competing for the user
