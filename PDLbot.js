@@ -254,11 +254,11 @@ client.on('message', async (message) => {
 				break;
 			}
 			// register user if they're not already in the DB
-			var register_user = await db.registerUser(message.author.id, message.author.username);
-			if (!register_user) {
-				// error registering
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not registerUser(${message.author.id}, ${message.author.username})`);
+			await db.registerUser(message.author.id, message.author.username);
+			// check if the user is currently competing
+			var user_competing = await db.isUserCompeting(message.author.id);
+			if (user_competing) {
+				message.channel.send(`${tag(message.author.id)} Already competing.`);
 				break;
 			}
 			// set the user's competing state to true
