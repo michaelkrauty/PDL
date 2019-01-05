@@ -1,30 +1,25 @@
-const config = require('./config_db.js');
-const mysql = require('mysql');
 const log = require('winston');
-var pool;
-
-/**
- * @description connects to SQL database and creates necessary tables
- */
-exports.connect = function () {
-	new Promise(async function () {
+const config = require('./config_db.js').db;
+module.exports.connect = function () {
+	return new Promise(async (resolve, reject) => {
+		let mysql = await require('mysql');
 		// connect to MySQL DB
-		log.info(`Connecting to MySQL DB: ${config.db.user}@${config.db.host}...`);
-		var con = await mysql.createConnection({
-			host: config.db.host,
-			user: config.db.user,
-			password: config.db.password
+		log.info(`Connecting to MySQL DB: ${config.user}@${config.host}...`);
+		let con = await mysql.createConnection({
+			host: config.host,
+			user: config.user,
+			password: config.password
 		});
 		await con.connect(function (err) {
 			if (err) throw err;
 			log.info('Connected to MySQL DB!');
 		});
 		// create DB if it doesn't already exist
-		await con.query(`CREATE DATABASE IF NOT EXISTS ${config.db.database};`, function (err) {
+		await con.query(`CREATE DATABASE IF NOT EXISTS ${config.database};`, function (err) {
 			if (err) throw err;
 		});
 		// select DB
-		await con.query(`USE ${config.db.database};`, function (err) {
+		await con.query(`USE ${config.database};`, function (err) {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
@@ -45,17 +40,25 @@ exports.connect = function () {
 		});
 		// end connection to database
 		await con.end();
-		// con.query('CREATE TABLE IF NOT EXISTS quests (id bigint primary key auto_increment, player_id bigint, quest varchar(255), amount int);', function (err, res) {
-		// 	if (err) throw err;
-		// 	if (res['warningCount'] == 0)
-		// 		log.info('Created MySQL table `quests`');
-		// });
-		// create mysql connection pool
 		pool = await mysql.createPool({
-			host: config.db.host,
-			database: config.db.database,
-			user: config.db.user,
-			password: config.db.password
+			host: config.host,
+			database: config.database,
+			user: config.user,
+			password: config.password
+		});
+		resolve();
+	});
+}
+
+module.exports.sql = (sql, vars) => {
+	return new Promise((resolve, reject) => {
+		pool.getConnection((err, con) => {
+			if (err) throw err;
+			con.query(sql, vars, (err, res) => {
+				con.release();
+				if (err) throw err;
+				resolve(res);
+			});
 		});
 	});
 }
@@ -65,24 +68,22 @@ exports.connect = function () {
  * @param {bigint} discord_id the user's discord id
  * @returns {success: boolean, exists: boolean}
  */
-exports.checkUserExists = function (discord_id) {
-	return new Promise(async function (resolve, reject) {
-		pool.getConnection(function (err, con) {
-			if (err) throw err;
-			var sql = 'SELECT id FROM users WHERE discord_id=?;';
-			con.query(sql, discord_id, function (err, res) {
-				con.release();
-				if (err) throw err;
-				if (res.length > 0) {
-					resolve({ success: true, exists: true });
-				} else {
-					resolve({ success: true, exists: false });
-				}
-				resolve({ success: false });
-			});
-		});
-	});
+module.exports.exists = async (discord_id) => {
+	var res = await exports.sql('SELECT id FROM users WHERE discord_id=?;', discord_id);
+	return res.length > 0;
 }
+
+
+/**
+ * @description check if user exists in DB
+ * @param {bigint} discord_id the user's discord id
+ * @returns {success: boolean, exists: boolean}
+ */
+module.exports.checkUserExists = async (discord_id) => {
+	var res = await exports.sql('SELECT id FROM users WHERE discord_id=?;', discord_id);
+	return res.length > 0
+}
+
 
 /**
  * @description register new user
@@ -91,18 +92,11 @@ exports.checkUserExists = function (discord_id) {
  * @returns {success: boolean}
  */
 exports.registerUser = function (discord_id, discord_username) {
-	return new Promise(async function (resolve, reject) {
-		exports.checkUserExists(discord_id).then(function (value) {
-			if (value['success']) {
-				if (!value['exists']) {
-					exports.createUserInDB(discord_id, discord_username).then(function (value) {
-						resolve({ success: true, registered: value['success'] });
-					});
-				}
-				resolve({ success: true });
-			}
-		});
-	});
+	var exists = await exports.checkUserExists(discord_id);
+	if (!exists) {
+		var created = await exports.createUserInDB(discord_id, discord_username)
+		return created.length > 0;
+	}
 }
 
 /**
@@ -112,17 +106,9 @@ exports.registerUser = function (discord_id, discord_username) {
  * @returns {success: boolean}
  */
 exports.createUserInDB = function (discord_id, discord_username) {
-	return new Promise(async function (resolve, reject) {
-		pool.getConnection(function (err, con) {
-			if (err) throw err;
-			var sql = 'INSERT INTO users (discord_id, discord_username) VALUES (?,?);';
-			con.query(sql, [discord_id, discord_username], function (err) {
-				con.release();
-				if (err) throw err;
-				resolve({ success: true });
-			});
-		});
-	});
+	var res = await exports.sql(
+		'INSERT INTO users (discord_id, discord_username) VALUES (?,?);', [discord_id, discord_username]);
+	return res.length > 0;
 }
 
 /**
@@ -131,19 +117,10 @@ exports.createUserInDB = function (discord_id, discord_username) {
  * @returns {success: boolean, competing: boolean}
  */
 exports.isUserCompeting = function (discord_id) {
-	return new Promise(async function (resolve, reject) {
-		pool.getConnection(function (err, con) {
-			if (err) throw err;
-			var sql = 'SELECT competing FROM users WHERE discord_id=?;';
-			con.query(sql, discord_id, function (err, res) {
-				con.release();
-				if (err) throw err;
-				if (res.length > 0) {
-					resolve({ success: true, competing: res[0]['competing'] });
-				}
-			});
-		});
-	});
+	var res = await exports.sql('SELECT competing FROM users WHERE discord_id=?;', discord_id);
+	if (res.length > 0)
+		return res[0]['competing'];
+	else return false;
 }
 
 /**
@@ -153,17 +130,8 @@ exports.isUserCompeting = function (discord_id) {
  * @returns {success: boolean}
  */
 exports.setUserCompeting = function (discord_id, competing) {
-	return new Promise(async function (resolve, reject) {
-		pool.getConnection(function (err, con) {
-			if (err) throw err;
-			var sql = 'UPDATE users SET competing=? WHERE discord_id=?;';
-			con.query(sql, [competing, discord_id], function (err) {
-				con.release();
-				if (err) throw err;
-				resolve({ success: true });
-			});
-		});
-	});
+	var res = await exports.sql('UPDATE users SET competing=? WHERE discord_id=?;', [competing, discord_id]);
+	return res.length > 0;
 }
 
 
@@ -174,21 +142,8 @@ exports.setUserCompeting = function (discord_id, competing) {
  * @returns {success: boolean, userdata[]}
  */
 exports.getUserData = function (discord_id) {
-	return new Promise(async function (resolve, reject) {
-		pool.getConnection(function (err, con) {
-			if (err) throw err;
-			var sql = 'SELECT * FROM users WHERE discord_id=?;';
-			con.query(sql, discord_id, function (err, res) {
-				con.release();
-				if (err) throw err;
-				if (res.length > 0) {
-					resolve({ success: true, data: res[0] });
-				} else {
-					resolve({ success: false });
-				}
-			});
-		});
-	});
+	var res = await exports.sql('SELECT * FROM users WHERE discord_id=?;', discord_id);
+	return res[0];
 }
 
 
