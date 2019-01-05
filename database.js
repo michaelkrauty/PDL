@@ -103,6 +103,7 @@ exports.registerUser = async (discord_id, discord_username) => {
 		var created = await exports.createUserInDB(discord_id, discord_username)
 		return created.length > 0;
 	}
+	return exists;
 }
 
 /**
@@ -137,7 +138,7 @@ exports.isUserCompeting = async (discord_id) => {
  */
 exports.setUserCompeting = async (discord_id, competing) => {
 	var res = await exports.sql('UPDATE users SET competing=? WHERE discord_id=?;', [competing, discord_id]);
-	return res.length > 0;
+	return res.length != 0;
 }
 
 /**
