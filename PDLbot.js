@@ -462,7 +462,10 @@ client.on('message', async (message) => {
 				var text = '';
 				// loop through retrieved matches
 				var waiting_for_input = false;
+				// ensure only one response from the user per message
 				var collected = [];
+				// ties message id to match id
+				var user_pending_matches = new Map();
 				for (var m in latest_matches) {
 					var match = latest_matches[m];
 					// was the submitter the user?
@@ -494,7 +497,8 @@ client.on('message', async (message) => {
 						continue;
 					// ask the user if they won
 					waiting_for_input = true;
-					await db.putPendingMatch(msg.id, match.id, user_id_from_discord_id);
+					// ensure no multiple reactions
+					user_pending_matches.set(msg.id, match.id);
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
 					await msg.react(ReactionEmoji.LOSS);
@@ -519,9 +523,9 @@ client.on('message', async (message) => {
 								confirm = MatchResult.LOSS;
 							}
 							// get match id
-							var match_id = await db.getPendingMatch(r.message.id);
+							var match_id = user_pending_matches.get(r.message.id);
 							if (!match_id) {
-								log.error(`Could not getPendingMatch(${r.message.id})`);
+								log.error(`Could not get match ${r.message.id}`);
 								return;
 							}
 							// get match
@@ -591,7 +595,7 @@ client.on('message', async (message) => {
 									// message players
 									var winloss;
 									match.result ? winloss = 'win' : winloss = 'loss';
-									await message.channel.send(strings.new_elo_message
+									str = `${tag(message.author.id)} confirmed game ${match.id}.\n${strings.new_elo_message
 										.replaceAll('{game_id}', match.id)
 										.replaceAll('{winloss}', winloss)
 										.replaceAll('{user}', tag(message.author.id))
@@ -604,11 +608,11 @@ client.on('message', async (message) => {
 										.replaceAll('{old_player_elo}', playerElo)
 										.replaceAll('{new_player_elo}', newPlayerElo)
 										.replaceAll('{old_opponent_elo}', opponentElo)
-										.replaceAll('{new_opponent_elo}', newOpponentElo));
-									message.channel.send(`${tag(message.author.id)} confirmed match ${match.id}.`);
+										.replaceAll('{new_opponent_elo}', newOpponentElo)}`;
+									await message.channel.send(str);
 								}
 							}
-							await db.removePendingMatch(r.message.id, match.id);
+							user_pending_matches.delete(r.message.id);
 							await r.message.react(ReactionEmoji.CONFIRMED);
 						}
 						collect().catch((err) => {
@@ -618,16 +622,9 @@ client.on('message', async (message) => {
 					});
 					collector.on('end', collected => {
 						if (collected.size < 1) {
-							// console.log(collector.message);
-							// var match_id = await db.getPendingMatch(collector.message.id);
 							// no y/n reaction was collected
 							message.channel.send(strings.pending_submit_timeout.replaceAll('{user}', tag(message.author.id)));
-							async function removePendingMatch() {
-								await db.removePendingMatch(match.id, msg.id, user_id_from_discord_id);
-							}
-							removePendingMatch().catch((err) => {
-								log.error(err);
-							});
+							user_pending_matches.delete(msg.id);
 						}
 					});
 
@@ -990,12 +987,14 @@ client.on('message', async (message) => {
 			// get player's new rank
 			var player_rank = await db.getUserEloRanking(match.player_id);
 			if (!player_rank) {
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				log.error(`Could not getUserEloRanking(${match.player_id})`);
 				break;
 			}
 			// get opponent's new rank
 			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 			if (!opponent_rank) {
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
 				break;
 			}

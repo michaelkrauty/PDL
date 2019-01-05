@@ -33,11 +33,6 @@ module.exports.connect = function () {
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matches`');
 		});
-		await con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null);', function (err, res) {
-			if (err) throw err;
-			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `pending_matches`');
-		});
 		// end connection to database
 		await con.end();
 		pool = await mysql.createPool({
@@ -282,41 +277,6 @@ exports.setMatchResultConfirmed = async (match_id, confirmed) => {
  */
 exports.updateMatch = async (match_id, confirmed, player_start_elo, player_end_elo, opponent_start_elo, opponent_end_elo) => {
 	var res = await exports.sql('UPDATE matches SET confirmed=?, player_start_elo=?, player_end_elo=?, opponent_start_elo=?, opponent_end_elo=? WHERE id=?;', [confirmed, player_start_elo, player_end_elo, opponent_start_elo, opponent_end_elo, match_id]);
-	return res.length > 0;
-}
-
-/**
- * @description confirm a match result
- * @param {int} match_id the match to confirm
- * @param {boolean} confirmed is the match confirmed?
- * @returns {success: boolean}
- */
-exports.putPendingMatch = async (message_id, match_id, user_id) => {
-	var res = await exports.sql('INSERT INTO pending_matches (message_id, match_id, user_id) VALUES (?,?,?);', [message_id, match_id, user_id]);
-	return res.length > 0;
-}
-
-/**
- * @description get user id from Discord id
- * @param {bigint} discord_id the user's discord id
- * @returns {success: boolean, id: bigint}
- */
-exports.getPendingMatch = async (message_id) => {
-	var res = await exports.sql('SELECT match_id FROM pending_matches WHERE message_id=?;', message_id);
-	if (res.length > 0)
-		return res[0].match_id;
-	return false;
-}
-
-/**
- * @description get user id from Discord id
- * @param {bigint} discord_id the user's discord id
- * @returns {success: boolean, id: bigint}
- */
-exports.removePendingMatch = async (message_id, match_id, user_id) => {
-	match_id = match_id || 0;
-	user_id = user_id || 0;
-	var res = await exports.sql('DELETE FROM pending_matches WHERE (message_id=? OR match_id=? OR user_id=?);', [message_id, match_id, user_id]);
 	return res.length > 0;
 }
 
