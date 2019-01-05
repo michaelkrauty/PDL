@@ -391,6 +391,7 @@ client.on('message', async (message) => {
 		case 'skill':
 		case 'sr':
 		case 'sr2':
+			// TODO: add !sr <player>
 			// get user id from discord id
 			var user_id = await db.getUserIdFromDiscordId(message.author.id);
 			if (!user_id) {
@@ -400,10 +401,10 @@ client.on('message', async (message) => {
 			}
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user_id, 2);
-			if (!nearby_players) {
+			if (nearby_players == null || nearby_players.length < 1) {
 				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				error.log(`could not getNearbyPlayers(${user_id})`);
+				log.error(`could not getNearbyPlayers(${user_id}, 2)`);
 				break;
 			}
 			// find the user in the list
@@ -796,7 +797,7 @@ client.on('message', async (message) => {
 						return;
 					}
 					// submit match result
-					await db.submitMatchResult(user_id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo);
+					await db.submitMatchResult(user_data.id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo, null, null);
 					// ask the target user to confirm the game
 					message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{game_id}'));
 					collector.stop();
@@ -1050,15 +1051,18 @@ function tagRole(roleID) {
 	return `<@&${roleID}>`;
 }
 
+// calculates game result elo
 function calculateElo(playerElo, opponentElo, result) {
 	return eloRating.calculate(playerElo, opponentElo, result, config.elo_k);
 }
 
+// replaces all occurrences of a substring with a substring
 String.prototype.replaceAll = function (search, replacement) {
 	var target = this;
 	return target.split(search).join(replacement);
 };
 
+// update glicko2 ratings (for use with schedule-based glicko2)
 function updateRatings() {
 	// just testing, for now.
 	var ranking = new glicko2.Glicko2();
