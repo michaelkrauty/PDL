@@ -14,7 +14,7 @@ const strings = {
 	target_is_registered: '{user} {target} is registered in the Pavlov Duel League.',
 	compete_try_again: '{user} Usage: !compete',
 	user_skill_rating: '{user}(#{user_rank}) skill rating: {skill_rating}.',
-	target_skill_rating: '{user} {target}\'s skill rating is {elo}.',
+	target_skill_rating: '{user} {target}\'s skill rating: {elo}.',
 	did_you_win: '{user} did you win your game vs {target}?',
 	match_submit_timeout: '{user} timed out, please !submit again.',
 	pending_submit_timeout: '{user} timed out, please use !pending again.',
