@@ -913,11 +913,11 @@ client.on('message', async (message) => {
 			if (match.player_start_elo != null && match.opponent_start_elo != null) {
 				if (match.player_end_elo != null && match.opponent_end_elo != null) {
 					if (match.result) {
-						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo);
-						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo);
+						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
 					} else {
-						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
-						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
+						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo) + config.bonus_elo;
 					}
 				} else {
 					if (match.result) {
@@ -974,7 +974,6 @@ client.on('message', async (message) => {
 			break;
 		// cancel command, allows admins to nullify a pending match with match id
 		case 'cancel':
-		case 'nullify':
 			// require admin and one argument
 			if (args.length != 1 || !admin)
 				break;
@@ -1017,8 +1016,11 @@ client.on('message', async (message) => {
 				log.error(`Could not getUserEloRating(${match.opponent_id})`);
 				break;
 			}
+<<<<<<< Updated upstream
 			opponentElo = opponentElo.elo_rating;
 
+=======
+>>>>>>> Stashed changes
 			// revert elo gained/lost as a result of this game
 			var newPlayerElo;
 			var newOpponentElo;
@@ -1052,7 +1054,7 @@ client.on('message', async (message) => {
 			// message players
 			var winloss;
 			match.result ? winloss = 'win' : winloss = 'loss';
-			msg = `${tag(message.author.id)} nullified game ${match.id}.\n`;
+			msg = `${tag(message.author.id)} cancelled game ${match.id}.\n`;
 			msg += strings.new_elo_message
 				.replaceAll('{game_id}', match.id)
 				.replaceAll('{winloss}', winloss)
