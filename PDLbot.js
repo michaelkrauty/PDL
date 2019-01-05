@@ -955,8 +955,8 @@ client.on('message', async (message) => {
 			opponent_rank = opponent_rank.rank;
 			// message players
 			var winloss;
-			match.result ? winloss = 'win' : winloss = 'loss';
-			await message.channel.send(strings.new_elo_message
+			msg = `${tag(message.author.id)} confirmed game ${match.id}.\n`;
+			msg += strings.new_elo_message
 				.replaceAll('{game_id}', match.id)
 				.replaceAll('{winloss}', winloss)
 				.replaceAll('{user}', tag(message.author.id))
@@ -969,8 +969,8 @@ client.on('message', async (message) => {
 				.replaceAll('{old_player_elo}', playerElo)
 				.replaceAll('{new_player_elo}', newPlayerElo)
 				.replaceAll('{old_opponent_elo}', opponentElo)
-				.replaceAll('{new_opponent_elo}', newOpponentElo));
-			message.channel.send(`${tag(message.author.id)} confirmed match ${match.id}.`);
+				.replaceAll('{new_opponent_elo}', newOpponentElo);
+			await message.channel.send(msg);
 			break;
 		// cancel command, allows admins to nullify a pending match with match id
 		case 'cancel':
