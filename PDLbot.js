@@ -934,6 +934,31 @@ client.on('message', async (message) => {
 			var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
 			var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
 			var newOpponentElo = eloRatingCalculation.opponentRating + config.bonus_elo;
+			if (match.player_start_elo != null && match.opponent_start_elo != null) {
+				if (match.player_end_elo != null && match.opponent_end_elo != null) {
+					if (match.result) {
+						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo);
+						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo);
+					} else {
+						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
+						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
+					}
+					// newPlayerElo = playerElo - (match.player_start_elo - match.player_end_elo);
+					// newOpponentElo = opponentElo - (match.opponent_start_elo - match.opponent_end_elo);
+				} else {
+					if (match.result) {
+						// calculate new elo
+						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
+						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+					} else {
+						// calculate new elo
+						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
+						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+					}
+				}
+			}
 			// set player's new elo rating
 			db.setUserEloRating(match.player_id, newPlayerElo);
 			// set target's new elo rating
