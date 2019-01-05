@@ -1111,8 +1111,8 @@ function tag(userID) {
 }
 
 // tag a role by userID
-function tagRole(userID) {
-	return `<@${userID}>`;
+function tagRole(roleID) {
+	return `<@&${roleID}>`;
 }
 
 function calculateElo(playerElo, opponentElo, result) {
