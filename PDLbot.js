@@ -8,8 +8,8 @@ const fs = require('fs');
 
 const auth = require('./auth.json');
 const config = require('./config.js').config;
-const db = require('./DB.js');
-const database = require('./database.js');
+// const db = require('./DB.js');
+const db = require('./database.js');
 const user = require('./user.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
@@ -42,8 +42,7 @@ client.once('ready', async () => {
 	await fm.checkFile('./admins.json');
 	admin_discord_ids = require('./admins.json').data;
 
-	await database.connect();
-	console.log(await database.exists());
+	await db.connect();
 
 	// connect to database
 	// await db.connect();
@@ -167,19 +166,17 @@ client.on('message', async (message) => {
 			if (admin && args.length == 1 && mention != undefined) {
 				// get mention user id
 				var mention_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!mention_id.success || mention_id.id == null) {
+				if (!mention_id) {
 					// target is not registered
 					message.channel.send(`${tag(message.author.id)} no data to display.`);
 					break;
 				}
-				mention_id = mention_id.id;
 				// get mention data
 				var mention_data = await db.getUserDataUsingId(mention_id);
-				if (!mention_data.success || mention_data.data == null) {
+				if (!mention_data) {
 					message.channel.send(`${tag(message.author.id)} no data to display.`);
 					break;
 				}
-				mention_data = mention_data.data;
 				// compose and send message containing user data
 				var msg = tag(message.author.id) + '\n';
 				for (var elem in mention_data) {
@@ -194,7 +191,6 @@ client.on('message', async (message) => {
 				message.channel.send(`${tag(message.author.id)} no data to display.`);
 				break;
 			}
-			user_data = user_data.data;
 			// compose and send message containing user data
 			var msg = '';
 			for (var elem in user_data) {
@@ -341,28 +337,25 @@ client.on('message', async (message) => {
 				// gets user skill rating
 				// get user id from discord id
 				var user_id = await db.getUserIdFromDiscordId(message.author.id);
-				if (!user_id.success || user_id.id == null) {
+				if (!user_id) {
 					// user is not registered
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				user_id = user_id.id;
 				// get user skill rating
 				var user_elo = await db.getUserEloRating(user_id);
-				if (!user_elo.success) {
+				if (!user_elo) {
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 					log.error(`Could not getUserEloRating(${user_id}, true)`);
 					break;
 				}
-				user_elo = user_elo.elo_rating;
 				// get user elo rank
 				var user_rank = await db.getUserEloRanking(user_id);
-				if (!user_rank.success || user_rank.rank == null) {
+				if (!user_rank) {
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 					log.error(`Could not getUserEloRanking(${user_id}, true)`);
 					break;
 				}
-				user_rank = user_rank.rank;
 				// output user skill rating
 				message.channel.send(strings.user_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{skill_rating}', user_elo).replaceAll('{user_rank}', user_rank));
 			} else if (args.length == 1) {
@@ -376,21 +369,19 @@ client.on('message', async (message) => {
 				}
 				// get target user id
 				var target_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!target_id.success || target_id.id == null) {
+				if (!target_id) {
 					// target is not registered
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 					break;
 				}
-				target_id = target_id.id;
 				// get target skill rating
 				var target_elo = await db.getUserEloRating(target_id);
-				if (!target_elo.success || target_elo.elo_rating == null) {
+				if (!target_elo) {
 					// failed to get user elo rating
 					log.error(`Could not getUserEloRating(${target_id})`);
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				target_elo = target_elo.elo_rating;
 				// output target skill rating
 				message.channel.send(strings.target_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username).replaceAll('{elo}', target_elo));
 			}
@@ -404,49 +395,47 @@ client.on('message', async (message) => {
 		case 'sr2':
 			// get user id from discord id
 			var user_id = await db.getUserIdFromDiscordId(message.author.id);
-			if (!user_id.success || user_id.id == null) {
+			if (!user_id) {
 				// user is not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			user_id = user_id.id;
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user_id, 2);
-			if (!nearby_players.players || nearby_players.players == null) {
+			if (!nearby_players) {
 				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				error.log(`could not getNearbyPlayers(${user_id})`);
 				break;
 			}
 			// find the user in the list
-			nearby_players.players.sort(function (a, b) {
+			nearby_players.sort(function (a, b) {
 				return !(a.elo_rating > b.elo_rating);
 			});
 			var player_index = 0;
-			for (i = 0; i < nearby_players.players.length; i++) {
-				if (nearby_players.players[i].id == user_id)
+			for (i = 0; i < nearby_players.length; i++) {
+				if (nearby_players[i].id == user_id)
 					player_index = i;
 			}
 			// construct message
 			var msg = '';
-			for (i = 0; i < nearby_players.players.length; i++) {
+			for (i = 0; i < nearby_players.length; i++) {
 				// do nothing if not within 2 above and 2 below the player
 				if (i < player_index - 2 || i > player_index + 2)
 					continue;
 				// get user elo rank
-				var rank = await db.getUserEloRanking(nearby_players.players[i].id);
-				if (!rank.success || rank.rank == null) {
+				var rank = await db.getUserEloRanking(nearby_players[i].id);
+				if (!rank) {
 					// failed to get similarly ranked players
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					log.error(`Could not getUserEloRanking(${nearby_players.players[i].id})`);
+					log.error(`Could not getUserEloRanking(${nearby_players[i].id})`);
 					break;
 				}
-				rank = rank.rank;
 				// list top players
-				var username = nearby_players.players[i].discord_username;
-				if (nearby_players.players[i].id == user_id)
+				var username = nearby_players[i].discord_username;
+				if (nearby_players[i].id == user_id)
 					username = `**${username}**`;
-				msg += `${rank}. ${username}: ${nearby_players.players[i].elo_rating} ELO\n`;
+				msg += `${rank}. ${username}: ${nearby_players[i].elo_rating} ELO\n`;
 
 			}
 			message.channel.send(msg);
@@ -458,20 +447,18 @@ client.on('message', async (message) => {
 				// show pending match submissions vs the user
 				// get user id from discord id, checking if the user is registered
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-				if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
+				if (!user_id_from_discord_id) {
 					// could not get user id from discord id
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				user_id_from_discord_id = user_id_from_discord_id.id;
 				// get user's recent matches
 				var latest_matches = await db.getUserLatestMatches(user_id_from_discord_id);
-				if (!latest_matches.success || latest_matches.matches == null || latest_matches.matches.length == 0) {
+				if (!latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', message.author.username));
 					break;
 				}
-				latest_matches = latest_matches.matches;
 				// compose response message
 				var text = '';
 				// loop through retrieved matches
@@ -490,13 +477,12 @@ client.on('message', async (message) => {
 					(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
 					// get opponent user data
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
-					if (!opponent_data.success || opponent_data.data == null) {
+					if (!opponent_data) {
 						// could not get the other player's data from their user id
 						log.error(`Could not getUserDataUsingId(${opponent_id})`);
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						break;
 					}
-					opponent_data = opponent_data.data;
 					// compose message with match id, tag the author, show other player's name in plaintext (no tag)
 					text = '';
 					(submitter_was_user ?
@@ -535,47 +521,42 @@ client.on('message', async (message) => {
 							}
 							// get match id
 							var match_id = await db.getPendingMatch(r.message.id);
-							if (!match_id.success || match_id.match_id == null) {
+							if (!match_id) {
 								log.error(`Could not getPendingMatch(${r.message.id})`);
 								return;
 							}
-							match_id = match_id.match_id;
 							// get match
 							var match = await db.getMatch(match_id);
-							if (!match.success || match.match == null) {
+							if (!match) {
 								log.error(`Could not getMatch(${match_id})`);
 								return;
 							}
-							match = match.match;
 							// get opponent data
 							var opponent_data = await db.getUserDataUsingId(match.player_id);
-							if (!opponent_data.success || opponent_data.data == null) {
+							if (!opponent_data) {
 								log.error(`Could not getUserDataUsingId(${match.player_id})`);
 								return;
 							}
-							opponent_data = opponent_data.data;
 							if (!confirm) {
 								// the match was disputed
 								await r.message.react(ReactionEmoji.LOSS);
-								await message.channel.send(`${tag(message.author.id)} disputes match ${match_id} vs ${tag(opponent_data.discord_id)} ${tagRole(message.guild.roles.find(role => role.name === "admin").id)} `);
+								await r.message.channel.send(`${tag(message.author.id)} disputes match ${match_id} vs ${tag(opponent_data.discord_id)} ${tagRole(message.guild.roles.find(role => role.name === "admin").id)}`);
 							} else {
 								// the match was confirmed
 								await r.message.react(ReactionEmoji.WIN);
 								if (config.rating_method == RatingMethod.ELO) {
 									// get player's elo rating
 									var playerElo = await db.getUserEloRating(match.player_id);
-									if (!playerElo.success || playerElo.elo_rating == null) {
+									if (!playerElo) {
 										log.error(`Could not getUserEloRating(${match.player_id})`);
 										return;
 									}
-									playerElo = playerElo.elo_rating;
 									// get opponent's elo rating
 									var opponentElo = await db.getUserEloRating(match.opponent_id);
-									if (!opponentElo.success || opponentElo.elo_rating == null) {
+									if (!opponentElo) {
 										log.error(`Could not getUserEloRating(${match.opponent_id})`);
 										return;
 									}
-									var opponentElo = opponentElo.elo_rating;
 									// calculate new elo
 									var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
 									var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
@@ -588,30 +569,26 @@ client.on('message', async (message) => {
 									await db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
 									// get player's new rank
 									var player_rank = await db.getUserEloRanking(match.player_id);
-									if (!player_rank.success || player_rank.rank == null) {
+									if (!player_rank) {
 										log.error(`Could not getUserEloRanking(${match.player_id})`);
 										return;
 									}
-									player_rank = player_rank.rank;
 									// get opponent's new rank
 									var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-									if (!opponent_rank.success || opponent_rank.rank == null) {
+									if (!opponent_rank) {
 										log.error(`Could not getUserEloRanking(${match.opponent_id})`);
 										return;
 									}
-									opponent_rank = opponent_rank.rank;
 									// get player data
 									var player_data = await db.getUserDataUsingId(match.player_id);
-									if (!player_data.success || player_data.data == null) {
+									if (!player_data) {
 										log.error(`Could not getUserDataUsingId(${match.player_id})`);
 									}
-									player_data = player_data.data;
 									// get opponent data
 									var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-									if (!opponent_data.success || opponent_data.data == null) {
+									if (!opponent_data) {
 										log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
 									}
-									opponent_data = opponent_data.data;
 									// message players
 									var winloss;
 									match.result ? winloss = 'win' : winloss = 'loss';
@@ -671,29 +648,26 @@ client.on('message', async (message) => {
 				}
 				// get target user id from target discord id, checking if the target is registered
 				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!target_id_from_discord_id.success || target_id_from_discord_id.id == null) {
+				if (!target_id_from_discord_id) {
 					// could not get target user id from discord id
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id).replaceAll('{target}', mention.username)));
 					break;
 				}
-				target_id_from_discord_id = target_id_from_discord_id.id;
 				// get user id from discord id, checking if the user is registered
 				// TODO: getUser (user object?)
 				var user_id_from_discord_id = await db.getUserIdFromDiscordId(message.author.id);
-				if (!user_id_from_discord_id.success || user_id_from_discord_id.id == null) {
+				if (!user_id_from_discord_id) {
 					// could not get user id from discord id
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				user_id_from_discord_id = user_id_from_discord_id.id;
 				// get target's recent matches
 				var target_latest_matches = await db.getUserLatestMatches(target_id_from_discord_id);
-				if (!target_latest_matches.success || target_latest_matches.matches == null || target_latest_matches.matches.length == 0) {
+				if (!target_latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 					break;
 				}
-				target_latest_matches = target_latest_matches.matches;
 				// compose response message
 				var msg = tag(message.author.id) + '\n';
 				// loop through the target's latest matches
@@ -711,13 +685,12 @@ client.on('message', async (message) => {
 					// get the other player's discord id using their user id
 					// get the opponent's user data
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
-					if (!opponent_data.success || opponent_data.data == null) {
+					if (!opponent_data) {
 						// could not get the other player's data from their user id
 						log.error(`Could not getUserDataUsingId(${opponent_id})`);
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						break;
 					}
-					opponent_data = opponent_data.data;
 					// tag the opponent if it's the author, else don't tag them
 					var opponent_username;
 					(opponent_data.discord_id == message.author.id ?
@@ -737,12 +710,11 @@ client.on('message', async (message) => {
 		case 'submit':
 			// get user id from discord id, checking if the user is registered
 			var user_id = await db.getUserIdFromDiscordId(message.author.id);
-			if (!user_id.success || user_id.id == null) {
+			if (!user_id) {
 				// could not get user id from discord id
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			user_id = user_id.id;
 			// check for a mention
 			var mention = message.mentions.users.values().next().value;
 			if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
@@ -752,12 +724,11 @@ client.on('message', async (message) => {
 			}
 			// get mention data
 			var mention_data = await db.getUserData(mention.id);
-			if (!mention_data.success || mention_data.data == null) {
+			if (!mention_data) {
 				// mention is not registered
 				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 				break;
 			}
-			mention_data = mention_data.data;
 			// check if mention is competing
 			if (!mention_data.competing) {
 				// mention is not competing
@@ -809,26 +780,23 @@ client.on('message', async (message) => {
 					((r._emoji.name === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
 					// get user data
 					var user_data = await db.getUserData(message.author.id);
-					if (!user_data.success || user_data.data == null) {
+					if (!user_data) {
 						// could not get user data
 						message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 						return;
 					}
-					user_data = user_data.data;
 					// get player's elo rating
 					var playerElo = await db.getUserEloRating(user_data.id);
-					if (!playerElo.success || playerElo.elo_rating == null) {
+					if (!playerElo) {
 						log.error(`Could not getUserEloRating(${user_data.id})`);
 						return;
 					}
-					playerElo = playerElo.elo_rating;
 					// get opponent's elo rating
 					var opponentElo = await db.getUserEloRating(mention_data.id);
-					if (!opponentElo.success || opponentElo.elo_rating == null) {
+					if (!opponentElo) {
 						log.error(`Could not getUserEloRating(${mention_data.id})`);
 						return;
 					}
-					opponentElo = opponentElo.elo_rating;
 					// submit match result
 					await db.submitMatchResult(user_id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo);
 					// ask the target user to confirm the game
@@ -854,9 +822,8 @@ client.on('message', async (message) => {
 			if (args.length != 1 || !admin)
 				break;
 			var match = await db.getMatch(args[0]);
-			if (!match.success || match.match == null)
+			if (!match)
 				break;
-			match = match.match;
 			var msg = '';
 			for (var e in match) {
 				msg += `${e}: ${match[e]}\n`;
@@ -870,23 +837,20 @@ client.on('message', async (message) => {
 				break;
 			// get match info
 			var match = await db.getMatch(args[0]);
-			if (!match.success || match.match == null) {
+			if (!match) {
 				message.channel.send(`No match found with ID ${args[0]} `);
 				break;
 			}
-			match = match.match;
 			// get player data
 			var player_data = await db.getUserDataUsingId(match.player_id);
-			if (!player_data.success || player_data.data == null) {
+			if (!player_data) {
 				log.error(`Could not getUserDataUsingId(${match.player_id})`);
 			}
-			player_data = player_data.data;
 			// get opponent data
 			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-			if (!opponent_data.success || opponent_data.data == null) {
+			if (!opponent_data) {
 				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
 			}
-			opponent_data = opponent_data.data;
 			// is the match already confirmed?
 			if (match.confirmed) {
 				message.channel.send(`Game ${match.id} is already confirmed.`);
@@ -894,18 +858,16 @@ client.on('message', async (message) => {
 			}
 			// get player's elo rating
 			var playerElo = await db.getUserEloRating(match.player_id);
-			if (!playerElo.success || playerElo.elo_rating == null) {
+			if (!playerElo) {
 				log.error(`Could not getUserEloRating(${match.player_id})`);
 				break;
 			}
-			playerElo = playerElo.elo_rating;
 			// get opponent's elo rating
 			var opponentElo = await db.getUserEloRating(match.opponent_id);
-			if (!opponentElo.success || opponentElo.elo_rating == null) {
+			if (!opponentElo) {
 				log.error(`Could not getUserEloRating(${match.opponent_id})`);
 				break;
 			}
-			opponentElo = opponentElo.elo_rating;
 			// calculate new elo
 			var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
 			var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
@@ -934,24 +896,22 @@ client.on('message', async (message) => {
 				}
 			}
 			// set player's new elo rating
-			db.setUserEloRating(match.player_id, newPlayerElo);
+			await db.setUserEloRating(match.player_id, newPlayerElo);
 			// set target's new elo rating
-			db.setUserEloRating(match.opponent_id, newOpponentElo);
-			db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
+			await db.setUserEloRating(match.opponent_id, newOpponentElo);
+			await db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
 			// get player's new rank
 			var player_rank = await db.getUserEloRanking(match.player_id);
-			if (!player_rank.success || player_rank.rank == null) {
+			if (!player_rank) {
 				log.error(`Could not getUserEloRanking(${match.player_id})`);
 				break;
 			}
-			player_rank = player_rank.rank;
 			// get opponent's new rank
 			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-			if (!opponent_rank.success || opponent_rank.rank == null) {
+			if (!opponent_rank) {
 				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
 				break;
 			}
-			opponent_rank = opponent_rank.rank;
 			// message players
 			var winloss;
 			match.result ? winloss = 'win' : winloss = 'loss';
@@ -980,25 +940,22 @@ client.on('message', async (message) => {
 				break;
 			// get match info
 			var match = await db.getMatch(args[0]);
-			if (!match.success || match.match == null) {
+			if (!match) {
 				message.channel.send(`No match found with ID ${args[0]} `);
 				break;
 			}
-			match = match.match;
 			// get player data
 			var player_data = await db.getUserDataUsingId(match.player_id);
-			if (!player_data.success || player_data.data == null) {
+			if (!player_data) {
 				log.error(`Could not getUserDataUsingId(${match.player_id})`);
 				break;
 			}
-			player_data = player_data.data;
 			// get opponent data
 			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-			if (!opponent_data.success || opponent_data.data == null) {
+			if (!opponent_data) {
 				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
 				break;
 			}
-			opponent_data = opponent_data.data;
 			// is the match already confirmed?
 			if (!match.confirmed) {
 				message.channel.send(`Game ${match.id} is not confirmed.`);
@@ -1006,18 +963,16 @@ client.on('message', async (message) => {
 			}
 			// get player's elo rating
 			var playerElo = await db.getUserEloRating(match.player_id);
-			if (!playerElo.success || playerElo.elo_rating == null) {
+			if (!playerElo) {
 				log.error(`Could not getUserEloRating(${match.player_id})`);
 				break;
 			}
-			playerElo = playerElo.elo_rating;
 			// get opponent's elo rating
 			var opponentElo = await db.getUserEloRating(match.opponent_id);
-			if (!opponentElo.success || opponentElo.elo_rating == null) {
+			if (!opponentElo) {
 				log.error(`Could not getUserEloRating(${match.opponent_id})`);
 				break;
 			}
-			opponentElo = opponentElo.elo_rating;
 
 			// revert elo gained/lost as a result of this game
 			var newPlayerElo;
@@ -1037,18 +992,16 @@ client.on('message', async (message) => {
 			await db.setMatchResultConfirmed(match.id, false);
 			// get player's new rank
 			var player_rank = await db.getUserEloRanking(match.player_id);
-			if (!player_rank.success || player_rank.rank == null) {
+			if (!player_rank) {
 				log.error(`Could not getUserEloRanking(${match.player_id})`);
 				break;
 			}
-			player_rank = player_rank.rank;
 			// get opponent's new rank
 			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-			if (!opponent_rank.success || opponent_rank.rank == null) {
+			if (!opponent_rank) {
 				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
 				break;
 			}
-			opponent_rank = opponent_rank.rank;
 			// message players
 			var winloss;
 			match.result ? winloss = 'win' : winloss = 'loss';
@@ -1075,14 +1028,14 @@ client.on('message', async (message) => {
 				break;
 			// get top players
 			var top_players = await db.getTopCompetingPlayers(25);
-			if (!top_players.success || top_players.players == null) {
+			if (!top_players) {
 				message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// construct message
 			var msg = '';
-			for (i = 0; i < top_players.players.length; i++) {
-				msg += `${(i + 1)}. ${top_players.players[i].discord_username}: ${top_players.players[i].elo_rating} ELO\n`;
+			for (i = 0; i < top_players.length; i++) {
+				msg += `${(i + 1)}. ${top_players[i].discord_username}: ${top_players[i].elo_rating} ELO\n`;
 			}
 			message.channel.send(`Top players:\n\`\`\`${msg}\`\`\``);
 			break;
