@@ -943,8 +943,6 @@ client.on('message', async (message) => {
 						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
 						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
 					}
-					// newPlayerElo = playerElo - (match.player_start_elo - match.player_end_elo);
-					// newOpponentElo = opponentElo - (match.opponent_start_elo - match.opponent_end_elo);
 				} else {
 					if (match.result) {
 						// calculate new elo
