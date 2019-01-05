@@ -910,6 +910,29 @@ client.on('message', async (message) => {
 			var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
 			var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
 			var newOpponentElo = eloRatingCalculation.opponentRating + config.bonus_elo;
+			if (match.player_start_elo != null && match.opponent_start_elo != null) {
+				if (match.player_end_elo != null && match.opponent_end_elo != null) {
+					if (match.result) {
+						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo);
+						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo);
+					} else {
+						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
+						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
+					}
+				} else {
+					if (match.result) {
+						// calculate new elo
+						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
+						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+					} else {
+						// calculate new elo
+						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
+						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+					}
+				}
+			}
 			// set player's new elo rating
 			db.setUserEloRating(match.player_id, newPlayerElo);
 			// set target's new elo rating
@@ -932,7 +955,8 @@ client.on('message', async (message) => {
 			// message players
 			var winloss;
 			match.result ? winloss = 'win' : winloss = 'loss';
-			await message.channel.send(strings.new_elo_message
+			msg = `${tag(message.author.id)} confirmed game ${match.id}.\n`;
+			msg += strings.new_elo_message
 				.replaceAll('{game_id}', match.id)
 				.replaceAll('{winloss}', winloss)
 				.replaceAll('{user}', tag(message.author.id))
@@ -945,8 +969,8 @@ client.on('message', async (message) => {
 				.replaceAll('{old_player_elo}', playerElo)
 				.replaceAll('{new_player_elo}', newPlayerElo)
 				.replaceAll('{old_opponent_elo}', opponentElo)
-				.replaceAll('{new_opponent_elo}', newOpponentElo));
-			message.channel.send(`${tag(message.author.id)} confirmed match ${match.id}.`);
+				.replaceAll('{new_opponent_elo}', newOpponentElo);
+			await message.channel.send(msg);
 			break;
 		// cancel command, allows admins to nullify a pending match with match id
 		case 'cancel':
@@ -1000,7 +1024,7 @@ client.on('message', async (message) => {
 			var newOpponentElo;
 			if (match.result) {
 				newPlayerElo = playerElo - (match.player_end_elo - match.player_start_elo);
-				newOpponentElo = opponentElo + (match.player_start_elo - player_end_elo);
+				newOpponentElo = opponentElo + (match.player_start_elo - match.player_end_elo);
 			} else {
 				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
 				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
