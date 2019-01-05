@@ -1040,7 +1040,7 @@ client.on('message', async (message) => {
 			var newOpponentElo;
 			if (match.result) {
 				newPlayerElo = playerElo - (match.player_end_elo - match.player_start_elo);
-				newOpponentElo = opponentElo + (match.player_start_elo - player_end_elo);
+				newOpponentElo = opponentElo + (match.player_start_elo - match.player_end_elo);
 			} else {
 				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
 				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
