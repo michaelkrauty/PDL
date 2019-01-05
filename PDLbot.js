@@ -278,7 +278,7 @@ client.on('message', async (message) => {
 			// check if the user is currently competing
 			var user_competing = await db.isUserCompeting(message.author.id);
 			if (!user_competing) {
-				message.channel.send(`${tag(message.author.id)} Compete with !compete`);
+				message.channel.send(`${tag(message.author.id)} compete with !compete`);
 				break;
 			}
 			// set the user's competing state to false
