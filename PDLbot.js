@@ -971,23 +971,15 @@ client.on('message', async (message) => {
 				log.error(`Could not getUserEloRating(${match.opponent_id})`);
 				break;
 			}
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-			opponentElo = opponentElo.elo_rating;
-=======
->>>>>>> 1a7fcba722e0e37a941fb0138c8e10b0f41b05f0
-
-=======
->>>>>>> Stashed changes
 			// revert elo gained/lost as a result of this game
 			var newPlayerElo;
 			var newOpponentElo;
 			if (match.result) {
-				newPlayerElo = playerElo - (match.player_end_elo - match.player_start_elo);
-				newOpponentElo = opponentElo + (match.player_start_elo - match.player_end_elo);
+				newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo) + config.bonus_elo;
+				newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
 			} else {
-				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
-				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
+				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
+				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo) + config.bonus_elo;
 			}
 			// set player's new elo rating
 			await db.setUserEloRating(match.player_id, newPlayerElo);
