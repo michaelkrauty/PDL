@@ -9,8 +9,6 @@ const fs = require('fs');
 const auth = require('./auth.json');
 const config = require('./config.js').config;
 const db = require('./DB.js');
-const database = require('./database.js');
-const user = require('./user.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
 const package = require('./package.json');
@@ -41,12 +39,8 @@ client.once('ready', async () => {
 	discord_channels_to_use = require('./channels.json').data;
 	await fm.checkFile('./admins.json');
 	admin_discord_ids = require('./admins.json').data;
-
-	await database.connect();
-	console.log(await database.exists());
-
 	// connect to database
-	// await db.connect();
+	await db.connect();
 	// startup complete
 	started = true;
 	// announce startup
@@ -102,12 +96,6 @@ client.on('message', async (message) => {
 	if (!discord_channels_to_use.includes(message.channel.id))
 		return;
 	switch (cmd) {
-		// test command, for testing stuff
-		case 'test':
-			var user = require('./user.js');
-			var usr = await new user.User(1);
-			console.log(await usr.getElo());
-			break;
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`${client.user.username} v${package.version}`);
@@ -190,7 +178,7 @@ client.on('message', async (message) => {
 			}
 			// get user data
 			var user_data = await db.getUserData(message.author.id);
-			if (!user_data) {
+			if (!user_data.success || user_data.data == null) {
 				message.channel.send(`${tag(message.author.id)} no data to display.`);
 				break;
 			}
@@ -262,7 +250,7 @@ client.on('message', async (message) => {
 			}
 			// register user if they're not already in the DB
 			var register_user = await db.registerUser(message.author.id, message.author.username);
-			if (!register_user) {
+			if (!register_user.success) {
 				// error registering
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				log.error(`Could not registerUser(${message.author.id}, ${message.author.username})`);
@@ -270,7 +258,7 @@ client.on('message', async (message) => {
 			}
 			// set the user's competing state to true
 			var user_competing = await db.setUserCompeting(message.author.id, true);
-			if (!user_competing) {
+			if (!user_competing.success) {
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				log.error(`Could not setUserCompeting(${message.author.id}, true)`);
 				break;
@@ -282,14 +270,14 @@ client.on('message', async (message) => {
 		case 'quit':
 			// check if user is registered
 			var user_exists = await db.checkUserExists(message.author.id);
-			if (!user_exists) {
+			if (!user_exists.success || !user_exists.exists) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// set the user's competing state to false
 			var user_competing = await db.setUserCompeting(message.author.id, false);
-			if (user_competing)
+			if (user_competing.success)
 				// retired
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
@@ -297,14 +285,14 @@ client.on('message', async (message) => {
 		case 'competing':
 			// check if user is registered
 			var user_exists = await db.checkUserExists(message.author.id);
-			if (!user_exists) {
+			if (!user_exists.success || !user_exists.exists) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// check if user is currently competing
 			var user_competing = await db.isUserCompeting(message.author.id);
-			user_competing ?
+			user_competing.success && user_competing.competing ?
 				message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
 				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
@@ -313,7 +301,7 @@ client.on('message', async (message) => {
 			if (args.length == 0) {
 				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
-				user_exists ?
+				user_exists.success && user_exists.exists ?
 					message.channel.send(strings.user_is_registered.replaceAll('{user}', tag(message.author.id))) :
 					message.channel.send(strings.user_is_not_registered.replaceAll('{user}', tag(message.author.id)));
 			} else if (args.length == 1) {
@@ -326,7 +314,7 @@ client.on('message', async (message) => {
 				}
 				// check if target is registered
 				var mention_exists = await db.checkUserExists(mention.id);
-				if (!mention_exists) {
+				if (!mention_exists.success || !mention_exists.exists) {
 					// target is not registered
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 					break;
@@ -488,11 +476,21 @@ client.on('message', async (message) => {
 					// create a string of the match result (win/loss)
 					var match_result_string;
 					(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
+					// get the other player's discord id using their user id
+					// TODO: combine with db.getUserData()
+					var opponent_discord_id = await db.getDiscordIdFromUserId(opponent_id);
+					if (!opponent_discord_id.success || opponent_discord_id.discord_id == null) {
+						// could not get the other player's discord id from their user id
+						log.error(`Could not getDiscordIdFromUserId(${opponent_id})`);
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						break;
+					}
+					opponent_discord_id = opponent_discord_id.discord_id;
 					// get opponent user data
-					var opponent_data = await db.getUserDataUsingId(opponent_id);
+					var opponent_data = await db.getUserData(opponent_discord_id);
 					if (!opponent_data.success || opponent_data.data == null) {
 						// could not get the other player's data from their user id
-						log.error(`Could not getUserDataUsingId(${opponent_id})`);
+						log.error(`Could not getUserData(${opponent_discord_id})`);
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						break;
 					}
@@ -548,6 +546,7 @@ client.on('message', async (message) => {
 							}
 							match = match.match;
 							// get opponent data
+							// TODO: getUserData() with user id
 							var opponent_data = await db.getUserDataUsingId(match.player_id);
 							if (!opponent_data.success || opponent_data.data == null) {
 								log.error(`Could not getUserDataUsingId(${match.player_id})`);
@@ -603,13 +602,13 @@ client.on('message', async (message) => {
 									// get player data
 									var player_data = await db.getUserDataUsingId(match.player_id);
 									if (!player_data.success || player_data.data == null) {
-										log.error(`Could not getUserDataUsingId(${match.player_id})`);
+										log.error(`Could not getUserData(${match.player_id})`);
 									}
 									player_data = player_data.data;
 									// get opponent data
 									var opponent_data = await db.getUserDataUsingId(match.opponent_id);
 									if (!opponent_data.success || opponent_data.data == null) {
-										log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
+										log.error(`Could not getUserData(${match.opponent_id})`);
 									}
 									opponent_data = opponent_data.data;
 									// message players
@@ -709,11 +708,20 @@ client.on('message', async (message) => {
 					var match_result_string;
 					(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
 					// get the other player's discord id using their user id
+					var opponent_discord_id = await db.getDiscordIdFromUserId(opponent_id);
+					if (!opponent_discord_id.success || opponent_discord_id.discord_id == null) {
+						// could not get the other player's discord id from their user id
+						log.error(`Could not getDiscordIdFromUserId(${opponent_id})`);
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						break;
+					}
+					opponent_discord_id = opponent_discord_id.discord_id;
 					// get the opponent's user data
-					var opponent_data = await db.getUserDataUsingId(opponent_id);
+					// TODO: getUserData with user id or discord id
+					var opponent_data = await db.getUserData(opponent_discord_id);
 					if (!opponent_data.success || opponent_data.data == null) {
 						// could not get the other player's data from their user id
-						log.error(`Could not getUserDataUsingId(${opponent_id})`);
+						log.error(`Could not getUserData(${opponent_discord_id})`);
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						break;
 					}
@@ -875,16 +883,32 @@ client.on('message', async (message) => {
 				break;
 			}
 			match = match.match;
+			// get player discord id
+			var player_discord_id = await db.getDiscordIdFromUserId(match.player_id);
+			if (!player_discord_id.success || player_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			player_discord_id = player_discord_id.discord_id;
+			// get opponent discord id
+			var opponent_discord_id = await db.getDiscordIdFromUserId(match.opponent_id);
+			if (!opponent_discord_id.success || opponent_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			opponent_discord_id = opponent_discord_id.discord_id;
 			// get player data
-			var player_data = await db.getUserDataUsingId(match.player_id);
+			// TODO: use player id for getUserData()
+			var player_data = await db.getUserData(player_discord_id);
 			if (!player_data.success || player_data.data == null) {
-				log.error(`Could not getUserDataUsingId(${match.player_id})`);
+				log.error(`Could not getUserData(${player_discord_id})`);
 			}
 			player_data = player_data.data;
 			// get opponent data
-			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
+			// TODO: use player id for getUserData()
+			var opponent_data = await db.getUserData(opponent_discord_id);
 			if (!opponent_data.success || opponent_data.data == null) {
-				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
+				log.error(`Could not getUserData(${opponent_discord_id})`);
 			}
 			opponent_data = opponent_data.data;
 			// is the match already confirmed?
@@ -960,8 +984,8 @@ client.on('message', async (message) => {
 				.replaceAll('{game_id}', match.id)
 				.replaceAll('{winloss}', winloss)
 				.replaceAll('{user}', tag(message.author.id))
-				.replaceAll('{player}', tag(player_data.discord_id))
-				.replaceAll('{opponent}', tag(opponent_data.discord_id))
+				.replaceAll('{player}', tag(player_discord_id))
+				.replaceAll('{opponent}', tag(opponent_discord_id))
 				.replaceAll('{player_name}', player_data.discord_username)
 				.replaceAll('{opponent_name}', opponent_data.discord_username)
 				.replaceAll('{player_elo_rank}', player_rank)
@@ -985,17 +1009,33 @@ client.on('message', async (message) => {
 				break;
 			}
 			match = match.match;
+			// get player discord id
+			var player_discord_id = await db.getDiscordIdFromUserId(match.player_id);
+			if (!player_discord_id.success || player_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			player_discord_id = player_discord_id.discord_id;
+			// get opponent discord id
+			var opponent_discord_id = await db.getDiscordIdFromUserId(match.opponent_id);
+			if (!opponent_discord_id.success || opponent_discord_id.discord_id == null) {
+				log.error(`Could not getDiscordIdFromUserId(${match.opponent_id})`);
+				break;
+			}
+			opponent_discord_id = opponent_discord_id.discord_id;
 			// get player data
-			var player_data = await db.getUserDataUsingId(match.player_id);
+			// TODO: use player id for getUserData()
+			var player_data = await db.getUserData(player_discord_id);
 			if (!player_data.success || player_data.data == null) {
-				log.error(`Could not getUserDataUsingId(${match.player_id})`);
+				log.error(`Could not getUserData(${player_discord_id})`);
 				break;
 			}
 			player_data = player_data.data;
 			// get opponent data
-			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
+			// TODO: use player id for getUserData()
+			var opponent_data = await db.getUserData(opponent_discord_id);
 			if (!opponent_data.success || opponent_data.data == null) {
-				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
+				log.error(`Could not getUserData(${opponent_discord_id})`);
 				break;
 			}
 			opponent_data = opponent_data.data;
@@ -1057,8 +1097,8 @@ client.on('message', async (message) => {
 				.replaceAll('{game_id}', match.id)
 				.replaceAll('{winloss}', winloss)
 				.replaceAll('{user}', tag(message.author.id))
-				.replaceAll('{player}', tag(player_data.discord_id))
-				.replaceAll('{opponent}', tag(opponent_data.discord_id))
+				.replaceAll('{player}', tag(player_discord_id))
+				.replaceAll('{opponent}', tag(opponent_discord_id))
 				.replaceAll('{player_name}', player_data.discord_username)
 				.replaceAll('{opponent_name}', opponent_data.discord_username)
 				.replaceAll('{player_elo_rank}', player_rank)
@@ -1094,7 +1134,7 @@ function tag(userID) {
 	return `<@${userID}>`;
 }
 
-// tag a role by roleID
+// tag a role by userID
 function tagRole(roleID) {
 	return `<@&${roleID}>`;
 }
