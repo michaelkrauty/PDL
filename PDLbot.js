@@ -41,11 +41,8 @@ client.once('ready', async () => {
 	discord_channels_to_use = require('./channels.json').data;
 	await fm.checkFile('./admins.json');
 	admin_discord_ids = require('./admins.json').data;
-
-	await db.connect();
-
 	// connect to database
-	// await db.connect();
+	await db.connect();
 	// startup complete
 	started = true;
 	// announce startup
@@ -178,7 +175,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// compose and send message containing user data
-				var msg = tag(message.author.id) + '\n';
+				var msg = '';
 				for (var elem in mention_data) {
 					msg += `${elem}: ${mention_data[elem]}\n`;
 				}
@@ -207,7 +204,7 @@ client.on('message', async (message) => {
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
-			let challengeme = message.guild.roles.find(role => role.name === "challengeme");
+			let challengeme = await message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
@@ -229,7 +226,7 @@ client.on('message', async (message) => {
 		// questme command, toggles questme rank
 		case 'questme':
 			// get questme role
-			let questme = message.guild.roles.find(role => role.name === "questme");
+			let questme = await message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
 				break;
