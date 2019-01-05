@@ -87,7 +87,7 @@ module.exports.exists = async (discord_id) => {
  */
 module.exports.checkUserExists = async (discord_id) => {
 	var res = await exports.sql('SELECT id FROM users WHERE discord_id=?;', discord_id);
-	return res.length > 0
+	return res.length > 0;
 }
 
 
@@ -103,6 +103,7 @@ exports.registerUser = async (discord_id, discord_username) => {
 		var created = await exports.createUserInDB(discord_id, discord_username)
 		return created.length > 0;
 	}
+	return exists;
 }
 
 /**
@@ -137,7 +138,7 @@ exports.isUserCompeting = async (discord_id) => {
  */
 exports.setUserCompeting = async (discord_id, competing) => {
 	var res = await exports.sql('UPDATE users SET competing=? WHERE discord_id=?;', [competing, discord_id]);
-	return res.length > 0;
+	return res.length != 0;
 }
 
 /**
@@ -171,6 +172,7 @@ exports.getUserEloRating = async (user_id) => {
 	var res = await exports.sql('SELECT elo_rating FROM users WHERE id=?;', user_id);
 	if (res.length > 0)
 		return res[0].elo_rating;
+	return false;
 }
 
 /**
@@ -182,6 +184,7 @@ exports.getUserEloRanking = async (user_id) => {
 	var res = await exports.sql('SELECT id, elo_rating, FIND_IN_SET( elo_rating, (SELECT GROUP_CONCAT( DISTINCT elo_rating ORDER BY elo_rating DESC ) FROM users)) AS rank FROM users WHERE id=?;', user_id);
 	if (res.length > 0)
 		return res[0].rank;
+	return false;
 }
 
 /**
@@ -193,6 +196,7 @@ exports.getUserGlicko2Rating = async (user_id) => {
 	var res = await exports.sql('SELECT glicko2_rating FROM users WHERE id=?;', user_id);
 	if (res.length > 0)
 		return res[0].glicko2_rating;
+	return false;
 }
 
 /**
@@ -204,6 +208,7 @@ exports.getUserGlicko2Deviation = async (user_id) => {
 	var res = await exports.sql('SELECT glicko2_deviation FROM users WHERE id=?;', user_id);
 	if (res.length > 0)
 		return res[0].glicko2_deviation;
+	return false;
 }
 
 /**
@@ -215,6 +220,7 @@ exports.getUserGlicko2Volatility = async (user_id) => {
 	var res = await exports.sql('SELECT glicko2_volatility FROM users WHERE id=?;', user_id);
 	if (res.length > 0)
 		return res[0].glicko2_volatility;
+	return false;
 }
 
 /**
@@ -240,12 +246,16 @@ exports.setUserEloRating = async (user_id, elo) => {
  * @returns {success: boolean}
  */
 exports.submitMatchResult = async (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) => {
-	userElo = userElo || null;
-	opponentElo = opponentElo || null;
-	userEndElo = userEndElo || null;
-	opponentEndElo = opponentEndElo || null;
-	var res = await exports.sql('INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) VALUES (?,?,?,?,?,?,?);',
-		[player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo]);
+	var sql;
+	if (player_end_elo == null || opponent_end_elo == null) {
+		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo) VALUES (?,?,?,?,?);';
+		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo];
+	}
+	else {
+		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) VALUES (?,?,?,?,?,?,?);';
+		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo];
+	}
+	var res = await exports.sql(sql, vars);
 	return res.length > 0;
 }
 
@@ -256,7 +266,7 @@ exports.submitMatchResult = async (player_id, opponent_id, result, player_start_
  * @returns {success: boolean}
  */
 exports.setMatchResultConfirmed = async (match_id, confirmed) => {
-	var res = await exports.sql('UPDATE matches SET confirmed=? WHERE id=?;', confirmed, match_id);
+	var res = await exports.sql('UPDATE matches SET confirmed=? WHERE id=?;', [confirmed, match_id]);
 	return res.length > 0;
 }
 
@@ -295,6 +305,7 @@ exports.getPendingMatch = async (message_id) => {
 	var res = await exports.sql('SELECT match_id FROM pending_matches WHERE message_id=?;', message_id);
 	if (res.length > 0)
 		return res[0].match_id;
+	return false;
 }
 
 /**
@@ -318,6 +329,7 @@ exports.getUserIdFromDiscordId = async (discord_id) => {
 	var res = await exports.sql('SELECT id FROM users WHERE discord_id=?;', discord_id);
 	if (res.length > 0)
 		return parseInt(res[0].id);
+	return false;
 }
 
 /**
@@ -329,6 +341,7 @@ exports.getUserLatestMatches = async (user_id) => {
 	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res;
+	return false;
 }
 
 /**
@@ -340,6 +353,7 @@ exports.getUserLatestMatchVs = async (user_id, target_id) => {
 	var res = await exports.sql('SELECT * FROM matches WHERE player_id=? AND opponent_id=? ORDER BY id DESC LIMIT 1;', [user_id, target_id]);
 	if (res.length > 0)
 		return res[0];
+	return false;
 }
 
 /**
@@ -351,6 +365,7 @@ exports.getUserLatestMatchesOfWeek = async (user_id) => {
 	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;', user_id);
 	if (res.length > 0)
 		return res;
+	return false;
 }
 
 /**
@@ -359,9 +374,10 @@ exports.getUserLatestMatchesOfWeek = async (user_id) => {
  * @returns {success: boolean, match: []}
  */
 exports.getMatch = async (match_id) => {
-	var res = exports.sql('SELECT * FROM matches WHERE id=?;', match_id);
+	var res = await exports.sql('SELECT * FROM matches WHERE id=?;', match_id);
 	if (res.length > 0)
 		return res[0];
+	return false;
 }
 
 /**
@@ -371,9 +387,10 @@ exports.getMatch = async (match_id) => {
  * @todo add rating method
  */
 exports.getTopPlayers = async (amount, rating_method) => {
-	var res = exports.sql('SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;', amount);
+	var res = await exports.sql('SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;', amount);
 	if (res.length > 0)
 		return res;
+	return false;
 }
 
 /**
@@ -383,9 +400,10 @@ exports.getTopPlayers = async (amount, rating_method) => {
  * @todo add rating method
  */
 exports.getTopCompetingPlayers = async (amount, rating_method) => {
-	var res = exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
+	var res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
 	if (res.length > 0)
 		return res;
+	return false;
 }
 
 /**
@@ -395,7 +413,8 @@ exports.getTopCompetingPlayers = async (amount, rating_method) => {
  * @todo add rating method
  */
 exports.getNearbyPlayers = async (user_id, amount) => {
-	var res = exports.sql('SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
+	var res = await exports.sql('SELECT users.id, users.discord_username, users.elo_rating FROM users WHERE ID=? UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.ID = ? && users.id != ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL(SELECT users.id, users.discord_username, users.elo_rating FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.ID = ? ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
 	if (res.length > 0)
 		return res;
+	return false;
 }

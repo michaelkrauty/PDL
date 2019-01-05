@@ -41,11 +41,8 @@ client.once('ready', async () => {
 	discord_channels_to_use = require('./channels.json').data;
 	await fm.checkFile('./admins.json');
 	admin_discord_ids = require('./admins.json').data;
-
-	await db.connect();
-
 	// connect to database
-	// await db.connect();
+	await db.connect();
 	// startup complete
 	started = true;
 	// announce startup
@@ -178,7 +175,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// compose and send message containing user data
-				var msg = tag(message.author.id) + '\n';
+				var msg = '';
 				for (var elem in mention_data) {
 					msg += `${elem}: ${mention_data[elem]}\n`;
 				}
@@ -207,7 +204,7 @@ client.on('message', async (message) => {
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
-			let challengeme = message.guild.roles.find(role => role.name === "challengeme");
+			let challengeme = await message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
@@ -229,7 +226,7 @@ client.on('message', async (message) => {
 		// questme command, toggles questme rank
 		case 'questme':
 			// get questme role
-			let questme = message.guild.roles.find(role => role.name === "questme");
+			let questme = await message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
 				break;
@@ -257,20 +254,15 @@ client.on('message', async (message) => {
 				break;
 			}
 			// register user if they're not already in the DB
-			var register_user = await db.registerUser(message.author.id, message.author.username);
-			if (!register_user) {
-				// error registering
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not registerUser(${message.author.id}, ${message.author.username})`);
+			await db.registerUser(message.author.id, message.author.username);
+			// check if the user is currently competing
+			var user_competing = await db.isUserCompeting(message.author.id);
+			if (user_competing) {
+				message.channel.send(`${tag(message.author.id)} already competing in PDL.`);
 				break;
 			}
 			// set the user's competing state to true
-			var user_competing = await db.setUserCompeting(message.author.id, true);
-			if (!user_competing) {
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not setUserCompeting(${message.author.id}, true)`);
-				break;
-			}
+			await db.setUserCompeting(message.author.id, true);
 			message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// quit command, disables competing for the user
@@ -281,6 +273,12 @@ client.on('message', async (message) => {
 			if (!user_exists) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+				break;
+			}
+			// check if the user is currently competing
+			var user_competing = await db.isUserCompeting(message.author.id);
+			if (!user_competing) {
+				message.channel.send(`${tag(message.author.id)} compete with !compete`);
 				break;
 			}
 			// set the user's competing state to false
@@ -393,6 +391,7 @@ client.on('message', async (message) => {
 		case 'skill':
 		case 'sr':
 		case 'sr2':
+			// TODO: add !sr <player>
 			// get user id from discord id
 			var user_id = await db.getUserIdFromDiscordId(message.author.id);
 			if (!user_id) {
@@ -402,10 +401,10 @@ client.on('message', async (message) => {
 			}
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user_id, 2);
-			if (!nearby_players) {
+			if (nearby_players == null || nearby_players.length < 1) {
 				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				error.log(`could not getNearbyPlayers(${user_id})`);
+				log.error(`could not getNearbyPlayers(${user_id}, 2)`);
 				break;
 			}
 			// find the user in the list
@@ -798,7 +797,7 @@ client.on('message', async (message) => {
 						return;
 					}
 					// submit match result
-					await db.submitMatchResult(user_id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo);
+					await db.submitMatchResult(user_data.id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo, null, null);
 					// ask the target user to confirm the game
 					message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{game_id}'));
 					collector.stop();
@@ -1052,15 +1051,18 @@ function tagRole(roleID) {
 	return `<@&${roleID}>`;
 }
 
+// calculates game result elo
 function calculateElo(playerElo, opponentElo, result) {
 	return eloRating.calculate(playerElo, opponentElo, result, config.elo_k);
 }
 
+// replaces all occurrences of a substring with a substring
 String.prototype.replaceAll = function (search, replacement) {
 	var target = this;
 	return target.split(search).join(replacement);
 };
 
+// update glicko2 ratings (for use with schedule-based glicko2)
 function updateRatings() {
 	// just testing, for now.
 	var ranking = new glicko2.Glicko2();
