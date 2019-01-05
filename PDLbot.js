@@ -955,6 +955,7 @@ client.on('message', async (message) => {
 			opponent_rank = opponent_rank.rank;
 			// message players
 			var winloss;
+			match.result ? winloss = 'win' : winloss = 'loss';
 			msg = `${tag(message.author.id)} confirmed game ${match.id}.\n`;
 			msg += strings.new_elo_message
 				.replaceAll('{game_id}', match.id)
