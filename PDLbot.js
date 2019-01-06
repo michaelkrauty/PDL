@@ -735,24 +735,16 @@ client.on('message', async (message) => {
 			// if the user has less match submissions than the weekly limit as set in the config
 			// get the user's latest matches
 			var user_latest_matches = await db.getUserLatestMatches(user_id);
-			if (!user_latest_matches) {
-				// could not get user's latest matches
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not getUserLatestMatches(${user_id})`);
-				break;
-			}
+			if (!user_latest_matches)
+				user_latest_matches.length = 0;
 			// get the mention's latest matches
 			var mention_latest_matches = await db.getUserLatestMatches(mention_data.id);
-			if (!mention_latest_matches) {
-				// mention has no recent matches
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not getUserLatestMatches(${mention_data.id})`);
-				break;
-			}
+			if (!mention_latest_matches)
+				mention_latest_matches.length = 0;
 			// get the amount of matches the user has played within the last week
 			if (user_latest_matches.length + mention_latest_matches.length >= config.maximum_weekly_challenges) {
 				// user has already played the maximum amount of matches for the week
-				message.channel.send(`Maximum weekly matches: ${config.maximum_weekly_challenges}`);
+				message.channel.send(`You have recorded the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Sundays at 11:59pm pst`);
 				break;
 			}
 			// ask the user if they won
