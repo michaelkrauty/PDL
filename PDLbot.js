@@ -865,31 +865,39 @@ client.on('message', async (message) => {
 				break;
 			}
 			// calculate new elo
-			var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
-			var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
-			var newOpponentElo = eloRatingCalculation.opponentRating + config.bonus_elo;
+			var newPlayerElo = playerElo;
+			var newOpponentElo = opponentElo;
 			if (match.player_start_elo != null && match.opponent_start_elo != null) {
+				// match has players' start elo
 				if (match.player_end_elo != null && match.opponent_end_elo != null) {
+					// match has players' end elo
 					if (match.result) {
-						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo) + config.bonus_elo;
-						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
+						// player won game
+						newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo);
+						newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo);
 					} else {
-						newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
-						newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo) + config.bonus_elo;
+						// player lost game
+						newPlayerElo = playerElo - (match.player_start_elo - match.player_end_elo);
+						newOpponentElo = opponentElo + (match.opponent_end_elo - match.opponent_start_elo);
 					}
 				} else {
+					// match has players' start elo, but not end elo
+					var elo = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
 					if (match.result) {
-						// calculate new elo
-						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
-						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
-						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+						// player lost game
+						newPlayerElo = playerElo + (elo.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
 					} else {
-						// calculate new elo
-						var eloRatingCalculation = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
-						newPlayerElo = playerElo + (eloRatingCalculation.playerRating - match.player_start_elo) + config.bonus_elo;
-						newOpponentElo = opponentElo - (match.opponent_start_elo - eloRatingCalculation.opponentRating) + config.bonus_elo;
+						// player won game
+						newPlayerElo = playerElo + (elo.playerRating - match.player_start_elo) + config.bonus_elo;
+						newOpponentElo = opponentElo - (match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
 					}
 				}
+			} else {
+				// no start elo in match, calculate new elo
+				var elo = calculateElo(playerElo, opponentElo, match.result);
+				newPlayerElo = elo.playerRating + config.bonus_elo;
+				newOpponentElo = elo.opponentRating + config.bonus_elo;
 			}
 			// set player's new elo rating
 			await db.setUserEloRating(match.player_id, newPlayerElo);
