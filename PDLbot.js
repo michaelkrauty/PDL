@@ -972,11 +972,11 @@ client.on('message', async (message) => {
 			var newPlayerElo;
 			var newOpponentElo;
 			if (match.result) {
-				newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo) + config.bonus_elo;
-				newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
+				newPlayerElo = playerElo + (match.player_end_elo - match.player_start_elo);
+				newOpponentElo = opponentElo - (match.player_start_elo - match.player_end_elo);
 			} else {
-				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo) + config.bonus_elo;
-				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo) + config.bonus_elo;
+				newPlayerElo = playerElo + (match.player_start_elo - match.player_end_elo);
+				newOpponentElo = opponentElo - (match.opponent_end_elo - match.opponent_start_elo);
 			}
 			// set player's new elo rating
 			await db.setUserEloRating(match.player_id, newPlayerElo);
