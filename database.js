@@ -322,7 +322,7 @@ exports.getUserLatestMatchVs = async (user_id, target_id) => {
  * @returns {success: boolean, match: []}
  */
 exports.getUserLatestMatchesOfWeek = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;', user_id);
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res;
 	return false;
