@@ -3,8 +3,8 @@ const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 const log = require('winston');
 
-const auth = require('./auth.json');
 const config = require('./config.js').config;
+const config_db = require('./config_db.js');
 const db = require('./database.js');
 const user = require('./user.js');
 const strings = require('./strings.js');
@@ -29,7 +29,7 @@ log.level = 'debug';
 
 // initialize Discord bot
 const client = new discord.Client();
-client.login(auth.token);
+client.login(config_db.bot_token);
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// setup json storage files
