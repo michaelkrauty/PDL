@@ -728,32 +728,22 @@ client.on('message', async (message) => {
 				break;
 			}
 			// get recent matches of user and mention of the week
-			var arr = [];
-			var num_matches = 0;
 			// get the user's latest matches of the week
 			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user_id);
-			if (!user_latest_matches)
-				user_latest_matches.length = 0;
-			else for (var e in user_latest_matches) {
-				arr.push(user_latest_matches[e].id);
-				num_matches++;
-			}
+			if (user_latest_matches)
+				if (user_latest_matches.length >= config.maximum_weekly_challenges) {
+					// user has already played the maximum amount of matches for the week
+					message.channel.send(`You have recorded the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Monday at 12am PST`);
+					break;
+				}
 			// get the mention's latest matches of the week
 			var mention_latest_matches = await db.getUserLatestMatchesOfWeek(mention_data.id);
-			if (!mention_latest_matches)
-				mention_latest_matches.length = 0;
-			else for (var e in user_latest_matches) {
-				if (!arr.includes(mention_latest_matches[e].id)) {
-					arr.push(mention_latest_matches[e].id);
-					num_matches++;
+			if (mention_latest_matches)
+				if (mention_latest_matches.length >= config.maximum_weekly_challenges) {
+					// mention has already played the maximum amount of matches for the week
+					message.channel.send(`${mention_data.discord_username} has already reached the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Monday at 12am PST`);
+					break;
 				}
-			}
-			// get the amount of matches the user has played within the last week
-			if (num_matches >= config.maximum_weekly_challenges) {
-				// user has already played the maximum amount of matches for the week
-				message.channel.send(`You have recorded the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Sundays at 11:59pm PST`);
-				break;
-			}
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// add submission reactions to msg
