@@ -744,7 +744,7 @@ client.on('message', async (message) => {
 			// get the amount of matches the user has played within the last week
 			if (user_latest_matches.length + mention_latest_matches.length >= config.maximum_weekly_challenges) {
 				// user has already played the maximum amount of matches for the week
-				message.channel.send(`You have recorded the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Sundays at 11:59pm pst`);
+				message.channel.send(`You have recorded the maximum number of matches for the week (${config.maximum_weekly_challenges}). Match limit reset on Sundays at 11:59pm PST`);
 				break;
 			}
 			// ask the user if they won
