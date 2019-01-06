@@ -488,8 +488,8 @@ client.on('message', async (message) => {
 					// compose message with match id, tag the author, show other player's name in plaintext (no tag)
 					text = '';
 					(submitter_was_user ?
-						text += `${tag(message.author.id)} submitted a ** ${match_result_string}** vs ** ${opponent_data.discord_username}** in Game ${match.id} \n` :
-						text += `** ${opponent_data.discord_username}** submitted a ** ${match_result_string}** vs ${tag(message.author.id)} in Game ${match.id} \n`);
+						text += `${tag(message.author.id)} submitted a **${match_result_string}** vs **${opponent_data.discord_username}** in Game ${match.id}\n` :
+						text += `**${opponent_data.discord_username}** submitted a **${match_result_string}** vs ${tag(message.author.id)} in Game ${match.id}\n`);
 					// send it
 					var msg = await message.channel.send(text);
 					// if the submitter was the user, no emojis necessary.
