@@ -1,14 +1,10 @@
 const discord = require('discord.js');
-const glicko2lite = require('glicko2-lite');
 const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 const log = require('winston');
-const schedule = require('node-schedule');
-const fs = require('fs');
 
 const auth = require('./auth.json');
 const config = require('./config.js').config;
-// const db = require('./DB.js');
 const db = require('./database.js');
 const user = require('./user.js');
 const strings = require('./strings.js');
@@ -1057,21 +1053,4 @@ function calculateElo(playerElo, opponentElo, result) {
 String.prototype.replaceAll = function (search, replacement) {
 	var target = this;
 	return target.split(search).join(replacement);
-};
-
-// update glicko2 ratings (for use with schedule-based glicko2)
-function updateRatings() {
-	// just testing, for now.
-	var ranking = new glicko2.Glicko2();
-	var scorched = ranking.makePlayer(1500, 350, 0.06);
-	var maverick = ranking.makePlayer(1500, 350, 0.06);
-
-	var matches = [];
-	matches.push([scorched, maverick, 1]);
-	matches.push([maverick, scorched, 1]);
-	matches.push([scorched, maverick, 1]);
-	ranking.updateRatings(matches);
-	console.log(`scorched rating: ${scorched.getRating()}`);
-	console.log(`scorched deviation: ${scorched.getRd()}`);
-	console.log(`scorched volatility: ${scorched.getVol()}`);
 }
