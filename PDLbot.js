@@ -695,7 +695,7 @@ client.on('message', async (message) => {
 					// construct message
 					msg += `Game ${match.id}: `;
 					match_submitted_by_target ? msg += mention.username : msg += opponent_username;
-					msg += ` submitted a ${match_result_string} vs`;
+					msg += ` submitted a ${match_result_string} vs `;
 					match_submitted_by_target ? msg += opponent_username : msg += mention.username;
 					msg += '\n';
 				}
@@ -733,28 +733,28 @@ client.on('message', async (message) => {
 			}
 			// TODO
 			// if the user has less match submissions than the weekly limit as set in the config
-			// // get the user's latest matches
-			// var user_latest_matches = await db.getUserLatestMatches(user_id);
-			// if (!user_latest_matches.success) {
-			// 	// could not get user's latest matches
-			// 	message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-			// 	console.log(`Could not getUserLatestMatches(${user_id})`);
-			// 	break;
-			// }
-			// // get the mention's latest matches
-			// var target_latest_matches = await db.getUserLatestMatches(mention_data.id);
-			// if (!target_latest_matches.success) {
-			// 	// mention has no recent matches
-			// 	message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-			// 	console.log(`Could not getUserLatestMatches(${mention_data.id})`);
-			// 	break;
-			// }
+			// get the user's latest matches
+			var user_latest_matches = await db.getUserLatestMatches(user_id);
+			if (!user_latest_matches) {
+				// could not get user's latest matches
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+				log.error(`Could not getUserLatestMatches(${user_id})`);
+				break;
+			}
+			// get the mention's latest matches
+			var mention_latest_matches = await db.getUserLatestMatches(mention_data.id);
+			if (!mention_latest_matches) {
+				// mention has no recent matches
+				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+				log.error(`Could not getUserLatestMatches(${mention_data.id})`);
+				break;
+			}
 			// get the amount of matches the user has played within the last week
-			// if (user_latest_matches['matches'].length + target_latest_matches['matches'].length >= config.maximum_weekly_challenges) {
-			// 	// user has already played the maximum amount of matches for the week
-			// 	message.channel.send('maximum weekly matches: ' + config.maximum_weekly_challenges);
-			// 	break;
-			// }
+			if (user_latest_matches.length + mention_latest_matches.length >= config.maximum_weekly_challenges) {
+				// user has already played the maximum amount of matches for the week
+				message.channel.send(`Maximum weekly matches: ${config.maximum_weekly_challenges}`);
+				break;
+			}
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// add submission reactions to msg
