@@ -280,6 +280,16 @@ exports.updateMatch = async (match_id, confirmed, player_start_elo, player_end_e
 }
 
 /**
+ * @description delete a match
+ * @param {int} match_id the match to delete
+ * @returns {boolean}
+ */
+exports.deleteMatch = async (match_id) => {
+	var res = await exports.sql('DELETE FROM matches WHERE id=?', match_id);
+	return res.length > 0;
+}
+
+/**
  * @description get user id from Discord id
  * @param {bigint} discord_id the user's discord id
  * @returns {success: boolean, id: bigint}
