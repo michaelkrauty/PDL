@@ -33,11 +33,6 @@ module.exports.connect = function () {
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matches`');
 		});
-		await con.query('CREATE TABLE IF NOT EXISTS pending_matches (message_id varchar(255) primary key not null, match_id bigint not null, user_id bigint not null);', function (err, res) {
-			if (err) throw err;
-			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `pending_matches`');
-		});
 		// end connection to database
 		await con.end();
 		pool = await mysql.createPool({
@@ -250,8 +245,7 @@ exports.submitMatchResult = async (player_id, opponent_id, result, player_start_
 	if (player_end_elo == null || opponent_end_elo == null) {
 		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo) VALUES (?,?,?,?,?);';
 		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo];
-	}
-	else {
+	} else {
 		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) VALUES (?,?,?,?,?,?,?);';
 		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo];
 	}
@@ -286,37 +280,12 @@ exports.updateMatch = async (match_id, confirmed, player_start_elo, player_end_e
 }
 
 /**
- * @description confirm a match result
- * @param {int} match_id the match to confirm
- * @param {boolean} confirmed is the match confirmed?
- * @returns {success: boolean}
+ * @description delete a match
+ * @param {int} match_id the match to delete
+ * @returns {boolean}
  */
-exports.putPendingMatch = async (message_id, match_id, user_id) => {
-	var res = await exports.sql('INSERT INTO pending_matches (message_id, match_id, user_id) VALUES (?,?,?);', [message_id, match_id, user_id]);
-	return res.length > 0;
-}
-
-/**
- * @description get user id from Discord id
- * @param {bigint} discord_id the user's discord id
- * @returns {success: boolean, id: bigint}
- */
-exports.getPendingMatch = async (message_id) => {
-	var res = await exports.sql('SELECT match_id FROM pending_matches WHERE message_id=?;', message_id);
-	if (res.length > 0)
-		return res[0].match_id;
-	return false;
-}
-
-/**
- * @description get user id from Discord id
- * @param {bigint} discord_id the user's discord id
- * @returns {success: boolean, id: bigint}
- */
-exports.removePendingMatch = async (message_id, match_id, user_id) => {
-	match_id = match_id || 0;
-	user_id = user_id || 0;
-	var res = await exports.sql('DELETE FROM pending_matches WHERE (message_id=? OR match_id=? OR user_id=?);', [message_id, match_id, user_id]);
+exports.deleteMatch = async (match_id) => {
+	var res = await exports.sql('DELETE FROM matches WHERE id=?', match_id);
 	return res.length > 0;
 }
 
@@ -337,8 +306,8 @@ exports.getUserIdFromDiscordId = async (discord_id) => {
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, match: []}
  */
-exports.getUserLatestMatches = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;', [user_id, user_id]);
+exports.getUserLatestMatches = async (user_id, confirmed = false) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=? ORDER BY id ASC;', [user_id, user_id, confirmed]);
 	if (res.length > 0)
 		return res;
 	return false;
@@ -362,7 +331,7 @@ exports.getUserLatestMatchVs = async (user_id, target_id) => {
  * @returns {success: boolean, match: []}
  */
 exports.getUserLatestMatchesOfWeek = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false AND (WHERE  YEARWEEK(`date`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id DESC;', user_id);
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res;
 	return false;
