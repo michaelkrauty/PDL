@@ -808,8 +808,10 @@ client.on('message', async (message) => {
 			if (args.length != 1 || !admin)
 				break;
 			var match = await db.getMatch(args[0]);
-			if (!match)
+			if (!match) {
+				message.channel.send(`Game ${args[0]} not found.`);
 				break;
+			}
 			var msg = '';
 			for (var e in match) {
 				msg += `${e}: ${match[e]}\n`;
