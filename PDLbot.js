@@ -666,7 +666,13 @@ client.on('message', async (message) => {
 					// match result ? 'win' : 'loss'
 					var match_result_string;
 					(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
-					// get the other player's discord id using their user id
+					// get the player's user data
+					var player_data = await db.getUserDataUsingId(player_id);
+					if (!player_data) {
+						// could not get the player's user data
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						throw (`Could not getUserDataUsingId(${player_id})`);
+					}
 					// get the opponent's user data
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
 					if (!opponent_data) {
