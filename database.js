@@ -245,8 +245,7 @@ exports.submitMatchResult = async (player_id, opponent_id, result, player_start_
 	if (player_end_elo == null || opponent_end_elo == null) {
 		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo) VALUES (?,?,?,?,?);';
 		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo];
-	}
-	else {
+	} else {
 		sql = 'INSERT INTO matches (player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo) VALUES (?,?,?,?,?,?,?);';
 		vars = [player_id, opponent_id, result, player_start_elo, opponent_start_elo, player_end_elo, opponent_end_elo];
 	}
