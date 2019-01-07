@@ -884,7 +884,7 @@ client.on('message', async (message) => {
 				message.channel.send(`${message.author.id} no recent matches.`);
 				break;
 			}
-			var str = `${tag(message.author.id)} this week's matches:\n`;
+			var str = `${tag(message.author.id)} this week's matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			for (var n in user_latest_matches) {
 				var match = user_latest_matches[n];
 				// was the submitter the user?
