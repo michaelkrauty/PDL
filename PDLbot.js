@@ -306,7 +306,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// check command, shows if user is registered in the database
-		case 'check':
+		case 'registered':
 			if (args.length == 0) {
 				// check if user is registered
 				var user_exists = await db.checkUserExists(message.author.id);
