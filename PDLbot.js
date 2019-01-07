@@ -79,7 +79,7 @@ client.on('message', async (message) => {
 			channels = [message.channel.id];
 		// write data to file
 		await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-			log.error(err);
+			if (err) throw err;
 		});
 		discord_channels_to_use = require('./channels.json').data;
 		// success, list channels
@@ -340,15 +340,13 @@ client.on('message', async (message) => {
 				var user_elo = await db.getUserEloRating(user_id);
 				if (!user_elo) {
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					log.error(`Could not getUserEloRating(${user_id}, true)`);
-					break;
+					throw (`Could not getUserEloRating(${user_id}, true)`);
 				}
 				// get user elo rank
 				var user_rank = await db.getUserEloRanking(user_id);
 				if (!user_rank) {
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					log.error(`Could not getUserEloRanking(${user_id}, true)`);
-					break;
+					throw (`Could not getUserEloRanking(${user_id}, true)`);
 				}
 				// output user skill rating
 				message.channel.send(strings.user_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{skill_rating}', user_elo).replaceAll('{user_rank}', user_rank));
@@ -372,9 +370,8 @@ client.on('message', async (message) => {
 				var target_elo = await db.getUserEloRating(target_id);
 				if (!target_elo) {
 					// failed to get user elo rating
-					log.error(`Could not getUserEloRating(${target_id})`);
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					break;
+					throw (`Could not getUserEloRating(${target_id})`);
 				}
 				// output target skill rating
 				message.channel.send(strings.target_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username).replaceAll('{elo}', target_elo));
@@ -400,8 +397,7 @@ client.on('message', async (message) => {
 			if (nearby_players == null || nearby_players.length < 1) {
 				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`could not getNearbyPlayers(${user_id}, 2)`);
-				break;
+				throw (`Could not getNearbyPlayers(${user_id}, 2)`);
 			}
 			// find the user in the list
 			nearby_players.sort(function (a, b) {
@@ -423,8 +419,7 @@ client.on('message', async (message) => {
 				if (!rank) {
 					// failed to get similarly ranked players
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					log.error(`Could not getUserEloRanking(${nearby_players[i].id})`);
-					break;
+					throw (`Could not getUserEloRanking(${nearby_players[i].id})`);
 				}
 				// list top players
 				var username = nearby_players[i].discord_username;
@@ -477,9 +472,8 @@ client.on('message', async (message) => {
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
 					if (!opponent_data) {
 						// could not get the other player's data from their user id
-						log.error(`Could not getUserDataUsingId(${opponent_id})`);
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						break;
+						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
 					// compose message with match id, tag the author, show other player's name in plaintext (no tag)
 					text = '';
@@ -525,22 +519,16 @@ client.on('message', async (message) => {
 							}
 							// get match id
 							var match_id = user_pending_matches.get(r.message.id);
-							if (!match_id) {
-								log.error(`Could not get match ${r.message.id}`);
-								return;
-							}
+							if (!match_id)
+								throw (`Could not get match ${r.message.id}`);
 							// get match
 							var match = await db.getMatch(match_id);
-							if (!match) {
-								log.error(`Could not getMatch(${match_id})`);
-								return;
-							}
+							if (!match)
+								throw (`Could not getMatch(${match_id})`);
 							// get opponent data
 							var opponent_data = await db.getUserDataUsingId(match.player_id);
-							if (!opponent_data) {
-								log.error(`Could not getUserDataUsingId(${match.player_id})`);
-								return;
-							}
+							if (!opponent_data)
+								throw (`Could not getUserDataUsingId(${match.player_id})`);
 							if (!confirm) {
 								// the match was disputed
 								await r.message.channel.send(strings.pending_dispute
@@ -555,16 +543,12 @@ client.on('message', async (message) => {
 								if (config.rating_method == RatingMethod.ELO) {
 									// get player's elo rating
 									var playerElo = await db.getUserEloRating(match.player_id);
-									if (!playerElo) {
-										log.error(`Could not getUserEloRating(${match.player_id})`);
-										return;
-									}
+									if (!playerElo)
+										throw (`Could not getUserEloRating(${match.player_id})`);
 									// get opponent's elo rating
 									var opponentElo = await db.getUserEloRating(match.opponent_id);
-									if (!opponentElo) {
-										log.error(`Could not getUserEloRating(${match.opponent_id})`);
-										return;
-									}
+									if (!opponentElo)
+										throw (`Could not getUserEloRating(${match.opponent_id})`);
 									// calculate new elo
 									var eloRatingCalculation = calculateElo(playerElo, opponentElo, match.result);
 									var newPlayerElo = eloRatingCalculation.playerRating + config.bonus_elo;
@@ -577,26 +561,20 @@ client.on('message', async (message) => {
 									await db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
 									// get player's new rank
 									var player_rank = await db.getUserEloRanking(match.player_id);
-									if (!player_rank) {
-										log.error(`Could not getUserEloRanking(${match.player_id})`);
-										return;
-									}
+									if (!player_rank)
+										throw (`Could not getUserEloRanking(${match.player_id})`);
 									// get opponent's new rank
 									var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-									if (!opponent_rank) {
-										log.error(`Could not getUserEloRanking(${match.opponent_id})`);
-										return;
-									}
+									if (!opponent_rank)
+										throw (`Could not getUserEloRanking(${match.opponent_id})`);
 									// get player data
 									var player_data = await db.getUserDataUsingId(match.player_id);
-									if (!player_data) {
-										log.error(`Could not getUserDataUsingId(${match.player_id})`);
-									}
+									if (!player_data)
+										throw (`Could not getUserDataUsingId(${match.player_id})`);
 									// get opponent data
 									var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-									if (!opponent_data) {
-										log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
-									}
+									if (!opponent_data)
+										throw (`Could not getUserDataUsingId(${match.opponent_id})`);
 									// message players
 									var winloss;
 									match.result ? winloss = 'win' : winloss = 'loss';
@@ -694,7 +672,7 @@ client.on('message', async (message) => {
 					if (!opponent_data) {
 						// could not get the other player's user data
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						break;
+						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
 					// tag the opponent if it's the author, else don't tag them
 					var player_username;
@@ -792,14 +770,12 @@ client.on('message', async (message) => {
 					// get player's elo rating
 					var playerElo = await db.getUserEloRating(user_data.id);
 					if (!playerElo) {
-						log.error(`Could not getUserEloRating(${user_data.id})`);
-						return;
+						throw (`Could not getUserEloRating(${user_data.id})`);
 					}
 					// get opponent's elo rating
 					var opponentElo = await db.getUserEloRating(mention_data.id);
 					if (!opponentElo) {
-						log.error(`Could not getUserEloRating(${mention_data.id})`);
-						return;
+						throw (`Could not getUserEloRating(${mention_data.id})`);
 					}
 					// submit match result
 					await db.submitMatchResult(user_data.id, mention_data.id, (result == MatchResult.WIN), playerElo, opponentElo, null, null);
@@ -863,14 +839,12 @@ client.on('message', async (message) => {
 			// get player's elo rating
 			var playerElo = await db.getUserEloRating(match.player_id);
 			if (!playerElo) {
-				log.error(`Could not getUserEloRating(${match.player_id})`);
-				break;
+				throw (`Could not getUserEloRating(${match.player_id})`);
 			}
 			// get opponent's elo rating
 			var opponentElo = await db.getUserEloRating(match.opponent_id);
 			if (!opponentElo) {
-				log.error(`Could not getUserEloRating(${match.opponent_id})`);
-				break;
+				throw (`Could not getUserEloRating(${match.opponent_id})`);
 			}
 			// calculate new elo
 			var newPlayerElo = playerElo;
@@ -915,14 +889,12 @@ client.on('message', async (message) => {
 			// get player's new rank
 			var player_rank = await db.getUserEloRanking(match.player_id);
 			if (!player_rank) {
-				log.error(`Could not getUserEloRanking(${match.player_id})`);
-				break;
+				throw (`Could not getUserEloRanking(${match.player_id})`);
 			}
 			// get opponent's new rank
 			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 			if (!opponent_rank) {
-				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
-				break;
+				throw (`Could not getUserEloRanking(${match.opponent_id})`);
 			}
 			// message players
 			var winloss;
@@ -956,16 +928,12 @@ client.on('message', async (message) => {
 			}
 			// get player data
 			var player_data = await db.getUserDataUsingId(match.player_id);
-			if (!player_data) {
-				log.error(`Could not getUserDataUsingId(${match.player_id})`);
-				break;
-			}
+			if (!player_data)
+				throw (`Could not getUserDataUsingId(${match.player_id})`);
 			// get opponent data
 			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-			if (!opponent_data) {
-				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
-				break;
-			}
+			if (!opponent_data)
+				throw (`Could not getUserDataUsingId(${match.opponent_id})`);
 			// is the match already confirmed?
 			if (!match.confirmed) {
 				message.channel.send(`Game ${match.id} is not confirmed.`);
@@ -973,16 +941,12 @@ client.on('message', async (message) => {
 			}
 			// get player's elo rating
 			var playerElo = await db.getUserEloRating(match.player_id);
-			if (!playerElo) {
-				log.error(`Could not getUserEloRating(${match.player_id})`);
-				break;
-			}
+			if (!playerElo)
+				throw (`Could not getUserEloRating(${match.player_id})`);
 			// get opponent's elo rating
 			var opponentElo = await db.getUserEloRating(match.opponent_id);
-			if (!opponentElo) {
-				log.error(`Could not getUserEloRating(${match.opponent_id})`);
-				break;
-			}
+			if (!opponentElo)
+				throw (`Could not getUserEloRating(${match.opponent_id})`);
 			// revert elo gained/lost as a result of this game
 			var newPlayerElo;
 			var newOpponentElo;
@@ -1003,15 +967,13 @@ client.on('message', async (message) => {
 			var player_rank = await db.getUserEloRanking(match.player_id);
 			if (!player_rank) {
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not getUserEloRanking(${match.player_id})`);
-				break;
+				throw (`Could not getUserEloRanking(${match.player_id})`);
 			}
 			// get opponent's new rank
 			var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 			if (!opponent_rank) {
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				log.error(`Could not getUserEloRanking(${match.opponent_id})`);
-				break;
+				throw (`Could not getUserEloRanking(${match.opponent_id})`);
 			}
 			// message players
 			var winloss;
