@@ -1,6 +1,6 @@
 {
 	"name": "PDL-bot",
-	"version": "0.3.3",
+	"version": "0.3.4",
 	"description": "Pavlov Duel League bot",
 	"main": "PDLbot.js",
 	"author": "scorched",
