@@ -3,6 +3,7 @@ https://goo.gl/qq2MGo <- current data
 - !adminconfirm <user> [match id] - allows admins to force confirmation of matches
 - !admindispute <user> [match id] - allows admins to nullify a match submission
 - opt into live challenges with !challenges
+- !challengeme - enables challenges and gives Challenger role in discord
 - Assign discord role based on rank (Ultra Clapper, Grand Master, Master, Operator, Novice)
 - Allow querying of quest progress
 - Assign quest roles
