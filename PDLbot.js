@@ -869,6 +869,52 @@ client.on('message', async (message) => {
 				}
 			});
 			break;
+		// matches command, shows matches from this week and past week
+		case 'matches':
+			// get user id from discord id, checking if the user is registered
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id) {
+				// not registered
+				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+				break;
+			}
+			// get the user's latest matches of the week
+			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user_id);
+			if (!user_latest_matches) {
+				message.channel.send(`${message.author.id} no recent matches.`);
+				break;
+			}
+			var str = `${tag(message.author.id)} this week's matches:\n`;
+			for (var n in user_latest_matches) {
+				var match = user_latest_matches[n];
+				// was the submitter the user?
+				var submitter_was_user;
+				match.player_id == user_id_from_discord_id ? submitter_was_user = true : submitter_was_user = false;
+				// get the other player's user id
+				var opponent_id;
+				(submitter_was_user ? opponent_id = match.opponent_id : opponent_id = match.player_id);
+				// create a string of the match result (win/loss)
+				var match_result_string;
+				(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
+				// get opponent user data
+				var opponent_data = await db.getUserDataUsingId(opponent_id);
+				if (!opponent_data) {
+					// could not get the other player's data from their user id
+					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+					throw (`Could not getUserDataUsingId(${opponent_id})`);
+				}
+				text = '';
+				(submitter_was_user ?
+					text += strings.pending_submitter_was_user :
+					text += strings.pending_submitter_was_not_user);
+				str += text
+					.replaceAll('{user}', tag(message.author.id))
+					.replaceAll('{opponent_name}', opponent_data.discord_username)
+					.replaceAll('{match_id}', match.id)
+					.replaceAll('{winloss}', match_result_string);
+			}
+			message.channel.send(str);
+			break;
 		// matchinfo command, allows admins to see match information with match id
 		case 'info':
 		case 'matchinfo':
