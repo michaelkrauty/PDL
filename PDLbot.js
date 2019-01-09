@@ -1065,7 +1065,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_user :
 						text += strings.matches_submitter_was_not_user);
 					str += text
-						.replaceAll('{user}', tag(message.author.id))
+						.replaceAll('{player_name}', tag(message.author.id))
 						.replaceAll('{opponent_name}', opponent_data.discord_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
@@ -1096,7 +1096,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_user :
 						text += strings.matches_submitter_was_not_user);
 					str += text
-						.replaceAll('{user}', tag(message.author.id))
+						.replaceAll('{player_name}', tag(message.author.id))
 						.replaceAll('{opponent_name}', opponent_data.discord_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
