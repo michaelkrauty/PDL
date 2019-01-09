@@ -1,24 +1,25 @@
+// dependencies
 const discord = require('discord.js');
-const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 const log = require('winston');
-
+// local requires
 const config = require('./config.js').config;
 const config_db = require('./config_db.js');
 const db = require('./database.js');
-const user = require('./user.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
 const package = require('./package.json');
 
-var discord_channels_to_use;
-var admin_discord_ids;
-var started = false;
-
+// enums
 const MatchResult = { WIN: 1, LOSS: 0 };
 const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
 const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌' };
 exports = MatchResult, RatingMethod;
+
+// runtime variables
+var discord_channels_to_use;
+var admin_discord_ids;
+var started = false;
 
 // configure logger settings
 log.remove(log.transports.Console);
@@ -34,14 +35,17 @@ client.once('ready', async () => {
 	if (config.enable_version_in_bot_name) {
 		let cName = client.user.username;
 		let nName = cName;
-		let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
+		// locate the version number in the bot username
+		let ver_loc = cName.search(/[ v][0-9].[0-9].[0-9]/);
 		let ver = cName.substring(ver_loc).trim();
+		// check if bot username version number matches actual bot version
 		if (ver != package.version) {
 			if (ver != cName)
-				nName = `${cName.substr(0, ver_loc)} v${package.version}`;
+				nName = `${cName.substr(0, ver_loc)}v${package.version}`;
 			else
-				nName = cName + package.version;
-			if (nName.length >= 2 || nName.length <= 32)
+				nName = `${cName} v${package.version}`;
+			// update bot username
+			if (nName.length >= 2 && nName.length <= 32)
 				client.user.setUsername(nName).then(null, (err) => {
 					log.error(`Error updating bot discord username: ${err.message}`);
 				});
@@ -79,79 +83,13 @@ client.on('message', async (message) => {
 	const cmd = args[0];
 	var admin = admin_discord_ids.includes(message.author.id);
 	args = args.splice(1);
-	// init command, to initialize a channel for use by the bot
-	if (cmd == 'init') {
-		// requires admin
-		if (!admin)
-			return;
-		// loop through channels, check if current channel is already added
-		var channels = discord_channels_to_use;
-		if (channels != undefined) {
-			if (channels.includes(message.channel.id)) {
-				message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
-				return;
-			}
-			// add current channel to channels list
-			channels.push(message.channel.id);
-		} else
-			// add current channel to channels list
-			channels = [message.channel.id];
-		// write data to file
-		await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-			if (err) throw err;
-		});
-		discord_channels_to_use = require('./channels.json').data;
-		// success, list channels
-		var msg = '';
-		for (i = 0; i < discord_channels_to_use.length; i++) {
-			msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-		}
-		message.channel.send(msg.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
-		return;
-	}
 	// is the channel being used by the bot?
-	if (!discord_channels_to_use.includes(message.channel.id))
+	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin')
 		return;
 	switch (cmd) {
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`v${package.version}`);
-			break;
-		// channels command, shows channels being used by bot
-		case 'channels':
-			// requires admin
-			if (!admin)
-				break;
-			// list channels
-			var msg = '';
-			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-			}
-			message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
-			break;
-		// deinit command, makes the bot stop using a channel
-		case 'deinit':
-			// requires admin
-			if (!admin)
-				break;
-			// check if channel is being used currently
-			var channels = discord_channels_to_use;
-			if (channels == undefined || !channels.includes(message.channel.id)) {
-				message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
-				break;
-			}
-			// stop using this channel
-			channels.splice(channels.indexOf(message.channel.id), 1);
-			await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-				log.error(err);
-			});
-			discord_channels_to_use = require('./channels.json').data;
-			// list channels
-			var msg = '';
-			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-			}
-			message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 			break;
 		// TODO: remove this command before release, for debug only
 		// say command, makes the bot say a message
@@ -1110,189 +1048,196 @@ client.on('message', async (message) => {
 			// require admin
 			if (!admin)
 				break;
-			// require 2 arguments
-			if (args.length != 2) {
-				message.channel.send(strings.admin_help.replace('{user}', tag(message.author.id)));
-				break;
-			}
-			// get match
-			var match = await db.getMatch(args[1]);
-			if (!match) {
-				message.channel.send(strings.match_not_found.replaceAll('{match_id}', args[1]));
-				break;
-			}
-			// get player data
-			var player_data = await db.getUserDataUsingId(match.player_id);
-			if (!player_data) {
-				log.error(`Could not getUserDataUsingId(${match.player_id})`);
-			}
-			// get opponent data
-			var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-			if (!opponent_data) {
-				log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
-			}
-			switch (args[0]) {
-				// match command, shows match info
-				case 'info':
-				case 'match':
-					var msg = '';
-					for (var e in match) {
-						msg += `${e}: ${match[e]}\n`;
-					}
-					message.channel.send(`\`\`\`${msg}\`\`\``);
-					break;
-				// admin confirm command, confirms a pending match
-				case 'confirm':
-					// is the match already confirmed?
-					if (match.confirmed) {
-						message.channel.send(`Game ${match.id} is already confirmed.`);
+			if (args.length == 1) {
+				switch (args[0]) {
+					// channels command, shows channels being used by bot
+					case 'channels':
+						// list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
-					}
-					// get player's elo rating
-					var playerElo = await db.getUserEloRating(match.player_id);
-					if (!playerElo) {
-						throw (`Could not getUserEloRating(${match.player_id})`);
-					}
-					// get opponent's elo rating
-					var opponentElo = await db.getUserEloRating(match.opponent_id);
-					if (!opponentElo) {
-						throw (`Could not getUserEloRating(${match.opponent_id})`);
-					}
-					// calculate new elo
-					var newPlayerElo = playerElo;
-					var newOpponentElo = opponentElo;
-					if (match.player_start_elo != null && match.opponent_start_elo != null) {
-						// match has players' start elo
-						if (match.player_end_elo != null && match.opponent_end_elo != null) {
-							// match has players' end elo
-							if (match.result) {
-								// player won game
-								newPlayerElo = playerElo + Math.abs(match.player_end_elo - match.player_start_elo);
-								newOpponentElo = opponentElo - Math.abs(match.opponent_start_elo - match.opponent_end_elo);
+					// init command, to initialize a channel for use by the bot
+					case 'init':
+						var channels = discord_channels_to_use;
+						// loop through channels, check if current channel is already added
+						if (channels != undefined) {
+							if (channels.includes(message.channel.id)) {
+								message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
+								break;
+							}
+							// add current channel to channels list
+							channels.push(message.channel.id);
+						} else
+							// add current channel to channels list
+							channels = [message.channel.id];
+						// write data to file
+						await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+							if (err) throw err;
+						});
+						discord_channels_to_use = require('./channels.json').data;
+						// success, list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+						break;
+					// deinit command, makes the bot stop using a channel
+					case 'deinit':
+						// check if channel is being used currently
+						var channels = discord_channels_to_use;
+						if (channels == undefined || !channels.includes(message.channel.id)) {
+							message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
+							break;
+						}
+						// stop using this channel
+						channels.splice(channels.indexOf(message.channel.id), 1);
+						await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							log.error(err);
+						});
+						// refresh the channels list
+						discord_channels_to_use = require('./channels.json').data;
+						// list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+						break;
+					// help command, shows admin help
+					case 'help':
+						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
+						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
+						break;
+					default:
+						message.channel.send(`${tag(message.author.id)}\n${strings.admin_help}`);
+						break;
+				}
+				break;
+			} else if (args.length == 2) {
+				// get match
+				var match = await db.getMatch(args[1]);
+				if (!match) {
+					message.channel.send(strings.match_not_found.replaceAll('{match_id}', args[1]));
+					break;
+				}
+				// get player data
+				var player_data = await db.getUserDataUsingId(match.player_id);
+				if (!player_data) {
+					log.error(`Could not getUserDataUsingId(${match.player_id})`);
+				}
+				// get opponent data
+				var opponent_data = await db.getUserDataUsingId(match.opponent_id);
+				if (!opponent_data) {
+					log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
+				}
+				switch (args[0]) {
+					// match command, shows match info
+					case 'info':
+					case 'match':
+						var msg = '';
+						for (var e in match) {
+							msg += `${e}: ${match[e]}\n`;
+						}
+						message.channel.send(`\`\`\`${msg}\`\`\``);
+						break;
+					// admin confirm command, confirms a pending match
+					case 'confirm':
+						// is the match already confirmed?
+						if (match.confirmed) {
+							message.channel.send(`Game ${match.id} is already confirmed.`);
+							break;
+						}
+						// get player's elo rating
+						var playerElo = await db.getUserEloRating(match.player_id);
+						if (!playerElo) {
+							throw (`Could not getUserEloRating(${match.player_id})`);
+						}
+						// get opponent's elo rating
+						var opponentElo = await db.getUserEloRating(match.opponent_id);
+						if (!opponentElo) {
+							throw (`Could not getUserEloRating(${match.opponent_id})`);
+						}
+						// calculate new elo
+						var newPlayerElo = playerElo;
+						var newOpponentElo = opponentElo;
+						if (match.player_start_elo != null && match.opponent_start_elo != null) {
+							// match has players' start elo
+							if (match.player_end_elo != null && match.opponent_end_elo != null) {
+								// match has players' end elo
+								if (match.result) {
+									// player won game
+									newPlayerElo = playerElo + Math.abs(match.player_end_elo - match.player_start_elo);
+									newOpponentElo = opponentElo - Math.abs(match.opponent_start_elo - match.opponent_end_elo);
+								} else {
+									// player lost game
+									newPlayerElo = playerElo - Math.abs(match.player_start_elo - match.player_end_elo);
+									newOpponentElo = opponentElo + Math.abs(match.opponent_end_elo - match.opponent_start_elo);
+								}
 							} else {
-								// player lost game
-								newPlayerElo = playerElo - Math.abs(match.player_start_elo - match.player_end_elo);
-								newOpponentElo = opponentElo + Math.abs(match.opponent_end_elo - match.opponent_start_elo);
+								// match has players' start elo, but not end elo
+								var elo = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
+								if (match.result) {
+									// player won game
+									newPlayerElo = playerElo + Math.abs(elo.playerRating - match.player_start_elo) + config.bonus_elo;
+									newOpponentElo = opponentElo - Math.abs(match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
+								} else {
+									// player lost game
+									newPlayerElo = playerElo - Math.abs(elo.playerRating - match.player_start_elo) + config.bonus_elo;
+									newOpponentElo = opponentElo + Math.abs(match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
+								}
 							}
 						} else {
-							// match has players' start elo, but not end elo
-							var elo = calculateElo(match.player_start_elo, match.opponent_start_elo, match.result);
-							if (match.result) {
-								// player won game
-								newPlayerElo = playerElo + Math.abs(elo.playerRating - match.player_start_elo) + config.bonus_elo;
-								newOpponentElo = opponentElo - Math.abs(match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
-							} else {
-								// player lost game
-								newPlayerElo = playerElo - Math.abs(elo.playerRating - match.player_start_elo) + config.bonus_elo;
-								newOpponentElo = opponentElo + Math.abs(match.opponent_start_elo - elo.opponentRating) + config.bonus_elo;
-							}
+							// no start elo in match, calculate new elo
+							var elo = calculateElo(playerElo, opponentElo, match.result);
+							newPlayerElo = elo.playerRating + config.bonus_elo;
+							newOpponentElo = elo.opponentRating + config.bonus_elo;
 						}
-					} else {
-						// no start elo in match, calculate new elo
-						var elo = calculateElo(playerElo, opponentElo, match.result);
-						newPlayerElo = elo.playerRating + config.bonus_elo;
-						newOpponentElo = elo.opponentRating + config.bonus_elo;
-					}
-					// set player's new elo rating
-					await db.setUserEloRating(match.player_id, newPlayerElo);
-					// set target's new elo rating
-					await db.setUserEloRating(match.opponent_id, newOpponentElo);
-					await db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
-					// get player's new rank
-					var player_rank = await db.getUserEloRanking(match.player_id);
-					if (!player_rank) {
-						throw (`Could not getUserEloRanking(${match.player_id})`);
-					}
-					// get opponent's new rank
-					var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-					if (!opponent_rank) {
-						throw (`Could not getUserEloRanking(${match.opponent_id})`);
-					}
-					// message players
-					var winloss;
-					match.result ? winloss = 'win' : winloss = 'loss';
-					await message.channel.send(strings.pending_confirm
-						.replaceAll('{new_elo_message}', strings.new_elo_message)
-						.replaceAll('{match_id}', match.id)
-						.replaceAll('{winloss}', winloss)
-						.replaceAll('{user}', tag(message.author.id))
-						.replaceAll('{player}', tag(player_data.discord_id))
-						.replaceAll('{opponent}', tag(opponent_data.discord_id))
-						.replaceAll('{player_name}', player_data.discord_username)
-						.replaceAll('{opponent_name}', opponent_data.discord_username)
-						.replaceAll('{player_elo_rank}', player_rank)
-						.replaceAll('{opponent_elo_rank}', opponent_rank)
-						.replaceAll('{old_player_elo}', playerElo)
-						.replaceAll('{new_player_elo}', newPlayerElo)
-						.replaceAll('{old_opponent_elo}', opponentElo)
-						.replaceAll('{new_opponent_elo}', newOpponentElo));
-					break;
-				// cancel command, allows admins to nullify a pending match with match id
-				case 'cancel':
-					// is the match already confirmed?
-					if (!match.confirmed) {
-						message.channel.send(`Game ${match.id} is not confirmed.`);
+						// set player's new elo rating
+						await db.setUserEloRating(match.player_id, newPlayerElo);
+						// set target's new elo rating
+						await db.setUserEloRating(match.opponent_id, newOpponentElo);
+						await db.updateMatch(match.id, true, playerElo, newPlayerElo, opponentElo, newOpponentElo);
+						// get player's new rank
+						var player_rank = await db.getUserEloRanking(match.player_id);
+						if (!player_rank) {
+							throw (`Could not getUserEloRanking(${match.player_id})`);
+						}
+						// get opponent's new rank
+						var opponent_rank = await db.getUserEloRanking(match.opponent_id);
+						if (!opponent_rank) {
+							throw (`Could not getUserEloRanking(${match.opponent_id})`);
+						}
+						// message players
+						var winloss;
+						match.result ? winloss = 'win' : winloss = 'loss';
+						await message.channel.send(strings.pending_confirm
+							.replaceAll('{new_elo_message}', strings.new_elo_message)
+							.replaceAll('{match_id}', match.id)
+							.replaceAll('{winloss}', winloss)
+							.replaceAll('{user}', tag(message.author.id))
+							.replaceAll('{player}', tag(player_data.discord_id))
+							.replaceAll('{opponent}', tag(opponent_data.discord_id))
+							.replaceAll('{player_name}', player_data.discord_username)
+							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{player_elo_rank}', player_rank)
+							.replaceAll('{opponent_elo_rank}', opponent_rank)
+							.replaceAll('{old_player_elo}', playerElo)
+							.replaceAll('{new_player_elo}', newPlayerElo)
+							.replaceAll('{old_opponent_elo}', opponentElo)
+							.replaceAll('{new_opponent_elo}', newOpponentElo));
 						break;
-					}
-					// get player's elo rating
-					var playerElo = await db.getUserEloRating(match.player_id);
-					if (!playerElo)
-						throw (`Could not getUserEloRating(${match.player_id})`);
-					// get opponent's elo rating
-					var opponentElo = await db.getUserEloRating(match.opponent_id);
-					if (!opponentElo)
-						throw (`Could not getUserEloRating(${match.opponent_id})`);
-					// revert elo gained/lost as a result of this game
-					var newPlayerElo;
-					var newOpponentElo;
-					if (match.result) {
-						newPlayerElo = playerElo - Math.abs(match.player_end_elo - match.player_start_elo);
-						newOpponentElo = opponentElo + Math.abs(match.opponent_start_elo - match.opponent_end_elo);
-					} else {
-						newPlayerElo = playerElo + Math.abs(match.player_start_elo - match.player_end_elo);
-						newOpponentElo = opponentElo - Math.abs(match.opponent_end_elo - match.opponent_start_elo);
-					}
-					// set player's new elo rating
-					await db.setUserEloRating(match.player_id, newPlayerElo);
-					// set target's new elo rating
-					await db.setUserEloRating(match.opponent_id, newOpponentElo);
-					// update the match info
-					await db.setMatchResultConfirmed(match.id, false);
-					// get player's new rank
-					var player_rank = await db.getUserEloRanking(match.player_id);
-					if (!player_rank) {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						throw (`Could not getUserEloRanking(${match.player_id})`);
-					}
-					// get opponent's new rank
-					var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-					if (!opponent_rank) {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						throw (`Could not getUserEloRanking(${match.opponent_id})`);
-					}
-					// message players
-					var winloss;
-					match.result ? winloss = 'win' : winloss = 'loss';
-					await message.channel.send(strings.cancel_match_cancel
-						.replaceAll('{new_elo_message}', strings.new_elo_message)
-						.replaceAll('{match_id}', match.id)
-						.replaceAll('{winloss}', winloss)
-						.replaceAll('{user}', tag(message.author.id))
-						.replaceAll('{player}', tag(player_data.discord_id))
-						.replaceAll('{opponent}', tag(opponent_data.discord_id))
-						.replaceAll('{player_name}', player_data.discord_username)
-						.replaceAll('{opponent_name}', opponent_data.discord_username)
-						.replaceAll('{player_elo_rank}', player_rank)
-						.replaceAll('{opponent_elo_rank}', opponent_rank)
-						.replaceAll('{old_player_elo}', playerElo)
-						.replaceAll('{new_player_elo}', newPlayerElo)
-						.replaceAll('{old_opponent_elo}', opponentElo)
-						.replaceAll('{new_opponent_elo}', newOpponentElo));
-					break;
-				// nullify command, deletes a game result
-				case 'nullify':
-					// is the match already confirmed?
-					if (match.confirmed) {
+					// cancel command, allows admins to nullify a pending match with match id
+					case 'cancel':
+						// is the match already confirmed?
+						if (!match.confirmed) {
+							message.channel.send(`Game ${match.id} is not confirmed.`);
+							break;
+						}
 						// get player's elo rating
 						var playerElo = await db.getUserEloRating(match.player_id);
 						if (!playerElo)
@@ -1313,7 +1258,7 @@ client.on('message', async (message) => {
 						}
 						// set player's new elo rating
 						await db.setUserEloRating(match.player_id, newPlayerElo);
-						// set opponent's new elo rating
+						// set target's new elo rating
 						await db.setUserEloRating(match.opponent_id, newOpponentElo);
 						// update the match info
 						await db.setMatchResultConfirmed(match.id, false);
@@ -1347,12 +1292,74 @@ client.on('message', async (message) => {
 							.replaceAll('{new_player_elo}', newPlayerElo)
 							.replaceAll('{old_opponent_elo}', opponentElo)
 							.replaceAll('{new_opponent_elo}', newOpponentElo));
-					}
-					await db.deleteMatch(match.id);
-					await message.channel.send(`${tag(message.author.id)} deleted match ${match.id}.`)
-					break;
-				default: break;
+						break;
+					// nullify command, deletes a game result
+					case 'nullify':
+						// is the match already confirmed?
+						if (match.confirmed) {
+							// get player's elo rating
+							var playerElo = await db.getUserEloRating(match.player_id);
+							if (!playerElo)
+								throw (`Could not getUserEloRating(${match.player_id})`);
+							// get opponent's elo rating
+							var opponentElo = await db.getUserEloRating(match.opponent_id);
+							if (!opponentElo)
+								throw (`Could not getUserEloRating(${match.opponent_id})`);
+							// revert elo gained/lost as a result of this game
+							var newPlayerElo;
+							var newOpponentElo;
+							if (match.result) {
+								newPlayerElo = playerElo - Math.abs(match.player_end_elo - match.player_start_elo);
+								newOpponentElo = opponentElo + Math.abs(match.opponent_start_elo - match.opponent_end_elo);
+							} else {
+								newPlayerElo = playerElo + Math.abs(match.player_start_elo - match.player_end_elo);
+								newOpponentElo = opponentElo - Math.abs(match.opponent_end_elo - match.opponent_start_elo);
+							}
+							// set player's new elo rating
+							await db.setUserEloRating(match.player_id, newPlayerElo);
+							// set opponent's new elo rating
+							await db.setUserEloRating(match.opponent_id, newOpponentElo);
+							// update the match info
+							await db.setMatchResultConfirmed(match.id, false);
+							// get player's new rank
+							var player_rank = await db.getUserEloRanking(match.player_id);
+							if (!player_rank) {
+								message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+								throw (`Could not getUserEloRanking(${match.player_id})`);
+							}
+							// get opponent's new rank
+							var opponent_rank = await db.getUserEloRanking(match.opponent_id);
+							if (!opponent_rank) {
+								message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+								throw (`Could not getUserEloRanking(${match.opponent_id})`);
+							}
+							// message players
+							var winloss;
+							match.result ? winloss = 'win' : winloss = 'loss';
+							await message.channel.send(strings.cancel_match_cancel
+								.replaceAll('{new_elo_message}', strings.new_elo_message)
+								.replaceAll('{match_id}', match.id)
+								.replaceAll('{winloss}', winloss)
+								.replaceAll('{user}', tag(message.author.id))
+								.replaceAll('{player}', tag(player_data.discord_id))
+								.replaceAll('{opponent}', tag(opponent_data.discord_id))
+								.replaceAll('{player_name}', player_data.discord_username)
+								.replaceAll('{opponent_name}', opponent_data.discord_username)
+								.replaceAll('{player_elo_rank}', player_rank)
+								.replaceAll('{opponent_elo_rank}', opponent_rank)
+								.replaceAll('{old_player_elo}', playerElo)
+								.replaceAll('{new_player_elo}', newPlayerElo)
+								.replaceAll('{old_opponent_elo}', opponentElo)
+								.replaceAll('{new_opponent_elo}', newOpponentElo));
+						}
+						await db.deleteMatch(match.id);
+						await message.channel.send(`${tag(message.author.id)} deleted match ${match.id}.`)
+						break;
+					default: break;
+				}
 			}
+		default:
+			message.channel.send(`${tag(message.author.id)}\n${strings.admin_help}`);
 			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
