@@ -1,7 +1,8 @@
+// dependencies
 const discord = require('discord.js');
 const eloRating = require('elo-rating');
 const log = require('winston');
-
+// local requires
 const config = require('./config.js').config;
 const config_db = require('./config_db.js');
 const db = require('./database.js');
@@ -9,14 +10,16 @@ const strings = require('./strings.js');
 const fm = require('./filemanager.js');
 const package = require('./package.json');
 
-var discord_channels_to_use;
-var admin_discord_ids;
-var started = false;
-
+// enums
 const MatchResult = { WIN: 1, LOSS: 0 };
 const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
 const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌' };
 exports = MatchResult, RatingMethod;
+
+// runtime variables
+var discord_channels_to_use;
+var admin_discord_ids;
+var started = false;
 
 // configure logger settings
 log.remove(log.transports.Console);
