@@ -1,5 +1,9 @@
 const log = require('winston');
 const config = require('./config_db.js').db;
+
+/**
+ * @description connects to SQL database and creates necessary tables
+ */
 module.exports.connect = function () {
 	return new Promise(async (resolve, reject) => {
 		let mysql = await require('mysql');
@@ -35,6 +39,7 @@ module.exports.connect = function () {
 		});
 		// end connection to database
 		await con.end();
+		// create mysql connection pool
 		pool = await mysql.createPool({
 			host: config.host,
 			database: config.database,
