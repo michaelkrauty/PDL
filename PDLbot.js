@@ -22,9 +22,7 @@ exports = MatchResult, RatingMethod;
 
 // configure logger settings
 log.remove(log.transports.Console);
-log.add(new log.transports.Console, {
-	colorize: true
-});
+log.add(new log.transports.Console, { colorize: true });
 log.level = 'debug';
 
 // initialize Discord bot
@@ -40,7 +38,7 @@ client.once('ready', async () => {
 		let ver = cName.substring(ver_loc).trim();
 		if (ver != package.version) {
 			if (ver != cName)
-				nName = cName.substr(0, ver_loc) + ` v${package.version}`;
+				nName = `${cName.substr(0, ver_loc)} v${package.version}`;
 			else
 				nName = cName + package.version;
 			if (nName.length >= 2 || nName.length <= 32)
@@ -51,14 +49,14 @@ client.once('ready', async () => {
 	}
 	// setup json storage files
 	await fm.checkFile('./channels.json');
-	discord_channels_to_use = require('./channels.json').data;
+	discord_channels_to_use = await require('./channels.json').data;
 	await fm.checkFile('./admins.json');
-	admin_discord_ids = require('./admins.json').data;
+	admin_discord_ids = await require('./admins.json').data;
 	// connect to database
 	await db.connect();
 	// startup complete
 	started = true;
-	log.info(`${client.user.username} startup complete!`);
+	await log.info(`${client.user.username} startup complete!`);
 	// announce startup
 	// for (var e in discord_channels_to_use) {
 	// 	client.channels.get(discord_channels_to_use[e]).send(`Started ${client.user.username} v${package.version}`);
@@ -77,7 +75,7 @@ client.on('message', async (message) => {
 		return;
 	// users can only run one command at a time
 	if (pending_user_responses.has(message.author.id)) {
-		message.channel.send(`${tag(message.author.id)} please respond with the emojis in your previous command before running more commands.`);
+		message.channel.send(`${tag(message.author.id)} please react with the emojis before running another command.`);
 		return;
 	}
 	// set variables
