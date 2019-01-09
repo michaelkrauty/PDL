@@ -110,7 +110,7 @@ client.on('message', async (message) => {
 			break;
 		// version command, shows current bot version
 		case 'version':
-			message.channel.send(`${client.user.username} v${package.version}`);
+			message.channel.send(`v${package.version}`);
 			break;
 		// channels command, shows channels being used by bot
 		case 'channels':
