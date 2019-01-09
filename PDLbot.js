@@ -31,8 +31,21 @@ log.level = 'debug';
 const client = new discord.Client();
 client.login(config_db.bot_token);
 client.once('ready', async () => {
-	client.user.setUsername(`${client.user.username} v${package.version}`);
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
+	let cName = client.user.username;
+	let nName = cName;
+	let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
+	let ver = cName.substring(ver_loc).trim();
+	if (ver != package.version) {
+		if (ver != cName)
+			nName = cName.substr(0, ver_loc) + package.version;
+		else
+			nName = cName + package.version;
+		if (nName.length >= 2 || nName.length <= 32)
+			client.user.setUsername(`${nName}`).then(null, (err) => {
+				log.error(`Error updating bot discord username: ${err.message}`);
+			});
+	}
 	// setup json storage files
 	await fm.checkFile('./channels.json');
 	discord_channels_to_use = require('./channels.json').data;
@@ -42,6 +55,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// startup complete
 	started = true;
+	log.info(`${client.user.username} startup complete!`);
 	// announce startup
 	// for (var e in discord_channels_to_use) {
 	// 	client.channels.get(discord_channels_to_use[e]).send(`Started ${client.user.username} v${package.version}`);
