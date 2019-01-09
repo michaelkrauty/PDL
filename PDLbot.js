@@ -32,6 +32,8 @@ const client = new discord.Client();
 client.login(config_db.bot_token);
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
+	// add bot version to bot name, if enabled
+	if (config.enable_version_in_bot_name) {
 	let cName = client.user.username;
 	let nName = cName;
 	let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
@@ -45,6 +47,7 @@ client.once('ready', async () => {
 			client.user.setUsername(`${nName}`).then(null, (err) => {
 				log.error(`Error updating bot discord username: ${err.message}`);
 			});
+	}
 	}
 	// setup json storage files
 	await fm.checkFile('./channels.json');
