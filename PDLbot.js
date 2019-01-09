@@ -40,11 +40,11 @@ client.once('ready', async () => {
 		let ver = cName.substring(ver_loc).trim();
 		if (ver != package.version) {
 			if (ver != cName)
-				nName = cName.substr(0, ver_loc) + package.version;
+				nName = cName.substr(0, ver_loc) + ` v${package.version}`;
 			else
 				nName = cName + package.version;
 			if (nName.length >= 2 || nName.length <= 32)
-				client.user.setUsername(`${nName}`).then(null, (err) => {
+				client.user.setUsername(nName).then(null, (err) => {
 					log.error(`Error updating bot discord username: ${err.message}`);
 				});
 		}
