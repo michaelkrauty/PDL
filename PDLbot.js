@@ -34,20 +34,20 @@ client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// add bot version to bot name, if enabled
 	if (config.enable_version_in_bot_name) {
-	let cName = client.user.username;
-	let nName = cName;
-	let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
-	let ver = cName.substring(ver_loc).trim();
-	if (ver != package.version) {
-		if (ver != cName)
-			nName = cName.substr(0, ver_loc) + package.version;
-		else
-			nName = cName + package.version;
-		if (nName.length >= 2 || nName.length <= 32)
-			client.user.setUsername(`${nName}`).then(null, (err) => {
-				log.error(`Error updating bot discord username: ${err.message}`);
-			});
-	}
+		let cName = client.user.username;
+		let nName = cName;
+		let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
+		let ver = cName.substring(ver_loc).trim();
+		if (ver != package.version) {
+			if (ver != cName)
+				nName = cName.substr(0, ver_loc) + package.version;
+			else
+				nName = cName + package.version;
+			if (nName.length >= 2 || nName.length <= 32)
+				client.user.setUsername(`${nName}`).then(null, (err) => {
+					log.error(`Error updating bot discord username: ${err.message}`);
+				});
+		}
 	}
 	// setup json storage files
 	await fm.checkFile('./channels.json');
@@ -883,6 +883,136 @@ client.on('message', async (message) => {
 			break;
 		// matches command, shows matches from this week and past week
 		case 'matches':
+			// get other player's matches
+			if (args.length == 1) {
+				// check for a mention
+				var mention = message.mentions.users.values().next().value;
+				if (mention == undefined || mention.id == message.author.id) {
+					// no mentions, too many arguments, or user mentioned self
+					message.channel.send(strings.matches_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// get target user id from target discord id, checking if the target is registered
+				var target_id_from_discord_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!target_id_from_discord_id) {
+					// could not get target user id from discord id
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
+					break;
+				}
+				// get user id from discord id, checking if the user is registered
+				var user_id = await db.getUserIdFromDiscordId(message.author.id);
+				if (!user_id) {
+					// not registered
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// get the user's latest matches of the week
+				var user_latest_matches = await db.getUserLatestMatchesOfWeek(target_id_from_discord_id);
+				if (!user_latest_matches) {
+					message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
+				var confirmed_matches = [];
+				var unconfirmed_matches = [];
+				for (var n in user_latest_matches)
+					if (user_latest_matches[n].confirmed)
+						confirmed_matches.push(user_latest_matches[n]);
+					else
+						unconfirmed_matches.push(user_latest_matches[n]);
+				if (unconfirmed_matches.length > 0) {
+					str += `------Unconfirmed------\n`;
+					for (var n in unconfirmed_matches) {
+						var match = unconfirmed_matches[n];
+						// was the submitter the user?
+						var submitter_was_user;
+						match.player_id == target_id_from_discord_id ? submitter_was_user = true : submitter_was_user = false;
+						// get player ids
+						var opponent_id;
+						var player_id;
+						if (submitter_was_user) {
+							opponent_id = match.opponent_id;
+							player_id = match.player_id;
+						} else {
+							opponent_id = match.player_id;
+							player_id = match.opponent_id;
+						}
+						// create a string of the match result (win/loss)
+						var match_result_string;
+						(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
+						// get player user data
+						var player_data = await db.getUserDataUsingId(player_id);
+						if (!player_data) {
+							// could not get the player's data from their user id
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							throw (`Could not getUserDataUsingId(${player_id})`);
+						}
+						// get opponent user data
+						var opponent_data = await db.getUserDataUsingId(opponent_id);
+						if (!opponent_data) {
+							// could not get the other player's data from their user id
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							throw (`Could not getUserDataUsingId(${opponent_id})`);
+						}
+						text = '';
+						(submitter_was_user ?
+							text += strings.matches_submitter_was_user :
+							text += strings.matches_submitter_was_not_user);
+						str += text
+							.replaceAll('{player_name}', player_data.discord_username)
+							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{match_id}', match.id)
+							.replaceAll('{winloss}', match_result_string);
+					}
+				}
+				if (confirmed_matches.length > 0) {
+					str += `------Confirmed------\n`;
+					for (var n in confirmed_matches) {
+						var match = confirmed_matches[n];
+						// was the submitter the user?
+						var submitter_was_user;
+						match.player_id == target_id_from_discord_id ? submitter_was_user = true : submitter_was_user = false;
+						// get player ids
+						var opponent_id;
+						var player_id;
+						if (submitter_was_user) {
+							opponent_id = match.opponent_id;
+							player_id = match.player_id;
+						} else {
+							opponent_id = match.player_id;
+							player_id = match.opponent_id;
+						}
+						// create a string of the match result (win/loss)
+						var match_result_string;
+						(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
+						// get player user data
+						var player_data = await db.getUserDataUsingId(player_id);
+						if (!player_data) {
+							// could not get the player's data from their user id
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							throw (`Could not getUserDataUsingId(${player_id})`);
+						}
+						// get opponent user data
+						var opponent_data = await db.getUserDataUsingId(opponent_id);
+						if (!opponent_data) {
+							// could not get the other player's data from their user id
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							throw (`Could not getUserDataUsingId(${opponent_id})`);
+						}
+						text = '';
+						(submitter_was_user ?
+							text += strings.matches_submitter_was_user :
+							text += strings.matches_submitter_was_not_user);
+						str += text
+							.replaceAll('{player_name}', player_data.discord_username)
+							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{match_id}', match.id)
+							.replaceAll('{winloss}', match_result_string);
+					}
+				}
+				message.channel.send(str);
+				break;
+			}
 			// get user id from discord id, checking if the user is registered
 			var user_id = await db.getUserIdFromDiscordId(message.author.id);
 			if (!user_id) {
