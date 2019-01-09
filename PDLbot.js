@@ -1110,6 +1110,9 @@ client.on('message', async (message) => {
 						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
 						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 				break;
+					default:
+						message.channel.send(`${tag(message.author.id)}\n${strings.admin_help}`);
+						break;
 			}
 				break;
 			} else if (args.length == 2) {
