@@ -116,12 +116,6 @@ client.on('message', async (message) => {
 	if (!discord_channels_to_use.includes(message.channel.id))
 		return;
 	switch (cmd) {
-		// test command, for testing stuff
-		case 'test':
-			var user = require('./user.js');
-			var usr = await new user.User(1);
-			console.log(await usr.getElo());
-			break;
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`v${package.version}`);
