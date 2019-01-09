@@ -35,14 +35,17 @@ client.once('ready', async () => {
 	if (config.enable_version_in_bot_name) {
 		let cName = client.user.username;
 		let nName = cName;
-		let ver_loc = cName.search(/[0-9].[0-9].[0-9]/);
+		// locate the version number in the bot username
+		let ver_loc = cName.search(/[ v][0-9].[0-9].[0-9]/);
 		let ver = cName.substring(ver_loc).trim();
+		// check if bot username version number matches actual bot version
 		if (ver != package.version) {
 			if (ver != cName)
-				nName = `${cName.substr(0, ver_loc)} v${package.version}`;
+				nName = `${cName.substr(0, ver_loc)}v${package.version}`;
 			else
-				nName = cName + package.version;
-			if (nName.length >= 2 || nName.length <= 32)
+				nName = `${cName} v${package.version}`;
+			// update bot username
+			if (nName.length >= 2 && nName.length <= 32)
 				client.user.setUsername(nName).then(null, (err) => {
 					log.error(`Error updating bot discord username: ${err.message}`);
 				});
