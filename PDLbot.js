@@ -57,10 +57,6 @@ client.once('ready', async () => {
 	// startup complete
 	started = true;
 	await log.info(`${client.user.username} startup complete!`);
-	// announce startup
-	// for (var e in discord_channels_to_use) {
-	// 	client.channels.get(discord_channels_to_use[e]).send(`Started ${client.user.username} v${package.version}`);
-	// }
 });
 
 // store discord ids running commands
