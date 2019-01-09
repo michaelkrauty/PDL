@@ -31,6 +31,7 @@ log.level = 'debug';
 const client = new discord.Client();
 client.login(config_db.bot_token);
 client.once('ready', async () => {
+	client.user.setUsername(`${client.user.username} v${package.version}`);
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// setup json storage files
 	await fm.checkFile('./channels.json');
