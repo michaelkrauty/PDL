@@ -893,7 +893,7 @@ client.on('message', async (message) => {
 			// get the user's latest matches of the week
 			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user_id);
 			if (!user_latest_matches) {
-				message.channel.send(`${message.author.id} no recent matches.`);
+				message.channel.send(matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			var str = `${tag(message.author.id)} this week's matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
