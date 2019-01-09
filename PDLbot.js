@@ -456,8 +456,8 @@ client.on('message', async (message) => {
 			message.channel.send(msg);
 			break;
 		// confirm command, shows pending match submissions
-		case 'confirmations':
 		case 'confirm':
+		case 'confirmations':
 			if (args.length == 0) {
 				// show pending match submissions vs the user
 				// get user id from discord id, checking if the user is registered
