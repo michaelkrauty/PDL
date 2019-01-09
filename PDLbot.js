@@ -57,10 +57,6 @@ client.once('ready', async () => {
 	// startup complete
 	started = true;
 	await log.info(`${client.user.username} startup complete!`);
-	// announce startup
-	// for (var e in discord_channels_to_use) {
-	// 	client.channels.get(discord_channels_to_use[e]).send(`Started ${client.user.username} v${package.version}`);
-	// }
 });
 
 // store discord ids running commands
@@ -222,6 +218,12 @@ client.on('message', async (message) => {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
 			}
+			// get user id, ensuring the user is registered
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id) {
+				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				break;
+			}
 			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
@@ -242,6 +244,12 @@ client.on('message', async (message) => {
 			let questme = await message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
+				break;
+			}
+			// get user id, ensuring the user is registered
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id) {
+				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
 				break;
 			}
 			// toggle questme role on/off
@@ -448,8 +456,8 @@ client.on('message', async (message) => {
 			message.channel.send(msg);
 			break;
 		// confirm command, shows pending match submissions
-		case 'confirmations':
 		case 'confirm':
+		case 'confirmations':
 			if (args.length == 0) {
 				// show pending match submissions vs the user
 				// get user id from discord id, checking if the user is registered
@@ -1057,7 +1065,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_user :
 						text += strings.matches_submitter_was_not_user);
 					str += text
-						.replaceAll('{user}', tag(message.author.id))
+						.replaceAll('{player_name}', tag(message.author.id))
 						.replaceAll('{opponent_name}', opponent_data.discord_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
@@ -1088,7 +1096,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_user :
 						text += strings.matches_submitter_was_not_user);
 					str += text
-						.replaceAll('{user}', tag(message.author.id))
+						.replaceAll('{player_name}', tag(message.author.id))
 						.replaceAll('{opponent_name}', opponent_data.discord_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
