@@ -1,12 +1,10 @@
 const discord = require('discord.js');
-const glicko2 = require('glicko2');
 const eloRating = require('elo-rating');
 const log = require('winston');
 
 const config = require('./config.js').config;
 const config_db = require('./config_db.js');
 const db = require('./database.js');
-const user = require('./user.js');
 const strings = require('./strings.js');
 const fm = require('./filemanager.js');
 const package = require('./package.json');
