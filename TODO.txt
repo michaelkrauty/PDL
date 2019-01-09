@@ -1,7 +1,5 @@
 https://goo.gl/qq2MGo <- current data
 
-- !adminconfirm <user> [match id] - allows admins to force confirmation of matches
-- !admindispute <user> [match id] - allows admins to nullify a match submission
 - opt into live challenges with !challenges
 - !challengeme - enables challenges and gives Challenger role in discord
 - Assign discord role based on rank (Ultra Clapper, Grand Master, Master, Operator, Novice)
@@ -12,8 +10,6 @@ https://goo.gl/qq2MGo <- current data
 - !pausematchups, to pause matchups and ranking algorithm updates
 - make !submit confirm message show both players, game result, and game ID
 - !matches lists matches submitted this week and last week
-- make !cancel do nothing if match is not confirmed
-- add !nullify to delete matches by id
 - add config variable for starting elo
 - set starting elo to 1200
 - allow lighter weight commands while command-locked using !pending or !submit
