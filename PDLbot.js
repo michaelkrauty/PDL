@@ -218,6 +218,12 @@ client.on('message', async (message) => {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
 			}
+			// get user id, ensuring the user is registered
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id) {
+				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
+				break;
+			}
 			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
@@ -238,6 +244,12 @@ client.on('message', async (message) => {
 			let questme = await message.guild.roles.find(role => role.name === "questme");
 			if (questme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
+				break;
+			}
+			// get user id, ensuring the user is registered
+			var user_id = await db.getUserIdFromDiscordId(message.author.id);
+			if (!user_id) {
+				message.channel.send(strings.error_not_registered.replace('{user}', tag(message.author.id)));
 				break;
 			}
 			// toggle questme role on/off
