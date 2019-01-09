@@ -80,79 +80,13 @@ client.on('message', async (message) => {
 	const cmd = args[0];
 	var admin = admin_discord_ids.includes(message.author.id);
 	args = args.splice(1);
-	// init command, to initialize a channel for use by the bot
-	if (cmd == 'init') {
-		// requires admin
-		if (!admin)
-			return;
-		// loop through channels, check if current channel is already added
-		var channels = discord_channels_to_use;
-		if (channels != undefined) {
-			if (channels.includes(message.channel.id)) {
-				message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
-				return;
-			}
-			// add current channel to channels list
-			channels.push(message.channel.id);
-		} else
-			// add current channel to channels list
-			channels = [message.channel.id];
-		// write data to file
-		await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-			if (err) throw err;
-		});
-		discord_channels_to_use = require('./channels.json').data;
-		// success, list channels
-		var msg = '';
-		for (i = 0; i < discord_channels_to_use.length; i++) {
-			msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-		}
-		message.channel.send(msg.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
-		return;
-	}
 	// is the channel being used by the bot?
-	if (!discord_channels_to_use.includes(message.channel.id))
+	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin')
 		return;
 	switch (cmd) {
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`v${package.version}`);
-			break;
-		// channels command, shows channels being used by bot
-		case 'channels':
-			// requires admin
-			if (!admin)
-				break;
-			// list channels
-			var msg = '';
-			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-			}
-			message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
-			break;
-		// deinit command, makes the bot stop using a channel
-		case 'deinit':
-			// requires admin
-			if (!admin)
-				break;
-			// check if channel is being used currently
-			var channels = discord_channels_to_use;
-			if (channels == undefined || !channels.includes(message.channel.id)) {
-				message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
-				break;
-			}
-			// stop using this channel
-			channels.splice(channels.indexOf(message.channel.id), 1);
-			await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-				log.error(err);
-			});
-			discord_channels_to_use = require('./channels.json').data;
-			// list channels
-			var msg = '';
-			for (i = 0; i < discord_channels_to_use.length; i++) {
-				msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
-			}
-			message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 			break;
 		// TODO: remove this command before release, for debug only
 		// say command, makes the bot say a message
@@ -1111,11 +1045,74 @@ client.on('message', async (message) => {
 			// require admin
 			if (!admin)
 				break;
-			// require 2 arguments
-			if (args.length != 2) {
-				message.channel.send(strings.admin_help.replace('{user}', tag(message.author.id)));
+			if (args.length == 1) {
+				switch (args[0]) {
+					// channels command, shows channels being used by bot
+					case 'channels':
+						// list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+						break;
+					// init command, to initialize a channel for use by the bot
+					case 'init':
+						var channels = discord_channels_to_use;
+						// loop through channels, check if current channel is already added
+						if (channels != undefined) {
+							if (channels.includes(message.channel.id)) {
+								message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
+								break;
+							}
+							// add current channel to channels list
+							channels.push(message.channel.id);
+						} else
+							// add current channel to channels list
+							channels = [message.channel.id];
+						// write data to file
+						await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+							if (err) throw err;
+						});
+						discord_channels_to_use = require('./channels.json').data;
+						// success, list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+						break;
+					// deinit command, makes the bot stop using a channel
+					case 'deinit':
+						// check if channel is being used currently
+						var channels = discord_channels_to_use;
+						if (channels == undefined || !channels.includes(message.channel.id)) {
+							message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
+							break;
+						}
+						// stop using this channel
+						channels.splice(channels.indexOf(message.channel.id), 1);
+						await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							log.error(err);
+						});
+						// refresh the channels list
+						discord_channels_to_use = require('./channels.json').data;
+						// list channels
+						var msg = '';
+						for (i = 0; i < discord_channels_to_use.length; i++) {
+							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+						}
+						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+						break;
+					// help command, shows admin help
+					case 'help':
+						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
+						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+				break;
+			} else if (args.length == 2) {
 			// get match
 			var match = await db.getMatch(args[1]);
 			if (!match) {
