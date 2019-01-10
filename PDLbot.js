@@ -355,6 +355,13 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			// check if user is competing
+			var user_competing = await db.isUserCompeting(message.author.id);
+			if (!user_competing) {
+				// user is not competing
+				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
+				break;
+			}
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user_id, 2);
 			if (nearby_players == null || nearby_players.length < 1) {
