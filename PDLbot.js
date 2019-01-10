@@ -13,7 +13,7 @@ const package = require('./package.json');
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
 const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
-const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌' };
+const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
 exports = MatchResult, RatingMethod;
 
 // runtime variables
