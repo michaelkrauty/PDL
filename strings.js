@@ -20,6 +20,8 @@ const strings = {
 	user_no_longer_competing: '{user} is no longer competing in PDL!',
 	target_is_registered: '{user} {target} is registered in the Pavlov Duel League.',
 	compete_try_again: '{user} Usage: !compete',
+	user_skill_rating: '{user}(#{elo_rank}) skill rating: {elo_rating}',
+	target_skill_rating: '{user} {target}(#{elo_rank}) skill rating: {elo_rating}',
 	did_you_win: '{user} did you win your game vs {target}? (yes/no/cancel)',
 	match_submit_cancel: '{user} cancelled match submission.',
 	match_submit_timeout: '{user} !submit timed out, please try again.',
@@ -49,7 +51,7 @@ const strings = {
 	recent_match_confirmed: '{user} you have already confirmed your latest game.',
 	match_already_submitted: '{user} you have already submitted your latest game. Waiting for {target} to confirm.',
 	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm to confirm.',
-	top_players: 'Top players:\n```{top_players}```',
+	top_players: 'Top players:\n{top_players}',
 	could_not_get_top_players: '{user} could not get top players.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
