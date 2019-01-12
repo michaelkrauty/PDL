@@ -53,6 +53,7 @@ const strings = {
 	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm to confirm.',
 	top_players: 'Top players:\n{top_players}',
 	could_not_get_top_players: '{user} could not get top players.',
+	no_top_players: '{user} no players to show.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;
