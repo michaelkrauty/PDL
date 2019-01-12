@@ -1,5 +1,6 @@
 const log = require('winston');
-const config = require('./config_db.js').db;
+const config = require('./config.js').config;
+const config_db = require('./config_db.js').db;
 
 /**
  * @description connects to SQL database and creates necessary tables
@@ -8,22 +9,22 @@ module.exports.connect = function () {
 	return new Promise(async (resolve, reject) => {
 		let mysql = await require('mysql');
 		// connect to MySQL DB
-		log.info(`Connecting to MySQL DB: ${config.user}@${config.host}...`);
+		log.info(`Connecting to MySQL DB: ${config_db.user}@${config_db.host}...`);
 		let con = await mysql.createConnection({
-			host: config.host,
-			user: config.user,
-			password: config.password
+			host: config_db.host,
+			user: config_db.user,
+			password: config_db.password
 		});
 		await con.connect(function (err) {
 			if (err) throw err;
 			log.info('Connected to MySQL DB!');
 		});
 		// create DB if it doesn't already exist
-		await con.query(`CREATE DATABASE IF NOT EXISTS ${config.database};`, function (err) {
+		await con.query(`CREATE DATABASE IF NOT EXISTS ${config_db.database};`, function (err) {
 			if (err) throw err;
 		});
 		// select DB
-		await con.query(`USE ${config.database};`, function (err) {
+		await con.query(`USE ${config_db.database};`, function (err) {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
@@ -41,10 +42,10 @@ module.exports.connect = function () {
 		await con.end();
 		// create mysql connection pool
 		pool = await mysql.createPool({
-			host: config.host,
-			database: config.database,
-			user: config.user,
-			password: config.password
+			host: config_db.host,
+			database: config_db.database,
+			user: config_db.user,
+			password: config_db.password
 		});
 		resolve();
 	});
@@ -100,7 +101,7 @@ module.exports.checkUserExists = async (discord_id) => {
 exports.registerUser = async (discord_id, discord_username) => {
 	var exists = await exports.checkUserExists(discord_id);
 	if (!exists) {
-		var created = await exports.createUserInDB(discord_id, discord_username)
+		var created = await exports.createUserInDB(discord_id, discord_username);
 		return created.length > 0;
 	}
 	return exists;
@@ -113,8 +114,11 @@ exports.registerUser = async (discord_id, discord_username) => {
  * @returns {success: boolean}
  */
 exports.createUserInDB = async (discord_id, discord_username) => {
+	var average_elo = await exports.getAverageCompetingElo();
+	if (average_elo == null || average_elo == 0)
+		average_elo = config.default_starting_elo;
 	var res = await exports.sql(
-		'INSERT INTO users (discord_id, discord_username) VALUES (?,?);', [discord_id, discord_username]);
+		'INSERT INTO users (discord_id, discord_username, elo_rating) VALUES (?,?,?);', [discord_id, discord_username, Math.round(average_elo)]);
 	return res.length > 0;
 }
 
@@ -161,6 +165,53 @@ exports.getUserData = async (discord_id) => {
 exports.getUserDataUsingId = async (user_id) => {
 	var res = await exports.sql('SELECT * FROM users WHERE id=?;', user_id);
 	return res[0];
+}
+
+/**
+ * @description set user's competing boolean
+ * @param {bigint} discord_id the user's discord id
+ * @param {boolean} competing is the user competing?
+ * @returns {success: boolean}
+ */
+exports.setUserDiscordUsername = async (user_id, discord_username) => {
+	var res = await exports.sql('UPDATE users SET discord_username=? WHERE id=?;', [discord_username, user_id]);
+	return res.length != 0;
+}
+
+/**
+ * @description get user's ELO rating
+ * @param {bigint} id the user's id
+ * @returns {success: boolean, elo_rating: int}
+ */
+exports.getAverageElo = async () => {
+	var res = await exports.sql('SELECT AVG(elo_rating) AS elo_rating FROM users;');
+	if (res.length > 0)
+		return res[0].elo_rating;
+	return false;
+}
+
+/**
+ * @description get user's ELO rating
+ * @param {bigint} id the user's id
+ * @returns {success: boolean, elo_rating: int}
+ */
+exports.getAverageCompetingElo = async () => {
+	var res = await exports.sql('SELECT AVG(elo_rating) AS avg FROM users WHERE competing=true;');
+	if (res.length > 0)
+		return res[0].avg;
+	return config.default_starting_elo;
+}
+
+/**
+ * @description get user's ELO rating
+ * @param {bigint} id the user's id
+ * @returns {success: boolean, elo_rating: int}
+ */
+exports.decayElo = async (amount) => {
+	var res = await exports.sql(';');
+	if (res.length > 0)
+		return res[0].elo_rating;
+	return false;
 }
 
 /**
@@ -337,6 +388,18 @@ exports.getUserLatestMatchVs = async (user_id, target_id) => {
  */
 exports.getUserLatestMatchesOfWeek = async (user_id) => {
 	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id ASC;', [user_id, user_id]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+/**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserNumConfirmedMatches = async (user_id) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE ((player_id=? OR opponent_id=?) AND confirmed=true) ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res;
 	return false;
