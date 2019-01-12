@@ -13,7 +13,7 @@ const package = require('./package.json');
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
 const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
-const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌' };
+const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
 exports = MatchResult, RatingMethod;
 
 // runtime variables
@@ -749,6 +749,7 @@ client.on('message', async (message) => {
 			// add submission reactions to msg
 			await msg.react(ReactionEmoji.WIN);
 			await msg.react(ReactionEmoji.LOSS);
+			await msg.react(ReactionEmoji.CANCEL);
 			// ensure one instance of the command
 			if (!pending_user_responses.has(message.author.id))
 				pending_user_responses.set(message.author.id, [msg.id]);
@@ -759,7 +760,7 @@ client.on('message', async (message) => {
 			}
 			// await y/n reaction from user for 60 seconds
 			var collected = [];
-			var filter = (reaction, user) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS) && user.id === message.author.id;
+			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 			var collector = msg.createReactionCollector(filter, { time: 60000 });
 			collector.on('collect', r => {
 				async function collect() {
@@ -769,12 +770,12 @@ client.on('message', async (message) => {
 					// user reacted y/n
 					// did the user win the match?
 					var result;
-					((r._emoji.name === ReactionEmoji.WIN) ? result = MatchResult.WIN : result = MatchResult.LOSS);
-					// get user data
-					var user_data = await db.getUserData(message.author.id);
-					if (!user_data) {
-						// could not get user data
-						message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+					if (r._emoji.name === ReactionEmoji.WIN)
+						result = MatchResult.WIN;
+					else if (r._emoji.name === ReactionEmoji.LOSS)
+						result = MatchResult.LOSS;
+					else if (r._emoji.name === ReactionEmoji.CANCEL) {
+						collector.stop();
 						return;
 					}
 					// get player's elo rating
@@ -816,6 +817,9 @@ client.on('message', async (message) => {
 				if (collected.size < 1) {
 					// no y/n reaction was collected
 					message.channel.send(strings.match_submit_timeout.replaceAll('{user}', tag(message.author.id)));
+				} else if (collected.get(ReactionEmoji.CANCEL) != null) {
+					// submission cancelled by user
+					message.channel.send(strings.match_submit_cancel.replaceAll('{user}', tag(message.author.id)));
 				}
 				// remove message from pending user responses
 				if (pending_user_responses.has(message.author.id)) {
