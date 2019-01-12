@@ -30,7 +30,11 @@ log.level = 'debug';
 
 // initialize Discord bot
 const client = new discord.Client();
-client.login(config_db.bot_token);
+client.login(config_db.bot_token).catch((err) => {
+	log.error('Could not connect to discord servers:');
+	log.error(err.message);
+	client.destroy();
+});
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// add bot version to bot name, if enabled
