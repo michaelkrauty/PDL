@@ -465,13 +465,7 @@ client.on('message', async (message) => {
 					// ensure no multiple reactions
 					user_pending_matches.set(msg.id, match.id);
 					// ensure one instance of the command
-					if (!pending_user_responses.has(message.author.id))
-						pending_user_responses.set(message.author.id, [msg.id]);
-					else {
-						var msgs = pending_user_responses.get(message.author.id);
-						msgs.push(msg.id);
-						pending_user_responses.set(message.author.id, msgs);
-					}
+					userRunningCommand(message.author.id, msg.id);
 					// await y/n reaction from user for 60 seconds
 					var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 					var collector = msg.createReactionCollector(filter, { time: 60000 });
@@ -574,18 +568,7 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from pending user responses
-						if (pending_user_responses.has(message.author.id)) {
-							var msgs = pending_user_responses.get(message.author.id);
-							var nmsgs = [];
-							if (msgs.length > 0) {
-								for (var m in msgs)
-									if (msgs[m] != r.message.id)
-										nmsgs.push(msgs[m]);
-								if (nmsgs.length > 0)
-									pending_user_responses.set(message.author.id, nmsgs);
-								else pending_user_responses.delete(message.author.id);
-							} else pending_user_responses.delete(message.author.id);
-						}
+						userNoLongerRunningCommand(message.author.id, r.message.id);
 					});
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
@@ -600,18 +583,7 @@ client.on('message', async (message) => {
 						// remove message from active pending match message list
 						user_pending_matches.delete(msg.id);
 						// remove message from pending user responses
-						if (pending_user_responses.has(message.author.id)) {
-							var msgs = pending_user_responses.get(message.author.id);
-							var nmsgs = [];
-							if (msgs.length > 0) {
-								for (var m in msgs)
-									if (msgs[m] != msg.id)
-										nmsgs.push(msgs[m]);
-								if (nmsgs.length > 0)
-									pending_user_responses.set(message.author.id, nmsgs);
-								else pending_user_responses.delete(message.author.id);
-							} else pending_user_responses.delete(message.author.id);
-						}
+						userNoLongerRunningCommand(message.author.id, msg.id);
 					});
 
 				}
@@ -752,13 +724,7 @@ client.on('message', async (message) => {
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// ensure one instance of the command
-			if (!pending_user_responses.has(message.author.id))
-				pending_user_responses.set(message.author.id, [msg.id]);
-			else {
-				var msgs = pending_user_responses.get(message.author.id);
-				msgs.push(msg.id);
-				pending_user_responses.set(message.author.id, msgs);
-			}
+			userRunningCommand(message.author.id, msg.id);
 			// await y/n reaction from user for 60 seconds
 			var collected = [];
 			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
@@ -788,18 +754,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
 				collector.stop();
 				// remove message from pending user responses
-				if (pending_user_responses.has(message.author.id)) {
-					var msgs = pending_user_responses.get(message.author.id);
-					var nmsgs = [];
-					if (msgs.length > 0) {
-						for (var m in msgs)
-							if (msgs[m] != msg.id)
-								nmsgs.push(msgs[m]);
-						if (nmsgs.length > 0)
-							pending_user_responses.set(message.author.id, nmsgs);
-						else pending_user_responses.delete(message.author.id);
-					} else pending_user_responses.delete(message.author.id);
-				}
+				userNoLongerRunningCommand(message.author.id, msg.id);
 				msg.react(ReactionEmoji.CONFIRMED);
 			});
 			// add submission reactions to msg
@@ -816,18 +771,7 @@ client.on('message', async (message) => {
 					msg.react(ReactionEmoji.CONFIRMED);
 				}
 				// remove message from pending user responses
-				if (pending_user_responses.has(message.author.id)) {
-					var msgs = pending_user_responses.get(message.author.id);
-					var nmsgs = [];
-					if (msgs.length > 0) {
-						for (var m in msgs)
-							if (msgs[m] != msg.id)
-								nmsgs.push(msgs[m]);
-						if (nmsgs.length > 0)
-							pending_user_responses.set(message.author.id, nmsgs);
-						else pending_user_responses.delete(message.author.id);
-					} else pending_user_responses.delete(message.author.id);
-				}
+				userNoLongerRunningCommand(message.author.id, msg.id);
 			});
 			break;
 		// matches command, shows matches from this week and past week
@@ -1447,6 +1391,32 @@ function calculateElo(playerElo, opponentElo, player_start_elo, opponent_start_e
 		net_opponent_elo = opponentElo - newOpponentElo;
 	}
 	return { new_player_elo: newPlayerElo, new_opponent_elo: newOpponentElo, net_player_elo: net_player_elo, net_opponent_elo: net_opponent_elo };
+}
+
+function userRunningCommand(discord_id, message_id) {
+	// ensure one instance of the command
+	if (!pending_user_responses.has(discord_id))
+		pending_user_responses.set(discord_id, [message_id]);
+	else {
+		var msgs = pending_user_responses.get(discord_id);
+		msgs.push(message_id);
+		pending_user_responses.set(discord_id, msgs);
+	}
+}
+
+function userNoLongerRunningCommand(discord_id, message_id) {
+	if (pending_user_responses.has(discord_id)) {
+		var msgs = pending_user_responses.get(discord_id);
+		var nmsgs = [];
+		if (msgs.length > 0) {
+			for (var m in msgs)
+				if (msgs[m] != message_id)
+					nmsgs.push(msgs[m]);
+			if (nmsgs.length > 0)
+				pending_user_responses.set(discord_id, nmsgs);
+			else pending_user_responses.delete(discord_id);
+		} else pending_user_responses.delete(discord_id);
+	}
 }
 
 // replaces all occurrences of a substring with a substring
