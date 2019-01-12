@@ -1,10 +1,52 @@
 exports.User = class {
-	constructor(id) {
+	constructor(id, db) {
 		this.id = id;
-		this.db = require('./DB.js');
+		this.db = db;
 	}
 
-	getElo() {
-		return this.db.getUserEloRating(this.id);
+	async init() {
+		var data = await this.db.getUserDataUsingId(this.id);
+		if (!data)
+			return false;
+		this.discord_id = data.discord_id;
+		this.discord_username = data.discord_username;
+		this.elo_rating = data.elo_rating;
+		this.elo_rank = await this.db.getUserEloRanking(this.id);
+		this.competing = data.competing;
+		return this;
+	}
+
+	getID() {
+		return this.id;
+	}
+
+	getDiscordID() {
+		return this.discord_id;
+	}
+
+	getDiscordUsername() {
+		return this.discord_username;
+	}
+
+	getEloRating() {
+		return this.elo_rating;
+	}
+
+	getEloRank() {
+		return this.elo_rank;
+	}
+
+	getCompeting() {
+		return this.competing;
+	}
+
+	async setCompeting(competing) {
+		this.competing = competing;
+		return await this.db.setUserCompeting(this.discord_id, competing);
+	}
+
+	async setDiscordUsername(username) {
+		this.discord_username = username;
+		return await this.db.setUserDiscordUsername(this.id, username);
 	}
 }
