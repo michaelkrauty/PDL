@@ -816,7 +816,6 @@ client.on('message', async (message) => {
 					let matchDate = new Date(user_matches[n].timestamp);
 					let thisMonday = getMonday(new Date());
 					let matchMonday = getMonday(matchDate);
-					console.log(matchMonday.toDateString() == thisMonday.toDateString());
 					if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
 						continue;
 					// sort matches into confirmed and unconfirmed
@@ -939,7 +938,6 @@ client.on('message', async (message) => {
 				let matchDate = new Date(user_matches[n].timestamp);
 				let thisMonday = getMonday(new Date());
 				let matchMonday = getMonday(matchDate);
-				console.log(matchMonday.toDateString() == thisMonday.toDateString());
 				if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
 					continue;
 				// sort matches into confirmed and unconfirmed
