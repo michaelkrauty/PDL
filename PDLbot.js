@@ -803,7 +803,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get the user's latest matches of the week
-				var user_matches = await db.getUserLatestMatchesOfWeek(target_id);
+				var user_matches = await db.getAllUserMatches(target_id);
 				if (!user_matches) {
 					message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 					break;
