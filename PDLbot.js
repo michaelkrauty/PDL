@@ -417,7 +417,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get user's recent matches
-				var latest_matches = await db.getUserLatestMatches(user.id);
+				var latest_matches = await db.getUserUnconfirmedMatches(user.id);
 				if (!latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', message.author.username));
@@ -618,7 +618,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get target's recent matches
-				var target_latest_matches = await db.getUserLatestMatches(target_id);
+				var target_latest_matches = await db.getUserUnconfirmedMatches(target_id);
 				if (!target_latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
@@ -915,8 +915,8 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// get the user's latest matches of the week
-			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user.id);
+			// get the user's matches
+			var user_latest_matches = await db.getAllUserMatches(user.id);
 			if (!user_latest_matches) {
 				message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 				break;
@@ -924,11 +924,21 @@ client.on('message', async (message) => {
 			var str = `${tag(message.author.id)} this week's matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			var confirmed_matches = [];
 			var unconfirmed_matches = [];
-			for (var n in user_latest_matches)
+
+			for (var n in user_latest_matches) {
+				// sort out matches which are confirmed or did not happen this week
+				let matchDate = new Date(user_latest_matches[n].timestamp);
+				let thisMonday = getMonday(new Date());
+				let matchMonday = getMonday(matchDate);
+				console.log(matchMonday.toDateString() == thisMonday.toDateString());
+				if (user_latest_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
+					continue;
+				// sort matches into confirmed and unconfirmed
 				if (user_latest_matches[n].confirmed)
 					confirmed_matches.push(user_latest_matches[n]);
 				else
 					unconfirmed_matches.push(user_latest_matches[n]);
+			}
 			if (unconfirmed_matches.length > 0) {
 				str += `------Unconfirmed------\n`;
 				for (var n in unconfirmed_matches) {
@@ -1421,6 +1431,12 @@ function userNoLongerRunningCommand(discord_id, message_id) {
 			else pending_user_responses.delete(discord_id);
 		} else pending_user_responses.delete(discord_id);
 	}
+
+function getMonday(d) {
+	d = new Date(d);
+	var day = d.getDay(),
+		diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+	return new Date(d.setDate(diff));
 }
 
 // replaces all occurrences of a substring with a substring
