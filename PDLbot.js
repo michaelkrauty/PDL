@@ -710,9 +710,9 @@ client.on('message', async (message) => {
 			}
 			// get recent matches of user and mention of the week
 			// get the user's latest matches of the week
-			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user.id);
-			if (user_latest_matches)
-				if (user_latest_matches.length >= config.maximum_weekly_challenges) {
+			var user_matches = await db.getUserLatestMatchesOfWeek(user.id);
+			if (user_matches)
+				if (user_matches.length >= config.maximum_weekly_challenges) {
 					// user has already played the maximum amount of matches for the week
 					message.channel.send(strings.max_weekly_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
 					break;
@@ -803,19 +803,29 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get the user's latest matches of the week
-				var user_latest_matches = await db.getUserLatestMatchesOfWeek(target_id);
-				if (!user_latest_matches) {
+				var user_matches = await db.getUserLatestMatchesOfWeek(target_id);
+				if (!user_matches) {
 					message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 				var confirmed_matches = [];
 				var unconfirmed_matches = [];
-				for (var n in user_latest_matches)
-					if (user_latest_matches[n].confirmed)
-						confirmed_matches.push(user_latest_matches[n]);
+				// loop through user's matches
+				for (var n in user_matches) {
+					// sort out matches which are confirmed or did not happen this week
+					let matchDate = new Date(user_matches[n].timestamp);
+					let thisMonday = getMonday(new Date());
+					let matchMonday = getMonday(matchDate);
+					console.log(matchMonday.toDateString() == thisMonday.toDateString());
+					if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
+						continue;
+					// sort matches into confirmed and unconfirmed
+					if (user_matches[n].confirmed)
+						confirmed_matches.push(user_matches[n]);
 					else
-						unconfirmed_matches.push(user_latest_matches[n]);
+						unconfirmed_matches.push(user_matches[n]);
+				}
+				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
 				if (unconfirmed_matches.length > 0) {
 					str += `------Unconfirmed------\n`;
 					for (var n in unconfirmed_matches) {
@@ -916,29 +926,29 @@ client.on('message', async (message) => {
 				break;
 			}
 			// get the user's matches
-			var user_latest_matches = await db.getAllUserMatches(user.id);
-			if (!user_latest_matches) {
+			var user_matches = await db.getAllUserMatches(user.id);
+			if (!user_matches) {
 				message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			var str = `${tag(message.author.id)} this week's matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			var confirmed_matches = [];
 			var unconfirmed_matches = [];
-
-			for (var n in user_latest_matches) {
+			// loop through user's matches
+			for (var n in user_matches) {
 				// sort out matches which are confirmed or did not happen this week
-				let matchDate = new Date(user_latest_matches[n].timestamp);
+				let matchDate = new Date(user_matches[n].timestamp);
 				let thisMonday = getMonday(new Date());
 				let matchMonday = getMonday(matchDate);
 				console.log(matchMonday.toDateString() == thisMonday.toDateString());
-				if (user_latest_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
+				if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
 					continue;
 				// sort matches into confirmed and unconfirmed
-				if (user_latest_matches[n].confirmed)
-					confirmed_matches.push(user_latest_matches[n]);
+				if (user_matches[n].confirmed)
+					confirmed_matches.push(user_matches[n]);
 				else
-					unconfirmed_matches.push(user_latest_matches[n]);
+					unconfirmed_matches.push(user_matches[n]);
 			}
+			var str = `${tag(message.author.id)} this week's matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			if (unconfirmed_matches.length > 0) {
 				str += `------Unconfirmed------\n`;
 				for (var n in unconfirmed_matches) {
