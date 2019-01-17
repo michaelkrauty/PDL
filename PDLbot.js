@@ -65,16 +65,19 @@ client.once('ready', async () => {
 	// connect to database
 	await db.connect();
 	// startup complete
-	started = true;
 	var j = schedule.scheduleJob('DecayElo', '@weekly', async () => {
 		// console.log('Hi!');
 		// console.log(await db.getAverageElo());
 	});
+	started = true;
 	await log.info(`${client.user.username} startup complete!`);
 });
 
 // store discord ids running commands
 var pending_user_responses = new Map();
+
+// store reaction collectors in an array
+var collectors = [];
 // called when the bot sees a message
 client.on('message', async (message) => {
 	// check if the bot is ready to handle commands
@@ -95,9 +98,14 @@ client.on('message', async (message) => {
 	if (user)
 		if (user.discord_username != message.author.username)
 			await user.setDiscordUsername(message.author.username);
-
 	// users can only run one command at a time
-	if (pending_user_responses.has(message.author.id)) {
+
+	let pendingUserResponsesContainsUser = false;
+	pending_user_responses.forEach(value => {
+		if (value === message.author.id)
+			pendingUserResponsesContainsUser = true;
+	})
+	if (pendingUserResponsesContainsUser) {
 		message.channel.send(`${tag(message.author.id)} please react with the emojis before running another command.`);
 		return;
 	}
@@ -469,7 +477,7 @@ client.on('message', async (message) => {
 					// ensure no multiple reactions
 					user_pending_matches.set(msg.id, match.id);
 					// ensure one instance of the command
-					userRunningCommand(message.author.id, msg.id);
+					pending_user_responses.set(msg.id, message.author.id);
 					// await y/n reaction from user for 60 seconds
 					var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 					var collector = msg.createReactionCollector(filter, { time: 60000 });
@@ -497,7 +505,8 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.LOSS_CONFIRM);
 							confirm = MatchResult.LOSS;
 						} else if (r._emoji.name === ReactionEmoji.CANCEL) {
-							collector.stop();
+							pending_user_responses.delete(r.message.id);
+							await r.message.react(ReactionEmoji.CONFIRMED);
 							return;
 						}
 						// get opponent data
@@ -572,24 +581,23 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from pending user responses
-						userNoLongerRunningCommand(message.author.id, r.message.id);
+						pending_user_responses.delete(r.message.id);
 					});
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
 					await msg.react(ReactionEmoji.LOSS);
 					await msg.react(ReactionEmoji.CANCEL);
 					collector.on('end', collected => {
-						if (collected.size < 1) {
-							// no y/n reaction was collected
-							message.channel.send(strings.pending_submit_timeout.replaceAll('{user}', tag(message.author.id)));
-						} else if (collected.get(ReactionEmoji.CANCEL) != null)
-							msg.react(ReactionEmoji.CONFIRMED);
-						// remove message from active pending match message list
-						user_pending_matches.delete(msg.id);
-						// remove message from pending user responses
-						userNoLongerRunningCommand(message.author.id, msg.id);
+						// userReactionTimeout(message.author.id);
+						for (var c in collectors) {
+							user_pending_matches.delete(collectors[c].message.id);
+							if (pending_user_responses.get(collectors[c].message.id) == message.author.id) {
+								pending_user_responses.delete(collectors[c].message.id);
+								collectors[c].message.react(ReactionEmoji.CONFIRMED);
+							}
+						}
 					});
-
+					collectors.push(collector);
 				}
 				// a match has confirm and dispute emojis waiting for input
 				if (waiting_for_input) {
@@ -728,7 +736,7 @@ client.on('message', async (message) => {
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// ensure one instance of the command
-			userRunningCommand(message.author.id, msg.id);
+			pending_user_responses.set(msg.id, message.author.id);
 			// await y/n reaction from user for 60 seconds
 			var collected = [];
 			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
@@ -758,7 +766,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
 				collector.stop();
 				// remove message from pending user responses
-				userNoLongerRunningCommand(message.author.id, msg.id);
+				pending_user_responses.delete(msg.id);
 				msg.react(ReactionEmoji.CONFIRMED);
 			});
 			// add submission reactions to msg
@@ -775,7 +783,7 @@ client.on('message', async (message) => {
 					msg.react(ReactionEmoji.CONFIRMED);
 				}
 				// remove message from pending user responses
-				userNoLongerRunningCommand(message.author.id, msg.id);
+				pending_user_responses.delete(msg.id);
 			});
 			break;
 		// matches command, shows matches from this week and past week
@@ -1415,31 +1423,7 @@ function calculateElo(playerElo, opponentElo, player_start_elo, opponent_start_e
 	return { new_player_elo: newPlayerElo, new_opponent_elo: newOpponentElo, net_player_elo: net_player_elo, net_opponent_elo: net_opponent_elo };
 }
 
-function userRunningCommand(discord_id, message_id) {
-	// ensure one instance of the command
-	if (!pending_user_responses.has(discord_id))
-		pending_user_responses.set(discord_id, [message_id]);
-	else {
-		var msgs = pending_user_responses.get(discord_id);
-		msgs.push(message_id);
-		pending_user_responses.set(discord_id, msgs);
-	}
-}
-
-function userNoLongerRunningCommand(discord_id, message_id) {
-	if (pending_user_responses.has(discord_id)) {
-		var msgs = pending_user_responses.get(discord_id);
-		var nmsgs = [];
-		if (msgs.length > 0) {
-			for (var m in msgs)
-				if (msgs[m] != message_id)
-					nmsgs.push(msgs[m]);
-			if (nmsgs.length > 0)
-				pending_user_responses.set(discord_id, nmsgs);
-			else pending_user_responses.delete(discord_id);
-		} else pending_user_responses.delete(discord_id);
-	}
-
+// gets the date of the previous monday of this week
 function getMonday(d) {
 	d = new Date(d);
 	var day = d.getDay(),
