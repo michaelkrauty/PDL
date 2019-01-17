@@ -15,7 +15,7 @@ const package = require('./package.json');
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
 const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
-const ReactionEmoji = { WIN: '👍', LOSS: '👎', OLDLOSS: '❎', CONFIRMED: '👌', WIN_CONFIRM: '✅', OLDWIN_CONFIRM: '🆗', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
+const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', WIN_CONFIRM: '✅', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
 exports = MatchResult, RatingMethod;
 
 // runtime variables
@@ -30,7 +30,11 @@ log.level = 'debug';
 
 // initialize Discord bot
 const client = new discord.Client();
-client.login(config_db.bot_token);
+client.login(config_db.bot_token).catch((err) => {
+	log.error('Could not connect to discord servers:');
+	log.error(err.message);
+	client.destroy();
+});
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// add bot version to bot name, if enabled
@@ -61,16 +65,19 @@ client.once('ready', async () => {
 	// connect to database
 	await db.connect();
 	// startup complete
-	started = true;
 	var j = schedule.scheduleJob('DecayElo', '@weekly', async () => {
 		// console.log('Hi!');
 		// console.log(await db.getAverageElo());
 	});
+	started = true;
 	await log.info(`${client.user.username} startup complete!`);
 });
 
 // store discord ids running commands
-var pending_user_responses = new Map();
+var user_commands_running = new Map();
+
+// store reaction collectors in an array
+var collectors = [];
 // called when the bot sees a message
 client.on('message', async (message) => {
 	// check if the bot is ready to handle commands
@@ -93,7 +100,12 @@ client.on('message', async (message) => {
 			await user.setDiscordUsername(message.author.username);
 
 	// users can only run one command at a time
-	if (pending_user_responses.has(message.author.id)) {
+	let pendingUserResponsesContainsUser = false;
+	user_commands_running.forEach(value => {
+		if (value === message.author.id)
+			pendingUserResponsesContainsUser = true;
+	})
+	if (pendingUserResponsesContainsUser) {
 		message.channel.send(`${tag(message.author.id)} please react with the emojis before running another command.`);
 		return;
 	}
@@ -413,7 +425,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get user's recent matches
-				var latest_matches = await db.getUserLatestMatches(user.id);
+				var latest_matches = await db.getUserUnconfirmedMatches(user.id);
 				if (!latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', message.author.username));
@@ -465,7 +477,7 @@ client.on('message', async (message) => {
 					// ensure no multiple reactions
 					user_pending_matches.set(msg.id, match.id);
 					// ensure one instance of the command
-					userRunningCommand(message.author.id, msg.id);
+					user_commands_running.set(msg.id, message.author.id);
 					// await y/n reaction from user for 60 seconds
 					var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 					var collector = msg.createReactionCollector(filter, { time: 60000 });
@@ -493,7 +505,9 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.LOSS_CONFIRM);
 							confirm = MatchResult.LOSS;
 						} else if (r._emoji.name === ReactionEmoji.CANCEL) {
-							collector.stop();
+							user_pending_matches.delete(r.message.id);
+							user_commands_running.delete(r.message.id);
+							await r.message.react(ReactionEmoji.CONFIRMED);
 							return;
 						}
 						// get opponent data
@@ -521,9 +535,9 @@ client.on('message', async (message) => {
 								if (!opponentElo)
 									throw (`Could not getUserEloRating(${match.opponent_id})`);
 								// calculate new elo
-								var eloCalculation = eloRatingCalculation(playerElo, opponentElo, match.result);
-								var newPlayerElo = eloCalculation.playerRating + config.bonus_elo;
-								var newOpponentElo = eloCalculation.opponentRating + config.bonus_elo;
+								var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
+								var newPlayerElo = eloCalculation.new_player_elo + config.bonus_elo;
+								var newOpponentElo = eloCalculation.new_opponent_elo + config.bonus_elo;
 								// set player's new elo rating
 								await db.setUserEloRating(match.player_id, newPlayerElo);
 								// set target's new elo rating
@@ -568,110 +582,28 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from pending user responses
-						userNoLongerRunningCommand(message.author.id, r.message.id);
+						user_commands_running.delete(r.message.id);
 					});
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
 					await msg.react(ReactionEmoji.LOSS);
 					await msg.react(ReactionEmoji.CANCEL);
 					collector.on('end', collected => {
-						if (collected.size < 1) {
-							// no y/n reaction was collected
-							message.channel.send(strings.pending_submit_timeout.replaceAll('{user}', tag(message.author.id)));
-						} else if (collected.get(ReactionEmoji.CANCEL) != null)
-							msg.react(ReactionEmoji.CONFIRMED);
-						// remove message from active pending match message list
-						user_pending_matches.delete(msg.id);
-						// remove message from pending user responses
-						userNoLongerRunningCommand(message.author.id, msg.id);
+						// userReactionTimeout(message.author.id);
+						for (var c in collectors) {
+							user_pending_matches.delete(collectors[c].message.id);
+							if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
+								user_commands_running.delete(collectors[c].message.id);
+								collectors[c].message.react(ReactionEmoji.CONFIRMED);
+							}
+						}
 					});
-
+					collectors.push(collector);
 				}
 				// a match has confirm and dispute emojis waiting for input
 				if (waiting_for_input) {
 					message.channel.send(strings.pending_waiting_for_input.replaceAll('{user}', tag(message.author.id)));
 				}
-			} else if (args.length == 1 && admin) {
-				// admins can confirm or reject other users' pending games
-				// check for a mention
-				var mention = message.mentions.users.values().next().value;
-				if (mention == undefined) {
-					// no mentions, too many arguments
-					message.channel.send(strings.pending_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-					break;
-				}
-				// get target user id from target discord id, checking if the target is registered
-				var target_id = await db.getUserIdFromDiscordId(mention.id);
-				if (!target_id) {
-					// could not get target user id from discord id
-					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					break;
-				}
-				// ensure the user is registered
-				if (!user) {
-					// could not get user id from discord id
-					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-					break;
-				}
-				// get target's recent matches
-				var target_latest_matches = await db.getUserLatestMatches(target_id);
-				if (!target_latest_matches) {
-					// no recent unconfirmed matches
-					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					break;
-				}
-				// compose response message
-				var msg = tag(message.author.id) + '\n';
-				// loop through the target's latest matches
-				for (var m in target_latest_matches) {
-					var match = target_latest_matches[m];
-					// get the other player's user id
-					var player_id;
-					var opponent_id;
-					var match_submitted_by_target = match.player_id == target_id;
-					if (match_submitted_by_target) {
-						player_id = match.player_id;
-						opponent_id = match.opponent_id;
-					} else {
-						player_id = match.opponent_id;
-						opponent_id = match.player_id;
-					}
-					// match result ? 'win' : 'loss'
-					var match_result_string;
-					(match.result == MatchResult.WIN ? match_result_string = 'win' : match_result_string = 'loss');
-					// get the player's user data
-					var player_data = await db.getUserDataUsingId(player_id);
-					if (!player_data) {
-						// could not get the player's user data
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						throw (`Could not getUserDataUsingId(${player_id})`);
-					}
-					// get the opponent's user data
-					var opponent_data = await db.getUserDataUsingId(opponent_id);
-					if (!opponent_data) {
-						// could not get the other player's user data
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						throw (`Could not getUserDataUsingId(${opponent_id})`);
-					}
-					// tag the opponent if it's the author, else don't tag them
-					var player_username;
-					var opponent_username;
-					if (match_submitted_by_target) {
-						player_username = opponent_data.discord_username;
-						opponent_username = player_data.discord_username;
-					} else {
-						player_username = player_data.discord_username;
-						opponent_username = opponent_data.discord_username;
-					}
-					// construct message
-					msg += strings.pending_other_user
-						.replaceAll('{user}', tag(message.author.id))
-						.replaceAll('{player_name}', player_username)
-						.replaceAll('{opponent_name}', opponent_username)
-						.replaceAll('{match_id}', match.id)
-						.replaceAll('{winloss}', match_result_string);
-				}
-				message.channel.send(msg);
 			}
 			break;
 		// submit command, submits a match result vs another user
@@ -706,9 +638,9 @@ client.on('message', async (message) => {
 			}
 			// get recent matches of user and mention of the week
 			// get the user's latest matches of the week
-			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user.id);
-			if (user_latest_matches)
-				if (user_latest_matches.length >= config.maximum_weekly_challenges) {
+			var user_matches = await db.getUserLatestMatchesOfWeek(user.id);
+			if (user_matches)
+				if (user_matches.length >= config.maximum_weekly_challenges) {
 					// user has already played the maximum amount of matches for the week
 					message.channel.send(strings.max_weekly_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
 					break;
@@ -724,7 +656,7 @@ client.on('message', async (message) => {
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// ensure one instance of the command
-			userRunningCommand(message.author.id, msg.id);
+			user_commands_running.set(msg.id, message.author.id);
 			// await y/n reaction from user for 60 seconds
 			var collected = [];
 			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
@@ -754,7 +686,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
 				collector.stop();
 				// remove message from pending user responses
-				userNoLongerRunningCommand(message.author.id, msg.id);
+				user_commands_running.delete(msg.id);
 				msg.react(ReactionEmoji.CONFIRMED);
 			});
 			// add submission reactions to msg
@@ -771,7 +703,7 @@ client.on('message', async (message) => {
 					msg.react(ReactionEmoji.CONFIRMED);
 				}
 				// remove message from pending user responses
-				userNoLongerRunningCommand(message.author.id, msg.id);
+				user_commands_running.delete(msg.id);
 			});
 			break;
 		// matches command, shows matches from this week and past week
@@ -799,19 +731,28 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get the user's latest matches of the week
-				var user_latest_matches = await db.getUserLatestMatchesOfWeek(target_id);
-				if (!user_latest_matches) {
+				var user_matches = await db.getAllUserMatches(target_id);
+				if (!user_matches) {
 					message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
-				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 				var confirmed_matches = [];
 				var unconfirmed_matches = [];
-				for (var n in user_latest_matches)
-					if (user_latest_matches[n].confirmed)
-						confirmed_matches.push(user_latest_matches[n]);
+				// loop through user's matches
+				for (var n in user_matches) {
+					// sort out matches which are confirmed or did not happen this week
+					let matchDate = new Date(user_matches[n].timestamp);
+					let thisMonday = getMonday(new Date());
+					let matchMonday = getMonday(matchDate);
+					if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
+						continue;
+					// sort matches into confirmed and unconfirmed
+					if (user_matches[n].confirmed)
+						confirmed_matches.push(user_matches[n]);
 					else
-						unconfirmed_matches.push(user_latest_matches[n]);
+						unconfirmed_matches.push(user_matches[n]);
+				}
+				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
 				if (unconfirmed_matches.length > 0) {
 					str += `------Unconfirmed------\n`;
 					for (var n in unconfirmed_matches) {
@@ -911,20 +852,29 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// get the user's latest matches of the week
-			var user_latest_matches = await db.getUserLatestMatchesOfWeek(user.id);
-			if (!user_latest_matches) {
+			// get the user's matches
+			var user_matches = await db.getAllUserMatches(user.id);
+			if (!user_matches) {
 				message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			var str = `${tag(message.author.id)} this week's matches (${user_latest_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			var confirmed_matches = [];
 			var unconfirmed_matches = [];
-			for (var n in user_latest_matches)
-				if (user_latest_matches[n].confirmed)
-					confirmed_matches.push(user_latest_matches[n]);
+			// loop through user's matches
+			for (var n in user_matches) {
+				// sort out matches which are confirmed or did not happen this week
+				let matchDate = new Date(user_matches[n].timestamp);
+				let thisMonday = getMonday(new Date());
+				let matchMonday = getMonday(matchDate);
+				if (user_matches[n].confirmed && matchMonday.toDateString() != thisMonday.toDateString())
+					continue;
+				// sort matches into confirmed and unconfirmed
+				if (user_matches[n].confirmed)
+					confirmed_matches.push(user_matches[n]);
 				else
-					unconfirmed_matches.push(user_latest_matches[n]);
+					unconfirmed_matches.push(user_matches[n]);
+			}
+			var str = `${tag(message.author.id)} this week's matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			if (unconfirmed_matches.length > 0) {
 				str += `------Unconfirmed------\n`;
 				for (var n in unconfirmed_matches) {
@@ -1393,30 +1343,12 @@ function calculateElo(playerElo, opponentElo, player_start_elo, opponent_start_e
 	return { new_player_elo: newPlayerElo, new_opponent_elo: newOpponentElo, net_player_elo: net_player_elo, net_opponent_elo: net_opponent_elo };
 }
 
-function userRunningCommand(discord_id, message_id) {
-	// ensure one instance of the command
-	if (!pending_user_responses.has(discord_id))
-		pending_user_responses.set(discord_id, [message_id]);
-	else {
-		var msgs = pending_user_responses.get(discord_id);
-		msgs.push(message_id);
-		pending_user_responses.set(discord_id, msgs);
-	}
-}
-
-function userNoLongerRunningCommand(discord_id, message_id) {
-	if (pending_user_responses.has(discord_id)) {
-		var msgs = pending_user_responses.get(discord_id);
-		var nmsgs = [];
-		if (msgs.length > 0) {
-			for (var m in msgs)
-				if (msgs[m] != message_id)
-					nmsgs.push(msgs[m]);
-			if (nmsgs.length > 0)
-				pending_user_responses.set(discord_id, nmsgs);
-			else pending_user_responses.delete(discord_id);
-		} else pending_user_responses.delete(discord_id);
-	}
+// gets the date of the previous monday of this week
+function getMonday(d) {
+	d = new Date(d);
+	var day = d.getDay(),
+		diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+	return new Date(d.setDate(diff));
 }
 
 // replaces all occurrences of a substring with a substring

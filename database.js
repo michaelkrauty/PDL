@@ -362,8 +362,20 @@ exports.getUserIdFromDiscordId = async (discord_id) => {
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, match: []}
  */
-exports.getUserLatestMatches = async (user_id, confirmed = false) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=? ORDER BY id ASC;', [user_id, user_id, confirmed]);
+exports.getAllUserMatches = async (user_id) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) ORDER BY id ASC;', [user_id, user_id]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+/**
+ * @description get user's latest match
+ * @param {bigint} user_id the user's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserUnconfirmedMatches = async (user_id) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND confirmed=false ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res;
 	return false;
