@@ -74,7 +74,7 @@ client.once('ready', async () => {
 });
 
 // store discord ids running commands
-var pending_user_responses = new Map();
+var user_commands_running = new Map();
 
 // store reaction collectors in an array
 var collectors = [];
@@ -98,10 +98,10 @@ client.on('message', async (message) => {
 	if (user)
 		if (user.discord_username != message.author.username)
 			await user.setDiscordUsername(message.author.username);
-	// users can only run one command at a time
 
+	// users can only run one command at a time
 	let pendingUserResponsesContainsUser = false;
-	pending_user_responses.forEach(value => {
+	user_commands_running.forEach(value => {
 		if (value === message.author.id)
 			pendingUserResponsesContainsUser = true;
 	})
@@ -477,7 +477,7 @@ client.on('message', async (message) => {
 					// ensure no multiple reactions
 					user_pending_matches.set(msg.id, match.id);
 					// ensure one instance of the command
-					pending_user_responses.set(msg.id, message.author.id);
+					user_commands_running.set(msg.id, message.author.id);
 					// await y/n reaction from user for 60 seconds
 					var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 					var collector = msg.createReactionCollector(filter, { time: 60000 });
@@ -505,7 +505,8 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.LOSS_CONFIRM);
 							confirm = MatchResult.LOSS;
 						} else if (r._emoji.name === ReactionEmoji.CANCEL) {
-							pending_user_responses.delete(r.message.id);
+							user_pending_matches.delete(r.message.id);
+							user_commands_running.delete(r.message.id);
 							await r.message.react(ReactionEmoji.CONFIRMED);
 							return;
 						}
@@ -534,9 +535,9 @@ client.on('message', async (message) => {
 								if (!opponentElo)
 									throw (`Could not getUserEloRating(${match.opponent_id})`);
 								// calculate new elo
-								var eloCalculation = eloRatingCalculation(playerElo, opponentElo, match.result);
-								var newPlayerElo = eloCalculation.playerRating + config.bonus_elo;
-								var newOpponentElo = eloCalculation.opponentRating + config.bonus_elo;
+								var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
+								var newPlayerElo = eloCalculation.new_player_elo + config.bonus_elo;
+								var newOpponentElo = eloCalculation.new_opponent_elo + config.bonus_elo;
 								// set player's new elo rating
 								await db.setUserEloRating(match.player_id, newPlayerElo);
 								// set target's new elo rating
@@ -581,7 +582,7 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from pending user responses
-						pending_user_responses.delete(r.message.id);
+						user_commands_running.delete(r.message.id);
 					});
 					// add submission reactions to msg
 					await msg.react(ReactionEmoji.WIN);
@@ -591,8 +592,8 @@ client.on('message', async (message) => {
 						// userReactionTimeout(message.author.id);
 						for (var c in collectors) {
 							user_pending_matches.delete(collectors[c].message.id);
-							if (pending_user_responses.get(collectors[c].message.id) == message.author.id) {
-								pending_user_responses.delete(collectors[c].message.id);
+							if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
+								user_commands_running.delete(collectors[c].message.id);
 								collectors[c].message.react(ReactionEmoji.CONFIRMED);
 							}
 						}
@@ -736,7 +737,7 @@ client.on('message', async (message) => {
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			// ensure one instance of the command
-			pending_user_responses.set(msg.id, message.author.id);
+			user_commands_running.set(msg.id, message.author.id);
 			// await y/n reaction from user for 60 seconds
 			var collected = [];
 			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
@@ -766,7 +767,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
 				collector.stop();
 				// remove message from pending user responses
-				pending_user_responses.delete(msg.id);
+				user_commands_running.delete(msg.id);
 				msg.react(ReactionEmoji.CONFIRMED);
 			});
 			// add submission reactions to msg
@@ -783,7 +784,7 @@ client.on('message', async (message) => {
 					msg.react(ReactionEmoji.CONFIRMED);
 				}
 				// remove message from pending user responses
-				pending_user_responses.delete(msg.id);
+				user_commands_running.delete(msg.id);
 			});
 			break;
 		// matches command, shows matches from this week and past week
