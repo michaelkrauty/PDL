@@ -64,13 +64,25 @@ client.once('ready', async () => {
 	admin_discord_ids = await require('./admins.json').data;
 	// connect to database
 	await db.connect();
+	// setup weekly elo decay job, if enabled
+	if (config.weekly_elo_decay) {
+		var j = schedule.scheduleJob('DecayElo', '0 0 0 * * 1', async () => {
+			// decay inactive users and get a list of users whose elo has been decayed
+			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
+			if (decayed.length > 0) {
+				// construct player list for message
+				var decayedStr = '';
+				for (var p in decayed)
+					decayedStr += `\`${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}\`\n`;
+				// send message to active channels
+				for (var c in discord_channels_to_use)
+					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{matchlimit}', config.maximum_weekly_challenges).replaceAll('{players}', decayedStr));
+			}
+		});
+	}
 	// startup complete
-	var j = schedule.scheduleJob('DecayElo', '@weekly', async () => {
-		// console.log('Hi!');
-		// console.log(await db.getAverageElo());
-	});
 	started = true;
-	await log.info(`${client.user.username} startup complete!`);
+	log.info(`${client.user.username} startup complete!`);
 });
 
 // store discord ids running commands
@@ -1363,4 +1375,16 @@ function getMonday(d) {
 String.prototype.replaceAll = function (search, replacement) {
 	var target = this;
 	return target.split(search).join(replacement);
+}
+
+async function decayInactiveElo(amount) {
+	var decayed = [];
+	var toDecay = await db.getUsersToDecayElo();
+	for (var u in toDecay) {
+		let user = toDecay[u];
+		let newElo = user.elo_rating - amount;
+		await db.setUserEloRating(user.id, newElo);
+		decayed.push({ discord_username: user.discord_username, old_elo: user.elo_rating, new_elo: newElo });
+	}
+	return decayed;
 }
