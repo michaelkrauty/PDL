@@ -375,6 +375,14 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			// check if user has played enough provisional matches to show elo
+			var numMatches = await db.getUserNumConfirmedMatches(user.id);
+			if (!numMatches || numMatches.length < config.provisional_matches) {
+				if (!numMatches)
+					numMatches = [];
+				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches.length).replaceAll('{provisional_matches}', config.provisional_matches));
+				break;
+			}
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user.id, 2);
 			if (nearby_players == null || nearby_players.length < 1) {
