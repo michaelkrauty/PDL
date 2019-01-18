@@ -203,15 +203,18 @@ exports.getAverageCompetingElo = async () => {
 }
 
 /**
- * @description get user's ELO rating
- * @param {bigint} id the user's id
- * @returns {success: boolean, elo_rating: int}
+ * @description get players who have not played a match this week
+ * @returns {[users]}
  */
-exports.decayElo = async (amount) => {
-	var res = await exports.sql(';');
-	if (res.length > 0)
-		return res[0].elo_rating;
-	return false;
+exports.getUsersToDecayElo = async () => {
+	var res = await exports.sql('SELECT id, discord_username, elo_rating FROM users WHERE elo_rating > 0;');
+	var users = [];
+	for (var r in res) {
+		var matches = await exports.getUserLatestMatchesOfWeek(res[r].id);
+		if (!matches)
+			users.push(res[r]);
+	}
+	return users;
 }
 
 /**
