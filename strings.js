@@ -54,6 +54,8 @@ const strings = {
 	top_players: 'Top players:\n{top_players}',
 	could_not_get_top_players: '{user} could not get top players.',
 	no_top_players: '{user} no players to show.',
+	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
+	weekly_elo_decay: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}\nThe following players\' ratings were decayed for not completing a match this week:\n{players}',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;
