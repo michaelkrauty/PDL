@@ -72,8 +72,11 @@ client.once('ready', async () => {
 			if (decayed.length > 0) {
 				// construct player list for message
 				var decayedStr = '';
-				for (var p in decayed)
+				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
+				for (var p in decayed) {
 					decayedStr += `\`${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}\`\n`;
+					log.info(`${decayed[p].id}:${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`);
+				}
 				// send message to active channels
 				for (var c in discord_channels_to_use)
 					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{matchlimit}', config.maximum_weekly_challenges).replaceAll('{players}', decayedStr));
