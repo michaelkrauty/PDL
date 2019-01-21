@@ -400,7 +400,7 @@ client.on('message', async (message) => {
 			}
 			// get player and nearby players
 			var nearby_players = await db.getNearbyPlayers(user.id, 2);
-			if (nearby_players == null || nearby_players.length < 1) {
+			if (!nearby_players || nearby_players.length < 1) {
 				// failed to get similarly ranked players
 				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 				throw (`Could not getNearbyPlayers(${user.id}, 2)`);
