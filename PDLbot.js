@@ -1384,7 +1384,7 @@ async function decayInactiveElo(amount) {
 		let user = toDecay[u];
 		let newElo = user.elo_rating - amount;
 		await db.setUserEloRating(user.id, newElo);
-		decayed.push({ discord_username: user.discord_username, old_elo: user.elo_rating, new_elo: newElo });
+		decayed.push({ id: user.id, discord_username: user.discord_username, old_elo: user.elo_rating, new_elo: newElo });
 	}
 	return decayed;
 }
