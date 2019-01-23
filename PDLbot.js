@@ -1055,11 +1055,13 @@ client.on('message', async (message) => {
 				var player_data = await db.getUserDataUsingId(match.player_id);
 				if (!player_data) {
 					log.error(`Could not getUserDataUsingId(${match.player_id})`);
+					break;
 				}
 				// get opponent data
 				var opponent_data = await db.getUserDataUsingId(match.opponent_id);
 				if (!opponent_data) {
 					log.error(`Could not getUserDataUsingId(${match.opponent_id})`);
+					break;
 				}
 				switch (args[0]) {
 					// match command, shows match info
