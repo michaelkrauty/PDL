@@ -67,6 +67,7 @@ client.once('ready', async () => {
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
 		var j = schedule.scheduleJob('DecayElo', '1 0 0 * * 1', async () => {
+			console.log('ELO Decayed');
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
 			if (decayed.length > 0) {
