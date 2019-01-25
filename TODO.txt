@@ -10,8 +10,6 @@ https://goo.gl/qq2MGo <- current data
 - !pausematchups, to pause matchups and ranking algorithm updates
 - make !submit confirm message show both players, game result, and game ID
 - !matches lists matches submitted this week and last week
-- add config variable for starting elo
-- set starting elo to 1200
 - allow lighter weight commands while command-locked using !pending or !submit
 
 if cell = > 4 and less than 10 assign Role - "Column Title" + " " + "Novice"
