@@ -1054,7 +1054,6 @@ client.on('message', async (message) => {
 						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 						break;
 				}
-				break;
 			} else if (args.length == 2) {
 				// get match
 				var match = await db.getMatch(args[1]);
@@ -1256,6 +1255,7 @@ client.on('message', async (message) => {
 					default: break;
 				}
 			}
+			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
 			if (args.length != 0)
