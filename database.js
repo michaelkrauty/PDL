@@ -116,7 +116,7 @@ exports.createUserInDB = async (discord_id) => {
 	if (average_elo == null || average_elo == 0)
 		average_elo = config.default_starting_elo;
 	var res = await exports.sql(
-		'INSERT INTO users (discord_id, elo_rating) VALUES (?,?,?);', [discord_id, Math.round(average_elo)]);
+		'INSERT INTO users (discord_id, elo_rating) VALUES (?,?);', [discord_id, Math.round(average_elo)]);
 	return res.length > 0;
 }
 
