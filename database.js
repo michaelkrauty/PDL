@@ -28,7 +28,7 @@ module.exports.connect = function () {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
-		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_username varchar(255), discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `users`');
@@ -95,13 +95,12 @@ module.exports.checkUserExists = async (discord_id) => {
 /**
  * @description register new user
  * @param {bigint} discord_id the user's discord id
- * @param {string} discord_username the user's discord username
  * @returns {success: boolean}
  */
-exports.registerUser = async (discord_id, discord_username) => {
+exports.registerUser = async (discord_id) => {
 	var exists = await exports.checkUserExists(discord_id);
 	if (!exists) {
-		var created = await exports.createUserInDB(discord_id, discord_username);
+		var created = await exports.createUserInDB(discord_id);
 		return created.length > 0;
 	}
 	return exists;
@@ -110,15 +109,14 @@ exports.registerUser = async (discord_id, discord_username) => {
 /**
  * @description create new user in DB
  * @param {bigint} discord_id the user's discord id
- * @param {string} discord_username the user's discord username
  * @returns {success: boolean}
  */
-exports.createUserInDB = async (discord_id, discord_username) => {
+exports.createUserInDB = async (discord_id) => {
 	var average_elo = await exports.getAverageCompetingElo();
 	if (average_elo == null || average_elo == 0)
 		average_elo = config.default_starting_elo;
 	var res = await exports.sql(
-		'INSERT INTO users (discord_id, discord_username, elo_rating) VALUES (?,?,?);', [discord_id, discord_username, Math.round(average_elo)]);
+		'INSERT INTO users (discord_id, elo_rating) VALUES (?,?,?);', [discord_id, Math.round(average_elo)]);
 	return res.length > 0;
 }
 
@@ -168,17 +166,6 @@ exports.getUserDataUsingId = async (user_id) => {
 }
 
 /**
- * @description set user's competing boolean
- * @param {bigint} discord_id the user's discord id
- * @param {boolean} competing is the user competing?
- * @returns {success: boolean}
- */
-exports.setUserDiscordUsername = async (user_id, discord_username) => {
-	var res = await exports.sql('UPDATE users SET discord_username=? WHERE id=?;', [discord_username, user_id]);
-	return res.length != 0;
-}
-
-/**
  * @description get user's ELO rating
  * @param {bigint} id the user's id
  * @returns {success: boolean, elo_rating: int}
@@ -207,7 +194,7 @@ exports.getAverageCompetingElo = async () => {
  * @returns {[users]}
  */
 exports.getUsersToDecayElo = async () => {
-	var res = await exports.sql('SELECT id, discord_username, elo_rating FROM users WHERE elo_rating > 0;');
+	var res = await exports.sql('SELECT id, discord_id, elo_rating FROM users WHERE elo_rating > 0;');
 	var users = [];
 	for (var r in res) {
 		var matches = await exports.getUserLatestMatchesOfPreviousWeek(res[r].id);
@@ -477,7 +464,7 @@ exports.getTopCompetingPlayers = async (amount, rating_method) => {
  * @todo add rating method
  */
 exports.getNearbyPlayers = async (user_id, amount) => {
-	var res = await exports.sql('SELECT users.id, users.discord_username, users.elo_rating, users.competing FROM users WHERE id=? AND competing=true UNION ALL (SELECT users.id, users.discord_username, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.id = ? && users.id != ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_username, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_username, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
+	var res = await exports.sql('SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users WHERE id=? AND competing=true UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.id = ? && users.id != ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
 	if (res.length > 0)
 		return res;
 	return false;

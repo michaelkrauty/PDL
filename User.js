@@ -1,7 +1,8 @@
 exports.User = class {
-	constructor(id, db) {
+	constructor(id, db, client) {
 		this.id = id;
 		this.db = db;
+		this.client = client;
 	}
 
 	async init() {
@@ -9,7 +10,8 @@ exports.User = class {
 		if (!data)
 			return false;
 		this.discord_id = data.discord_id;
-		this.discord_username = data.discord_username;
+		var usr = await this.client.fetchUser(this.discord_id);
+		this.discord_username = usr.username;
 		this.elo_rating = data.elo_rating;
 		this.elo_rank = await this.db.getUserEloRanking(this.id);
 		this.competing = data.competing;

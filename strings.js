@@ -14,7 +14,7 @@ const strings = {
 	user_is_not_competing: '{user} is not competing.',
 	error_user_not_competing: '{user} you are not competing in PDL! Start competing with !compete.',
 	target_is_not_competing: '{user} {target} is not competing in PDL.',
-	user_now_competing: '{user} is now competing in PDL!',
+	user_now_competing: '{user} is now competing in PDL!\nPDL is an open challenge league, so you play whenever you want against whoever. You get three challenges a week that follow the format in #weekly-format.\nRules/ratings are linked in #register-rules-ratings\n-\nYou can set your role, check ratings and report matches using #pdl-bot\n-\nPlease note until you have confirmed 4 matches (8 games) you will not show up in the rankings or be eligible for rank based tournaments and events, you are accruing points during this probationary period but this allows the rating system to get a handle on your skill level before ranking you.\n-\nUse !help for more info.',
 	compete_already_competing: '{user} you are already competing in PDL.',
 	quit_not_competing: '{user} not competing. Compete with !compete',
 	user_no_longer_competing: '{user} is no longer competing in PDL!',

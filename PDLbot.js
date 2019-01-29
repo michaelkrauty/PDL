@@ -121,11 +121,7 @@ client.on('message', async (message) => {
 	var user_id = await db.getUserIdFromDiscordId(message.author.id);
 	// create user class if user exists
 	if (user_id)
-		user = await new User(user_id, db).init();
-	// update discord username in database, if it has changed
-	if (user)
-		if (user.discord_username != message.author.username)
-			await user.setDiscordUsername(message.author.username);
+		user = await new User(user_id, db, client).init();
 	// create cmd and args variables
 	var args = message.content.substring(1).split(' ');
 	const cmd = args[0];
@@ -173,7 +169,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// check if target exists
-				var target = await new User(mention_id, db).init();
+				var target = await new User(mention_id, db, client).init();
 				if (!target) {
 					message.channel.send(`${tag(message.author.id)} no data to display.`);
 					// remove command message from pending user responses
@@ -298,7 +294,7 @@ client.on('message', async (message) => {
 				// get user's new user ID
 				user_id = await db.getUserIdFromDiscordId(message.author.id);
 				// create new User class
-				user = await new User(user_id, db).init();
+				user = await new User(user_id, db, client).init();
 			} else {
 				// check if the user is currently competing
 				if (user.competing) {
@@ -424,7 +420,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// get target
-				var target = await new User(target_id, db).init();
+				var target = await new User(target_id, db, client).init();
 				if (!target) {
 					// failed to get target user
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
@@ -501,8 +497,9 @@ client.on('message', async (message) => {
 					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 					throw (`Could not getUserEloRanking(${nearby_players[i].id})`);
 				}
+				// get player username
+				var username = await getDiscordUsernameFromDiscordId(nearby_players[i].discord_id);
 				// list top players
-				var username = nearby_players[i].discord_username;
 				if (nearby_players[i].id == user.id)
 					username = `**${username}**`;
 				msg += `${rank}. ${username}: ${nearby_players[i].elo_rating} ELO\n`;
@@ -559,13 +556,15 @@ client.on('message', async (message) => {
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
+					// get opponent username
+					var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 					// compose message with match id, tag the author, show other player's name in plaintext (no tag)
 					var text = '';
 					submitter_was_user ? text += strings.pending_submitter_was_user : text += strings.pending_submitter_was_not_user;
 					// send it
 					var msg = await message.channel.send(text
 						.replaceAll('{user}', tag(message.author.id))
-						.replaceAll('{opponent_name}', opponent_data.discord_username)
+						.replaceAll('{opponent_name}', opponent_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string)
 					);
@@ -669,6 +668,10 @@ client.on('message', async (message) => {
 								var opponent_data = await db.getUserDataUsingId(match.opponent_id);
 								if (!opponent_data)
 									throw (`Could not getUserDataUsingId(${match.opponent_id})`);
+								// get player username
+								var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+								// get opponent username
+								var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 								// compose message with elo change and tag the players
 								var winloss;
 								match.result ? winloss = 'win' : winloss = 'loss';
@@ -679,8 +682,8 @@ client.on('message', async (message) => {
 									.replaceAll('{user}', tag(message.author.id))
 									.replaceAll('{player}', tag(player_data.discord_id))
 									.replaceAll('{opponent}', tag(opponent_data.discord_id))
-									.replaceAll('{player_name}', player_data.discord_username)
-									.replaceAll('{opponent_name}', opponent_data.discord_username)
+									.replaceAll('{player_name}', player_username)
+									.replaceAll('{opponent_name}', opponent_username)
 									.replaceAll('{player_elo_rank}', player_rank)
 									.replaceAll('{opponent_elo_rank}', opponent_rank)
 									.replaceAll('{old_player_elo}', playerElo)
@@ -751,7 +754,7 @@ client.on('message', async (message) => {
 				break;
 			}
 			// get mention data
-			var target = await new User(mention_discord_id, db).init();
+			var target = await new User(mention_discord_id, db, client).init();
 			// check if mention is competing
 			if (!target.competing) {
 				// mention is not competing
@@ -930,14 +933,18 @@ client.on('message', async (message) => {
 							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 							throw (`Could not getUserDataUsingId(${opponent_id})`);
 						}
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+						// get opponent username
+						var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 						// construct match result message
 						text = '';
 						submitter_was_user ?
 							text += strings.matches_submitter_was_user :
 							text += strings.matches_submitter_was_not_user;
 						str += text
-							.replaceAll('{player_name}', player_data.discord_username)
-							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{player_name}', player_username)
+							.replaceAll('{opponent_name}', opponent_username)
 							.replaceAll('{match_id}', match.id)
 							.replaceAll('{winloss}', match_result_string);
 					}
@@ -975,14 +982,18 @@ client.on('message', async (message) => {
 							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 							throw (`Could not getUserDataUsingId(${opponent_id})`);
 						}
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+						// get opponent username
+						var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 						// construct match result message
 						text = '';
 						submitter_was_user ?
 							text += strings.matches_submitter_was_user :
 							text += strings.matches_submitter_was_not_user;
 						str += text
-							.replaceAll('{player_name}', player_data.discord_username)
-							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{player_name}', player_username)
+							.replaceAll('{opponent_name}', opponent_username)
 							.replaceAll('{match_id}', match.id)
 							.replaceAll('{winloss}', match_result_string);
 					}
@@ -1043,6 +1054,8 @@ client.on('message', async (message) => {
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
+					// get opponent username
+					var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 					// construct match result message
 					text = '';
 					submitter_was_user ?
@@ -1050,7 +1063,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_not_user;
 					str += text
 						.replaceAll('{player_name}', tag(message.author.id))
-						.replaceAll('{opponent_name}', opponent_data.discord_username)
+						.replaceAll('{opponent_name}', opponent_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
 				}
@@ -1074,6 +1087,8 @@ client.on('message', async (message) => {
 						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
+					// get opponent username
+					var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 					// construct match result message
 					text = '';
 					submitter_was_user ?
@@ -1081,7 +1096,7 @@ client.on('message', async (message) => {
 						text += strings.matches_submitter_was_not_user;
 					str += text
 						.replaceAll('{player_name}', tag(message.author.id))
-						.replaceAll('{opponent_name}', opponent_data.discord_username)
+						.replaceAll('{opponent_name}', opponent_username)
 						.replaceAll('{match_id}', match.id)
 						.replaceAll('{winloss}', match_result_string);
 				}
@@ -1228,6 +1243,10 @@ client.on('message', async (message) => {
 						var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 						if (!opponent_rank)
 							throw (`Could not getUserEloRanking(${match.opponent_id})`);
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+						// get opponent username
+						var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 						// message players
 						var winloss;
 						match.result ? winloss = 'win' : winloss = 'loss';
@@ -1238,8 +1257,8 @@ client.on('message', async (message) => {
 							.replaceAll('{user}', tag(message.author.id))
 							.replaceAll('{player}', tag(player_data.discord_id))
 							.replaceAll('{opponent}', tag(opponent_data.discord_id))
-							.replaceAll('{player_name}', player_data.discord_username)
-							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{player_name}', player_username)
+							.replaceAll('{opponent_name}', opponent_username)
 							.replaceAll('{player_elo_rank}', player_rank)
 							.replaceAll('{opponent_elo_rank}', opponent_rank)
 							.replaceAll('{old_player_elo}', playerElo)
@@ -1247,7 +1266,7 @@ client.on('message', async (message) => {
 							.replaceAll('{old_opponent_elo}', opponentElo)
 							.replaceAll('{new_opponent_elo}', eloCalculation.new_opponent_elo));
 						break;
-					// cancel command, allows admins to nullify a pending match with match id
+					// cancel command, allows admins to cancel a pending match with match id
 					case 'cancel':
 						// is the match already confirmed?
 						if (!match.confirmed) {
@@ -1290,6 +1309,10 @@ client.on('message', async (message) => {
 							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 							throw (`Could not getUserEloRanking(${match.opponent_id})`);
 						}
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+						// get opponent username
+						var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 						// message players
 						var winloss;
 						match.result ? winloss = 'win' : winloss = 'loss';
@@ -1300,8 +1323,8 @@ client.on('message', async (message) => {
 							.replaceAll('{user}', tag(message.author.id))
 							.replaceAll('{player}', tag(player_data.discord_id))
 							.replaceAll('{opponent}', tag(opponent_data.discord_id))
-							.replaceAll('{player_name}', player_data.discord_username)
-							.replaceAll('{opponent_name}', opponent_data.discord_username)
+							.replaceAll('{player_name}', player_username)
+							.replaceAll('{opponent_name}', opponent_username)
 							.replaceAll('{player_elo_rank}', player_rank)
 							.replaceAll('{opponent_elo_rank}', opponent_rank)
 							.replaceAll('{old_player_elo}', playerElo)
@@ -1349,6 +1372,10 @@ client.on('message', async (message) => {
 								message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
 								throw (`Could not getUserEloRanking(${match.opponent_id})`);
 							}
+							// get player username
+							var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+							// get opponent username
+							var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
 							// message players
 							var winloss;
 							match.result ? winloss = 'win' : winloss = 'loss';
@@ -1359,8 +1386,8 @@ client.on('message', async (message) => {
 								.replaceAll('{user}', tag(message.author.id))
 								.replaceAll('{player}', tag(player_data.discord_id))
 								.replaceAll('{opponent}', tag(opponent_data.discord_id))
-								.replaceAll('{player_name}', player_data.discord_username)
-								.replaceAll('{opponent_name}', opponent_data.discord_username)
+								.replaceAll('{player_name}', player_username)
+								.replaceAll('{opponent_name}', opponent_username)
 								.replaceAll('{player_elo_rank}', player_rank)
 								.replaceAll('{opponent_elo_rank}', opponent_rank)
 								.replaceAll('{old_player_elo}', playerElo)
@@ -1401,8 +1428,11 @@ client.on('message', async (message) => {
 			if (players.length > 0) {
 				// construct message
 				var msg = '';
-				for (i = 0; i < players.length; i++)
-					msg += `\`${(i + 1)}. ${players[i].discord_username}: ${players[i].elo_rating}\`\n`;
+				for (i = 0; i < players.length; i++) {
+					// get player username
+					var player_username = await getDiscordUsernameFromDiscordId(players[i].discord_id);
+					msg += `\`${(i + 1)}. ${player_username}: ${players[i].elo_rating}\`\n`;
+				}
 				message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
 			} else
 				message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
@@ -1498,6 +1528,7 @@ String.prototype.replaceAll = function (search, replacement) {
 	return target.split(search).join(replacement);
 }
 
+// decays elo of players who haven't played a match in the previous week
 async function decayInactiveElo(amount) {
 	var decayed = [];
 	var toDecay = await db.getUsersToDecayElo();
@@ -1505,7 +1536,15 @@ async function decayInactiveElo(amount) {
 		let user = toDecay[u];
 		let newElo = user.elo_rating - amount;
 		await db.setUserEloRating(user.id, newElo);
-		decayed.push({ id: user.id, discord_username: user.discord_username, old_elo: user.elo_rating, new_elo: newElo });
+		// get player username
+		var player_username = await getDiscordUsernameFromDiscordId(user.discord_id);
+		decayed.push({ id: user.id, discord_username: player_username, old_elo: user.elo_rating, new_elo: newElo });
 	}
 	return decayed;
+}
+
+// gets discord username using discord id
+async function getDiscordUsernameFromDiscordId(discord_id) {
+	var user = await client.fetchUser(discord_id);
+	return user.username;
 }
