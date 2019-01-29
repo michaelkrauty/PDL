@@ -1247,7 +1247,7 @@ client.on('message', async (message) => {
 							.replaceAll('{old_opponent_elo}', opponentElo)
 							.replaceAll('{new_opponent_elo}', eloCalculation.new_opponent_elo));
 						break;
-					// cancel command, allows admins to nullify a pending match with match id
+					// cancel command, allows admins to cancel a pending match with match id
 					case 'cancel':
 						// is the match already confirmed?
 						if (!match.confirmed) {
