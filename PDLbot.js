@@ -1463,17 +1463,31 @@ client.on('message', async (message) => {
 	}
 });
 
-// tag a user by userID
+/**
+ * @description Returns a string which will tag the user if put in a discord message.
+ * @param {string} userID the user to tag's user ID
+ * @return {string} '<@userID>'
+ */
 function tag(userID) {
 	return `<@${userID}>`;
 }
 
-// tag a role by roleID
+/**
+ * @description Returns a string which will tag the role if put in a discord message.
+ * @param {string} roleID the role's ID
+ * @return {string} '<@roleID>'
+ */
 function tagRole(roleID) {
 	return `<@&${roleID}>`;
 }
 
-// calculates game result elo
+/**
+ * 
+ * @param {int} playerElo the player's current elo
+ * @param {int} opponentElo the opponent's current elo
+ * @param {boolean} result game win/loss
+ * @return elo rating calculation
+ */
 function eloRatingCalculation(playerElo, opponentElo, result) {
 	return eloRating.calculate(playerElo, opponentElo, result, config.elo_k);
 }
@@ -1535,7 +1549,12 @@ function calculateElo(playerElo, opponentElo, player_start_elo, opponent_start_e
 	return { new_player_elo: newPlayerElo, new_opponent_elo: newOpponentElo, net_player_elo: net_player_elo, net_opponent_elo: net_opponent_elo };
 }
 
-// gets the date of the previous monday of this week
+
+/**
+ * @description gets the previous Monday of a specified date
+ * @param {Date} d the date to get the previous Monday of
+ * @return {Date} the date of the previous Monday
+ */
 function getMonday(d) {
 	d = new Date(d);
 	var day = d.getDay(),
