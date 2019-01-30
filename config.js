@@ -7,7 +7,7 @@ module.exports.config = {
 	// elo K variable
 	elo_k: 50,
 	// weekly limit on challenges submitted per user
-	maximum_weekly_challenges: 3,
+	maximum_weekly_challenges: 6,
 	// bonus elo per game simply for playing
 	bonus_elo: 5,
 	// number of matches before player shows up in !top and !elo
