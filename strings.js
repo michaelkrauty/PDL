@@ -37,6 +37,7 @@ const strings = {
 	pending_other_user: 'Game {match_id}: **{opponent_name}** **{winloss}** vs **{player_name}** (Game {match_id})\n',
 	matches_dialogue: '{user}\n{target}\'s matches ({num_matches}/{num_max_matches}):\n',
 	matches_unconfirmed: '------Unconfirmed------\n',
+	matches_confirmed: '------Confirmed------\n',
 	matches_submitter_was_user: '{match_id}: {player_name} **{winloss}** vs **{opponent_name}**\n',
 	matches_submitter_was_not_user: '{match_id}: **{opponent_name}** **{winloss}** vs {player_name}\n',
 	matches_no_recent_matches: '{user} no recent matches.',
