@@ -1463,6 +1463,18 @@ client.on('message', async (message) => {
 	}
 });
 
+client.on('disconnect', () => {
+	log.info('Discord bot is disconnecting.');
+});
+
+client.on('resume', () => {
+	log.info('Discord bot is resuming.');
+});
+
+client.on('reconnecting', () => {
+	log.info('Discord bot is reconnecting.');
+});
+
 /**
  * @description Returns a string which will tag the user if put in a discord message.
  * @param {string} userID the user to tag's user ID
