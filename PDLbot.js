@@ -89,6 +89,16 @@ client.once('ready', async () => {
 	log.info(`${client.user.username} startup complete!`);
 });
 
+client.on('guildMemberAdd', member => {
+	if (config.welcome_channel == '0') return;
+	var channel = member.guild.channels.get(config.welcome_channel);
+	if (channel != null) {
+		if (strings.welcome_message != '')
+			channel.send(strings.welcome_message.replaceAll('{user_tag}', tag(member.user.id)).replaceAll('{user_name}', member.user.username));
+	} else
+		log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
+});
+
 // store discord ids running commands
 var user_commands_running = new Map();
 // store reaction collectors in an array
