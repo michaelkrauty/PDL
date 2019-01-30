@@ -35,6 +35,8 @@ const strings = {
 	cancel_match_cancel: '{user} cancelled game {match_id}\n{new_elo_message}',
 	pending_waiting_for_input: '{user} thumbs up to confirm, thumbs down to dispute.',
 	pending_other_user: 'Game {match_id}: **{opponent_name}** **{winloss}** vs **{player_name}** (Game {match_id})\n',
+	matches_dialogue: '{user}\n{target}\'s matches ({num_matches}/{num_max_matches}):\n',
+	matches_unconfirmed: '------Unconfirmed------\n',
 	matches_submitter_was_user: '{match_id}: {player_name} **{winloss}** vs **{opponent_name}**\n',
 	matches_submitter_was_not_user: '{match_id}: **{opponent_name}** **{winloss}** vs {player_name}\n',
 	matches_no_recent_matches: '{user} no recent matches.',
@@ -57,6 +59,7 @@ const strings = {
 	no_top_players: '{user} no players to show.',
 	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
 	weekly_elo_decay: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}\nThe following players\' ratings were decayed for not completing a match this week:\n{players}',
+	error_one_command_at_a_time: '{user} only one command can be run at a time.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
 module.exports = strings;

@@ -127,7 +127,7 @@ client.on('message', async (message) => {
 	});
 	// users can only run one command at a time
 	if (pendingUserResponsesContainsUser) {
-		message.channel.send(`${tag(message.author.id)} only one command can be run at a time.`);
+		message.channel.send(strings.error_one_command_at_a_time.replaceAll('{user}', tag(message.author.id)));
 		return;
 	}
 	// ensure only one instance of the command by storing the command message id and author id in map
@@ -916,9 +916,13 @@ client.on('message', async (message) => {
 					else
 						unconfirmed_matches.push(user_matches[n]);
 				}
-				var str = `${tag(message.author.id)}\n${mention.username}'s matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
+				var str = strings.matches_dialogue
+					.replaceAll('{user}', tag(message.author.id))
+					.replaceAll('{target}', mention.username)
+					.replaceAll('{num_matches}', confirmed_matches.length + unconfirmed_matches.length)
+					.replaceAll('{num_max_matches}', config.maximum_weekly_challenges);
 				if (unconfirmed_matches.length > 0) {
-					str += `------Unconfirmed------\n`;
+					str += strings.matches_unconfirmed;
 					for (var n in unconfirmed_matches) {
 						var match = unconfirmed_matches[n];
 						// was the submitter the user?
@@ -967,7 +971,7 @@ client.on('message', async (message) => {
 					}
 				}
 				if (confirmed_matches.length > 0) {
-					str += `------Confirmed------\n`;
+					str += strings.matches_confirmed;
 					for (var n in confirmed_matches) {
 						var match = confirmed_matches[n];
 						// was the submitter the user?
@@ -1053,7 +1057,7 @@ client.on('message', async (message) => {
 			}
 			var str = `${tag(message.author.id)} this week's matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
 			if (unconfirmed_matches.length > 0) {
-				str += `------Unconfirmed------\n`;
+				str += strings.matches_unconfirmed;
 				for (var n in unconfirmed_matches) {
 					var match = unconfirmed_matches[n];
 					// was the submitter the user?
@@ -1086,7 +1090,7 @@ client.on('message', async (message) => {
 				}
 			}
 			if (confirmed_matches.length > 0) {
-				str += `------Confirmed------\n`;
+				str += strings.matches_confirmed;
 				for (var n in confirmed_matches) {
 					var match = confirmed_matches[n];
 					// was the submitter the user?
