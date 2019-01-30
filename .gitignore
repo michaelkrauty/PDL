@@ -41,8 +41,6 @@ Thumbs.db
 config.json
 config_db.js
 node_modules/
-PDLsite/
-PDLSite.js
 *.tmp
 .vscode/
 admins.json
