@@ -35,6 +35,7 @@ client.login(config_db.bot_token).catch((err) => {
 	log.error(err.message);
 	client.destroy();
 });
+// called when the bot starts up
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// add bot version to bot name, if enabled
@@ -89,11 +90,17 @@ client.once('ready', async () => {
 	log.info(`${client.user.username} startup complete!`);
 });
 
+// called when a new member joins the discord server
 client.on('guildMemberAdd', member => {
+	// check if the welcome channel id is set in the config
 	if (config.welcome_channel == '0') return;
+	// get the channel
 	var channel = member.guild.channels.get(config.welcome_channel);
+	// check if the channel exists
 	if (channel != null) {
+		// check if welcome message is set
 		if (strings.welcome_message != '')
+			// send welcome message
 			channel.send(strings.welcome_message.replaceAll('{user_tag}', tag(member.user.id)).replaceAll('{user_name}', member.user.username));
 	} else
 		log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
