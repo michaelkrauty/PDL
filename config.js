@@ -17,5 +17,7 @@ module.exports.config = {
 	// how much should elo decay on a weekly basis?
 	weekly_elo_decay_amount: 25,
 	// adds the bot version to the bot name on startup
-	enable_version_in_bot_name: true
+	enable_version_in_bot_name: true,
+	// channel ID to send wecome message to when a new user joins. Set to 0 to disable.
+	welcome_channel: 0
 };
