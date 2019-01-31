@@ -64,7 +64,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
-		var j = schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
+		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
 			console.log('ELO Decayed');
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
@@ -286,6 +286,17 @@ client.on('message', async (message) => {
 					break;
 				}
 			}
+			// check if competitor role is defined in config
+			if (config.competitor_role_name != null && config.competitor_role_name != '') {
+				// get competitor role as defined in config
+				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				// ensure competitor role exists
+				if (competitorRole != null && competitorRole.id != undefined)
+					// check if user has competitor role
+					if (!message.member._roles.includes(competitorRole.id))
+						// add competitor role to user
+						message.member.addRole(competitorRole);
+			}
 			// set the user's competing state to true
 			var res = await user.setCompeting(true);
 			if (res)
@@ -316,6 +327,17 @@ client.on('message', async (message) => {
 			// set the user's elo to average if above average
 			if (user.elo_rating > averageElo)
 				await db.setUserEloRating(user.id, config.default_starting_elo);
+			// check if competitor role is defined in config
+			if (config.competitor_role_name != null && config.competitor_role_name != '') {
+				// get competitor role as defined in config
+				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				// ensure competitor role exists
+				if (competitorRole != null && competitorRole.id != undefined)
+					// check if user has competitor role
+					if (message.member._roles.includes(competitorRole.id))
+						// remove competitor role from user
+						message.member.removeRole(competitorRole);
+			}
 			// set the user's competing state to false
 			var res = await user.setCompeting(false);
 			if (res)
@@ -613,7 +635,6 @@ client.on('message', async (message) => {
 								.replaceAll('{user}', tag(message.author.id))
 								.replaceAll('{opponent}', tag(opponent_data.discord_id))
 								.replaceAll('{match_id}', match.id)
-								// TODO: add admin role name to config
 								.replaceAll('{admin}', tagRole(message.guild.roles.find(role => role.name === config.admin_role_name).id))
 							);
 							await r.message.react(ReactionEmoji.LOSS);
