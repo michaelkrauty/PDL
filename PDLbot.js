@@ -1431,6 +1431,8 @@ client.on('message', async (message) => {
 			user_commands_running.delete(message.id);
 			break;
 	}
+	// remove command message from pending user responses
+	user_commands_running.delete(message.id);
 });
 
 client.on('disconnect', () => {
