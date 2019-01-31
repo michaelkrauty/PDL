@@ -258,9 +258,9 @@ client.on('message', async (message) => {
 		// challenging command, shows users with challengeme rank
 		// TODO
 		case 'challenging':
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
-				break;
+			// remove command message from pending user responses
+			user_commands_running.delete(message.id);
+			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'register':
 		case 'compete':
