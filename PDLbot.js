@@ -64,7 +64,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
-		var j = schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
+		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
 			console.log('ELO Decayed');
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
@@ -613,7 +613,6 @@ client.on('message', async (message) => {
 								.replaceAll('{user}', tag(message.author.id))
 								.replaceAll('{opponent}', tag(opponent_data.discord_id))
 								.replaceAll('{match_id}', match.id)
-								// TODO: add admin role name to config
 								.replaceAll('{admin}', tagRole(message.guild.roles.find(role => role.name === config.admin_role_name).id))
 							);
 							await r.message.react(ReactionEmoji.LOSS);
