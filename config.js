@@ -21,5 +21,7 @@ module.exports.config = {
 	// channel ID to send wecome message to when a new user joins. Set to 0 to disable.
 	welcome_channel: '0',
 	// admin role name (case sensitive)
-	admin_role_name: 'admin'
+	admin_role_name: 'admin',
+	// competior role name (case sensitive) set to '' to disable
+	competitor_role_name: 'competitor'
 };
