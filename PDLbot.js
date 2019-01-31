@@ -20,7 +20,6 @@ exports = MatchResult, RatingMethod;
 
 // runtime variables
 var discord_channels_to_use;
-var admin_discord_ids;
 var started = false;
 
 // configure logger settings
@@ -61,8 +60,6 @@ client.once('ready', async () => {
 	// setup json storage files
 	await fm.checkFile('./channels.json');
 	discord_channels_to_use = await require('./channels.json').data;
-	await fm.checkFile('./admins.json');
-	admin_discord_ids = await require('./admins.json').data;
 	// connect to database
 	await db.connect();
 	// setup weekly elo decay job, if enabled
@@ -144,7 +141,9 @@ client.on('message', async (message) => {
 	const cmd = args[0];
 	args = args.splice(1);
 	// check if user is admin
-	var admin = admin_discord_ids.includes(message.author.id);
+	// get admin role
+	let adminRole = await message.guild.roles.find(role => role.name === config.admin_role_name);
+	var admin = adminRole != null && adminRole.id != undefined && message.member.roles.has(adminRole.id);
 	// is the channel being used by the bot?
 	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin') {
 		// remove command message from pending user responses
@@ -610,7 +609,7 @@ client.on('message', async (message) => {
 								.replaceAll('{opponent}', tag(opponent_data.discord_id))
 								.replaceAll('{match_id}', match.id)
 								// TODO: add admin role name to config
-								.replaceAll('{admin}', tagRole(message.guild.roles.find(role => role.name === "admin").id))
+								.replaceAll('{admin}', tagRole(message.guild.roles.find(role => role.name === config.admin_role_name).id))
 							);
 							await r.message.react(ReactionEmoji.LOSS);
 						} else {
