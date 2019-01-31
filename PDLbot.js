@@ -286,6 +286,17 @@ client.on('message', async (message) => {
 					break;
 				}
 			}
+			// check if competitor role is defined in config
+			if (config.competitor_role_name != null && config.competitor_role_name != '') {
+				// get competitor role as defined in config
+				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				// ensure competitor role exists
+				if (competitorRole != null && competitorRole.id != undefined)
+					// check if user has competitor role
+					if (!message.member._roles.includes(competitorRole.id))
+						// add competitor role to user
+						message.member.addRole(competitorRole);
+			}
 			// set the user's competing state to true
 			var res = await user.setCompeting(true);
 			if (res)
@@ -316,6 +327,17 @@ client.on('message', async (message) => {
 			// set the user's elo to average if above average
 			if (user.elo_rating > averageElo)
 				await db.setUserEloRating(user.id, config.default_starting_elo);
+			// check if competitor role is defined in config
+			if (config.competitor_role_name != null && config.competitor_role_name != '') {
+				// get competitor role as defined in config
+				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				// ensure competitor role exists
+				if (competitorRole != null && competitorRole.id != undefined)
+					// check if user has competitor role
+					if (message.member._roles.includes(competitorRole.id))
+						// remove competitor role from user
+						message.member.removeRole(competitorRole);
+			}
 			// set the user's competing state to false
 			var res = await user.setCompeting(false);
 			if (res)
