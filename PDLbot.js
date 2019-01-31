@@ -229,7 +229,7 @@ client.on('message', async (message) => {
 		case 'challengeme':
 			// get challengeme role
 			let challengeme = await message.guild.roles.find(role => role.name === "challengeme");
-			if (challengeme.id == undefined) {
+			if (challengeme == null || challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				// remove command message from pending user responses
 				user_commands_running.delete(message.id);
