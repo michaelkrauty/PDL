@@ -56,7 +56,7 @@ const strings = {
 	match_already_submitted: '{user} you have already submitted your latest game. Waiting for {target} to confirm.',
 	match_already_submitted_by_other_user: '{user} {target} has already submitted your match. Use !confirm to confirm.',
 	top_players: 'Top players:\n{top_players}',
-	could_not_get_top_players: '{user} could not get top players.',
+	could_not_get_top_players: '{user} no top players to show.',
 	no_top_players: '{user} no players to show.',
 	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
 	weekly_elo_decay: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}\nThe following players\' ratings were decayed for not completing a match this week:\n{players}',

@@ -311,6 +311,11 @@ client.on('message', async (message) => {
 				user_commands_running.delete(message.id);
 				break;
 			}
+			// get average elo
+			var averageElo = await db.getAverageCompetingElo();
+			// set the user's elo to average if above average
+			if (user.elo_rating > averageElo)
+				await db.setUserEloRating(user.id, config.default_starting_elo);
 			// set the user's competing state to false
 			var res = await user.setCompeting(false);
 			if (res)
@@ -380,7 +385,7 @@ client.on('message', async (message) => {
 					break;
 				}
 				// output user skill rating
-				message.channel.send(strings.user_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{elo_rating}', user.elo_rating).replaceAll('{elo_rank}', user.elo_rating));
+				message.channel.send(strings.user_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{elo_rating}', user.elo_rating).replaceAll('{elo_rank}', user.elo_rank));
 			} else if (args.length == 1) {
 				// gets other user's skill rating
 				// check for a mention
