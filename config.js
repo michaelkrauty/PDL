@@ -19,5 +19,7 @@ module.exports.config = {
 	// adds the bot version to the bot name on startup
 	enable_version_in_bot_name: true,
 	// channel ID to send wecome message to when a new user joins. Set to 0 to disable.
-	welcome_channel: '0'
+	welcome_channel: '0',
+	// admin role name (case sensitive)
+	admin_role_name: 'admin'
 };
