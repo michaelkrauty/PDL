@@ -258,43 +258,9 @@ client.on('message', async (message) => {
 		// challenging command, shows users with challengeme rank
 		// TODO
 		case 'challenging':
-			break;
-		// questme command, toggles questme rank
-		case 'questme':
-			// get questme role
-			let questme = await message.guild.roles.find(role => role.name === "questme");
-			if (questme.id == undefined) {
-				message.channel.send(`${tag(message.author.id)} could not find role questme.`);
 				// remove command message from pending user responses
 				user_commands_running.delete(message.id);
 				break;
-			}
-			// ensure the user is registered
-			if (!user) {
-				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
-				break;
-			}
-			// toggle questme role on/off
-			if (message.member._roles.includes(questme.id)) {
-				// toggle off
-				message.member.removeRole(questme);
-				message.channel.send(`${tag(message.author.id)} no longer has role questme.`);
-			} else {
-				// toggle on
-				message.member.addRole(questme);
-				message.channel.send(`${tag(message.author.id)} now has role questme.`);
-			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
-			break;
-		// questing command, shows users with questme rank
-		// TODO
-		case 'questing':
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
-			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'register':
 		case 'compete':
