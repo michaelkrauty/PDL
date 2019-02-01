@@ -43,5 +43,4 @@ config_db.js
 node_modules/
 *.tmp
 .vscode/
-admins.json
 channels.json

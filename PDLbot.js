@@ -1341,8 +1341,8 @@ client.on('message', async (message) => {
 				message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 			break;
 	}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
+	// remove command message from pending user responses
+	user_commands_running.delete(message.id);
 });
 
 client.on('disconnect', () => {
