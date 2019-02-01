@@ -154,8 +154,6 @@ client.on('message', async (message) => {
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`v${package.version}`);
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// TODO: remove this command before release, for debug only
 		// say command, makes the bot say a message
@@ -165,8 +163,6 @@ client.on('message', async (message) => {
 			for (i = 0; i < args.length; i++)
 				(i - 1 < args.length) ? msg += `${args[i]} ` : msg += args[i];
 			message.channel.send(msg);
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// TODO: remove this command before release, for debug only
 		// debug command, displays user data
@@ -180,16 +176,12 @@ client.on('message', async (message) => {
 				if (!mention_id) {
 					// target is not registered
 					message.channel.send(`${tag(message.author.id)} no data to display.`);
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// check if target exists
 				var target = await new User(mention_id, db, client).init();
 				if (!target) {
 					message.channel.send(`${tag(message.author.id)} no data to display.`);
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// compose and send message containing user data
@@ -197,15 +189,11 @@ client.on('message', async (message) => {
 				for (var elem in target)
 					msg += `${elem}: ${target[elem]}\n`;
 				message.channel.send(`${tag(message.author.id)}\n\`\`\`javascript\n${msg}\`\`\``);
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check if user is registered
 			if (!user) {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// compose and send message containing user data
@@ -213,16 +201,12 @@ client.on('message', async (message) => {
 			for (var elem in user)
 				msg += `${elem}: ${user[elem]}\n`;
 			message.channel.send(`${tag(message.author.id)}\n\`\`\`javascript\n${msg}\`\`\``);
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// help command, shows help dialogue
 		case 'help':
 			msg = strings.help;
 			if (admin) msg += `\n${strings.admin_help}`;
 			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
@@ -230,22 +214,16 @@ client.on('message', async (message) => {
 			let challengeme = await message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme == null || challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// ensure the user is registered
 			if (!user) {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// ensure the user is competing
 			if (!user.competing) {
 				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// toggle challengeme role on/off
@@ -258,14 +236,10 @@ client.on('message', async (message) => {
 				message.member.addRole(challengeme);
 				message.channel.send(`${tag(message.author.id)} now has role challengeme.`);
 			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// challenging command, shows users with challengeme rank
 		// TODO
 		case 'challenging':
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'register':
@@ -273,8 +247,6 @@ client.on('message', async (message) => {
 			// require no arguments
 			if (args.length != 0) {
 				message.channel.send(strings.compete_try_again.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// register user if they're not already in the DB
@@ -288,8 +260,6 @@ client.on('message', async (message) => {
 				// check if the user is currently competing
 				if (user.competing) {
 					message.channel.send(strings.compete_already_competing.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 			}
@@ -308,8 +278,6 @@ client.on('message', async (message) => {
 			var res = await user.setCompeting(true);
 			if (res)
 				message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// quit command, disables competing for the user
 		case 'retire':
@@ -318,15 +286,11 @@ client.on('message', async (message) => {
 			if (!user) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check if the user is currently competing
 			if (!user.competing) {
 				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get average elo
@@ -349,8 +313,6 @@ client.on('message', async (message) => {
 			var res = await user.setCompeting(false);
 			if (res)
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// competing command, shows if user is competing or not
 		case 'competing':
@@ -358,16 +320,12 @@ client.on('message', async (message) => {
 			if (!user) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check if user is currently competing
 			user.competing ?
 				message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
 				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// check command, shows if user is registered in the database
 		case 'registered':
@@ -382,8 +340,6 @@ client.on('message', async (message) => {
 				if (mention == undefined) {
 					// no mentions
 					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// check if target is registered
@@ -391,15 +347,11 @@ client.on('message', async (message) => {
 				if (!mention_exists) {
 					// target is not registered
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// target is registered
 				message.channel.send(strings.target_is_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// oldsr command, shows rank and skill rating (deprecated)
 		case 'oldsr':
@@ -409,8 +361,6 @@ client.on('message', async (message) => {
 				if (!user) {
 					// user is not registered
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// output user skill rating
@@ -422,8 +372,6 @@ client.on('message', async (message) => {
 				if (mention == undefined) {
 					// no mentions
 					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get target user id
@@ -431,8 +379,6 @@ client.on('message', async (message) => {
 				if (!target_id) {
 					// target is not registered
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get target
@@ -440,15 +386,11 @@ client.on('message', async (message) => {
 				if (!target) {
 					// failed to get target user
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// output target skill rating
 				message.channel.send(strings.target_skill_rating.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username).replaceAll('{elo_rating}', target.elo_rating).replaceAll('{elo_rank}', target.elo_rank));
 			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
 		case 'elo':
@@ -462,16 +404,12 @@ client.on('message', async (message) => {
 			if (!user) {
 				// user is not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check if user is competing
 			if (!user.competing) {
 				// user is not competing
 				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check if user has played enough provisional matches to show elo
@@ -480,8 +418,6 @@ client.on('message', async (message) => {
 				if (!numMatches)
 					numMatches = [];
 				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches.length).replaceAll('{provisional_matches}', config.provisional_matches));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get player and nearby players
@@ -522,8 +458,6 @@ client.on('message', async (message) => {
 
 			}
 			message.channel.send(msg);
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// confirm command, shows pending match submissions
 		case 'confirm':
@@ -534,8 +468,6 @@ client.on('message', async (message) => {
 				if (!user) {
 					// not registered
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get user's recent matches
@@ -543,8 +475,6 @@ client.on('message', async (message) => {
 				if (!latest_matches) {
 					// no recent unconfirmed matches
 					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', message.author.username));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// waiting_for_input will be true if there is one or more match which the user should confirm with reaction emojis
@@ -737,8 +667,6 @@ client.on('message', async (message) => {
 				if (waiting_for_input)
 					message.channel.send(strings.pending_waiting_for_input.replaceAll('{user}', tag(message.author.id)));
 			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// submit command, submits a match result vs another user
 		case 'submit':
@@ -746,8 +674,6 @@ client.on('message', async (message) => {
 			if (!user) {
 				// user not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// check for a mention
@@ -755,8 +681,6 @@ client.on('message', async (message) => {
 			if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
 				// no mentions, too many arguments, or user mentioned self
 				message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get mention's database id
@@ -764,8 +688,6 @@ client.on('message', async (message) => {
 			if (!mention_discord_id) {
 				// mention is not registered
 				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get mention data
@@ -774,8 +696,6 @@ client.on('message', async (message) => {
 			if (!target.competing) {
 				// mention is not competing
 				message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get the user's latest matches of the week
@@ -785,8 +705,6 @@ client.on('message', async (message) => {
 				if (user_matches.length >= config.maximum_weekly_challenges) {
 					// user has already played the maximum amount of matches for the week
 					message.channel.send(strings.max_weekly_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 			// get the mention's latest matches of the week
@@ -796,8 +714,6 @@ client.on('message', async (message) => {
 				if (target_latest_matches.length >= config.maximum_weekly_challenges) {
 					// mention has already played the maximum amount of matches for the week
 					message.channel.send(strings.max_weekly_matches_played_other.replaceAll('{mention_name}', mention.username).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 			// ask the user if they won
@@ -857,8 +773,6 @@ client.on('message', async (message) => {
 				// remove message from pending user responses
 				user_commands_running.delete(msg.id);
 			});
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// matches command, shows matches from this week and past week
 		case 'matches':
@@ -869,8 +783,6 @@ client.on('message', async (message) => {
 				if (mention == undefined || mention.id == message.author.id) {
 					// no mentions, or user mentioned self
 					message.channel.send(strings.matches_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get target user id from target discord id, checking if the target is registered
@@ -878,16 +790,12 @@ client.on('message', async (message) => {
 				if (!target_id) {
 					// could not get target user id from discord id
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// ensure the user is registered
 				if (!user) {
 					// not registered
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get all of the target's matches
@@ -895,8 +803,6 @@ client.on('message', async (message) => {
 				if (!user_matches) {
 					// no matches found
 					message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				var confirmed_matches = [];
@@ -1018,24 +924,18 @@ client.on('message', async (message) => {
 					}
 				}
 				message.channel.send(str);
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// ensure the user is registered
 			if (!user) {
 				// not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			// get the user's matches
 			var user_matches = await db.getAllUserMatches(user.id);
 			if (!user_matches) {
 				message.channel.send(strings.matches_no_recent_matches.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			var confirmed_matches = [];
@@ -1121,18 +1021,12 @@ client.on('message', async (message) => {
 				}
 			}
 			message.channel.send(str);
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// admin command, allows showing/updating/deleting match information
 		// matchinfo command, allows admins to see match information with match id
 		case 'admin':
 			// require admin
-			if (!admin) {
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
-				break;
-			}
+			if (!admin) break;
 			if (args.length == 1) {
 				switch (args[0]) {
 					// channels command, shows channels being used by bot
@@ -1210,8 +1104,6 @@ client.on('message', async (message) => {
 				var match = await db.getMatch(args[1]);
 				if (!match) {
 					message.channel.send(strings.match_not_found.replaceAll('{match_id}', args[1]));
-					// remove command message from pending user responses
-					user_commands_running.delete(message.id);
 					break;
 				}
 				// get player data
@@ -1420,22 +1312,14 @@ client.on('message', async (message) => {
 					default: break;
 				}
 			}
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
-			if (args.length != 0) {
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
-				break;
-			}
+			if (args.length != 0) break;
 			// get top players
 			var top_players = await db.getTopCompetingPlayers(25);
 			if (!top_players) {
 				message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
-				// remove command message from pending user responses
-				user_commands_running.delete(message.id);
 				break;
 			}
 			var players = [];
@@ -1455,10 +1339,10 @@ client.on('message', async (message) => {
 				message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
 			} else
 				message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
 			break;
 	}
+			// remove command message from pending user responses
+			user_commands_running.delete(message.id);
 });
 
 client.on('disconnect', () => {
