@@ -65,7 +65,6 @@ client.once('ready', async () => {
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
 		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
-			console.log('ELO Decayed');
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
 			if (decayed.length > 0) {
@@ -80,6 +79,7 @@ client.once('ready', async () => {
 				for (var c in discord_channels_to_use)
 					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{matchlimit}', config.maximum_weekly_challenges).replaceAll('{players}', decayedStr));
 			}
+			log.info(`${new Date()}: ELO Decayed`);
 		});
 	}
 	// startup complete
@@ -237,6 +237,13 @@ client.on('message', async (message) => {
 			// ensure the user is registered
 			if (!user) {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+				// remove command message from pending user responses
+				user_commands_running.delete(message.id);
+				break;
+			}
+			// ensure the user is competing
+			if (!user.competing) {
+				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
 				// remove command message from pending user responses
 				user_commands_running.delete(message.id);
 				break;
