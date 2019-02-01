@@ -194,11 +194,17 @@ exports.getAverageCompetingElo = async () => {
  * @returns {[users]}
  */
 exports.getUsersToDecayElo = async () => {
-	var res = await exports.sql('SELECT id, discord_id, elo_rating FROM users WHERE elo_rating > 0;');
+	var res = await exports.sql('SELECT id, discord_id, elo_rating FROM users WHERE elo_rating > 0 AND competing=true;');
 	var users = [];
 	for (var r in res) {
-		var matches = await exports.getUserLatestMatchesOfPreviousWeek(res[r].id);
-		if (!matches)
+		// get all user matches to check if the user has 0 matches, in which case their elo is not decayed.
+		var allMatches = await exports.getAllUserMatches(res[r].id);
+		// get all matches from the previous week
+		var previousWeekMatches = await exports.getUserLatestMatchesOfPreviousWeek(res[r].id);
+		// get all matches from this week
+		var thisWeekMatches = await exports.getUserLatestMatchesOfWeek(res[r].id);
+		// decay elo if no matches from the previous week, no matches from this week, and >1 game total
+		if (!previousWeekMatches && !thisWeekMatches && allMatches)
 			users.push(res[r]);
 	}
 	return users;
