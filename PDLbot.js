@@ -241,6 +241,13 @@ client.on('message', async (message) => {
 				user_commands_running.delete(message.id);
 				break;
 			}
+			// ensure the user is competing
+			if (!user.competing) {
+				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
+				// remove command message from pending user responses
+				user_commands_running.delete(message.id);
+				break;
+			}
 			// toggle challengeme role on/off
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
