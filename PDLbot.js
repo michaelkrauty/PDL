@@ -65,7 +65,6 @@ client.once('ready', async () => {
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
 		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
-			console.log('ELO Decayed');
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
 			if (decayed.length > 0) {
@@ -80,6 +79,7 @@ client.once('ready', async () => {
 				for (var c in discord_channels_to_use)
 					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{matchlimit}', config.maximum_weekly_challenges).replaceAll('{players}', decayedStr));
 			}
+			log.info(`${new Date()}: ELO Decayed`);
 		});
 	}
 	// startup complete
