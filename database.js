@@ -194,7 +194,7 @@ exports.getAverageCompetingElo = async () => {
  * @returns {[users]}
  */
 exports.getUsersToDecayElo = async () => {
-	var res = await exports.sql('SELECT id, discord_id, elo_rating FROM users WHERE elo_rating > 0;');
+	var res = await exports.sql('SELECT id, discord_id, elo_rating FROM users WHERE elo_rating > 0 AND competing=true;');
 	var users = [];
 	for (var r in res) {
 		var matches = await exports.getUserLatestMatchesOfPreviousWeek(res[r].id);
