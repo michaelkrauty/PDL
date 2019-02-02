@@ -1094,6 +1094,26 @@ client.on('message', async (message) => {
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
 						break;
+					// top command, shows top 25 competing players by elo
+					case 'top':
+						// get top players
+						var top_players = await db.getTopCompetingPlayers(25);
+						if (!top_players) {
+							message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
+							break;
+						}
+						if (top_players.length > 0) {
+							// construct message
+							var msg = '';
+							for (i = 0; i < top_players.length; i++) {
+								// get player username
+								var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+								msg += `\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+							}
+							message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
+						} else
+							message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
+						break;
 					default:
 						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
 						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
