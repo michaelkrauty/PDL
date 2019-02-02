@@ -116,7 +116,7 @@ exports.createUserInDB = async (discord_id) => {
 	if (average_elo == null || average_elo == 0)
 		average_elo = config.default_starting_elo;
 	var res = await exports.sql(
-		'INSERT INTO users (discord_id, elo_rating) VALUES (?,?);', [discord_id, Math.round(average_elo)]);
+		'INSERT INTO users (discord_id, elo_rating) VALUES (?,?);', [discord_id, average_elo]);
 	return res.length > 0;
 }
 
@@ -173,8 +173,8 @@ exports.getUserDataUsingId = async (user_id) => {
 exports.getAverageElo = async () => {
 	var res = await exports.sql('SELECT AVG(elo_rating) AS elo_rating FROM users;');
 	if (res.length > 0)
-		return res[0].elo_rating;
-	return false;
+		return Math.round(res[0].elo_rating);
+	return Math.round(config.default_starting_elo);
 }
 
 /**
@@ -185,8 +185,8 @@ exports.getAverageElo = async () => {
 exports.getAverageCompetingElo = async () => {
 	var res = await exports.sql('SELECT AVG(elo_rating) AS avg FROM users WHERE competing=true;');
 	if (res.length > 0)
-		return res[0].avg;
-	return config.default_starting_elo;
+		return Math.round(res[0].avg);
+	return Math.round(config.default_starting_elo);
 }
 
 /**
