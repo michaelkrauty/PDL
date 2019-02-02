@@ -589,8 +589,8 @@ client.on('message', async (message) => {
 								// calculate new elo
 								var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
 								// new players' elo, plus bonus elo as defined in the config
-								var newPlayerElo = eloCalculation.new_player_elo + config.bonus_elo;
-								var newOpponentElo = eloCalculation.new_opponent_elo + config.bonus_elo;
+								var newPlayerElo = eloCalculation.new_player_elo;
+								var newOpponentElo = eloCalculation.new_opponent_elo;
 								// set players' new elo rating
 								await db.setUserEloRating(match.player_id, newPlayerElo);
 								await db.setUserEloRating(match.opponent_id, newOpponentElo);
