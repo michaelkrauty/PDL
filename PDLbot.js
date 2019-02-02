@@ -1108,7 +1108,13 @@ client.on('message', async (message) => {
 							for (i = 0; i < top_players.length; i++) {
 								// get player username
 								var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+								// get number of confirmed matches
+								var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
+								// strikethrough if player hasn't completed provisional matches
+								if (numMatches && numMatches.length >= config.provisional_matches)
 								msg += `\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+								else
+									msg += `~~\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`~~\n`;
 							}
 							message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
 						} else
@@ -1489,6 +1495,7 @@ async function decayInactiveElo(amount) {
 	for (var u in toDecay) {
 		let user = toDecay[u];
 		let newElo = user.elo_rating - amount;
+		// set decayed user elo
 		await db.setUserEloRating(user.id, newElo);
 		// get player username
 		var player_username = await getDiscordUsernameFromDiscordId(user.discord_id);
