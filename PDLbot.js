@@ -297,7 +297,7 @@ client.on('message', async (message) => {
 			var averageElo = await db.getAverageCompetingElo();
 			// set the user's elo to average if above average
 			if (user.elo_rating > averageElo)
-				await db.setUserEloRating(user.id, config.default_starting_elo);
+				await db.setUserEloRating(user.id, averageElo);
 			// check if competitor role is defined in config
 			if (config.competitor_role_name != null && config.competitor_role_name != '') {
 				// get competitor role as defined in config
@@ -589,8 +589,8 @@ client.on('message', async (message) => {
 								// calculate new elo
 								var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
 								// new players' elo, plus bonus elo as defined in the config
-								var newPlayerElo = eloCalculation.new_player_elo + config.bonus_elo;
-								var newOpponentElo = eloCalculation.new_opponent_elo + config.bonus_elo;
+								var newPlayerElo = eloCalculation.new_player_elo;
+								var newOpponentElo = eloCalculation.new_opponent_elo;
 								// set players' new elo rating
 								await db.setUserEloRating(match.player_id, newPlayerElo);
 								await db.setUserEloRating(match.opponent_id, newOpponentElo);
