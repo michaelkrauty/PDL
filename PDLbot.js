@@ -297,7 +297,7 @@ client.on('message', async (message) => {
 			var averageElo = await db.getAverageCompetingElo();
 			// set the user's elo to average if above average
 			if (user.elo_rating > averageElo)
-				await db.setUserEloRating(user.id, config.default_starting_elo);
+				await db.setUserEloRating(user.id, averageElo);
 			// check if competitor role is defined in config
 			if (config.competitor_role_name != null && config.competitor_role_name != '') {
 				// get competitor role as defined in config
