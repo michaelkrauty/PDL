@@ -1341,6 +1341,7 @@ client.on('message', async (message) => {
 			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
+		case 'leaderboard':
 			if (args.length != 0) break;
 			// get top players
 			var top_players = await db.getTopCompetingPlayers(25);
