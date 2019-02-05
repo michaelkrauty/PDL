@@ -59,7 +59,8 @@ const strings = {
 	could_not_get_top_players: '{user} no top players to show.',
 	no_top_players: '{user} no players to show.',
 	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
-	weekly_elo_decay: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}\nThe following players\' ratings were decayed for not completing a match this week:\n{players}',
+	weekly_challenge_reset: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}',
+	weekly_elo_decay: 'The following players\' ratings were decayed for not completing a match last week:\n{players}',
 	error_one_command_at_a_time: '{user} only one command can be run at a time.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }
