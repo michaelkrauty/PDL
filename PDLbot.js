@@ -67,17 +67,22 @@ client.once('ready', async () => {
 		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
-			if (decayed.length > 0) {
-				// construct player list for message
+			// string to contain decayed players' usernames and old/new elo
 				var decayedStr = '';
+			// construct player list for message
+			if (decayed.length > 0) {
 				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
 				for (var p in decayed) {
-					decayedStr += `\`${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}\`\n`;
-					log.info(`${decayed[p].id}:${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`);
+					let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
+					decayedStr += `\`${decay}\`\n`;
+					log.info(`(USER ${decayed[p].id}):${decay}`);
 				}
+			}
 				// send message to active channels
-				for (var c in discord_channels_to_use)
-					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{matchlimit}', config.maximum_weekly_challenges).replaceAll('{players}', decayedStr));
+			for (var c in discord_channels_to_use) {
+				client.channels.get(discord_channels_to_use[c]).send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
+				if (decayed.length > 0)
+					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
 			}
 			log.info(`${new Date()}: ELO Decayed`);
 		});
@@ -1341,6 +1346,7 @@ client.on('message', async (message) => {
 			break;
 		// top command, shows top 25 competing players by elo
 		case 'top':
+		case 'leaderboard':
 			if (args.length != 0) break;
 			// get top players
 			var top_players = await db.getTopCompetingPlayers(25);
