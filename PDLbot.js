@@ -68,7 +68,7 @@ client.once('ready', async () => {
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
 			// string to contain decayed players' usernames and old/new elo
-				var decayedStr = '';
+			var decayedStr = '';
 			// construct player list for message
 			if (decayed.length > 0) {
 				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
@@ -78,7 +78,7 @@ client.once('ready', async () => {
 					log.info(`(USER ${decayed[p].id}):${decay}`);
 				}
 			}
-				// send message to active channels
+			// send message to active channels
 			for (var c in discord_channels_to_use) {
 				client.channels.get(discord_channels_to_use[c]).send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
 				if (decayed.length > 0)
