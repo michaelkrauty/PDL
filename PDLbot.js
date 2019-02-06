@@ -68,7 +68,7 @@ client.once('ready', async () => {
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
 			// string to contain decayed players' usernames and old/new elo
-				var decayedStr = '';
+			var decayedStr = '';
 			// construct player list for message
 			if (decayed.length > 0) {
 				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
@@ -78,7 +78,7 @@ client.once('ready', async () => {
 					log.info(`(USER ${decayed[p].id}):${decay}`);
 				}
 			}
-				// send message to active channels
+			// send message to active channels
 			for (var c in discord_channels_to_use) {
 				client.channels.get(discord_channels_to_use[c]).send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
 				if (decayed.length > 0)
@@ -209,9 +209,7 @@ client.on('message', async (message) => {
 			break;
 		// help command, shows help dialogue
 		case 'help':
-			msg = strings.help;
-			if (admin) msg += `\n${strings.admin_help}`;
-			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
+			message.channel.send(strings.help.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
@@ -1032,7 +1030,37 @@ client.on('message', async (message) => {
 		case 'admin':
 			// require admin
 			if (!admin) break;
-			if (args.length == 1) {
+			// top command, shows top 25 competing players by elo
+			if (args.length > 0 && args.length < 3 && args[0].toLowerCase() === 'top') {
+				let numPlayers = 25;
+				if (args.length == 2)
+					if (!isNaN(parseInt(args[1])))
+						numPlayers = parseInt(args[1]);
+				// get top players
+				var top_players = await db.getTopCompetingPlayers(numPlayers);
+				if (!top_players) {
+					message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				if (top_players.length > 0) {
+					// construct message
+					var msg = '';
+					for (i = 0; i < top_players.length; i++) {
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+						// get number of confirmed matches
+						var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
+						// strikethrough if player hasn't completed provisional matches
+						if (numMatches && numMatches.length >= config.provisional_matches)
+							msg += `\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+						else
+							msg += `~~\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`~~\n`;
+					}
+					message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
+				} else
+					message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
+				break;
+			} else if (args.length == 1) {
 				switch (args[0]) {
 					// channels command, shows channels being used by bot
 					case 'channels':
@@ -1098,32 +1126,6 @@ client.on('message', async (message) => {
 						var avg = await db.getAverageElo();
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
-						break;
-					// top command, shows top 25 competing players by elo
-					case 'top':
-						// get top players
-						var top_players = await db.getTopCompetingPlayers(25);
-						if (!top_players) {
-							message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
-							break;
-						}
-						if (top_players.length > 0) {
-							// construct message
-							var msg = '';
-							for (i = 0; i < top_players.length; i++) {
-								// get player username
-								var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-								// get number of confirmed matches
-								var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
-								// strikethrough if player hasn't completed provisional matches
-								if (numMatches && numMatches.length >= config.provisional_matches)
-								msg += `\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-								else
-									msg += `~~\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`~~\n`;
-							}
-							message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
-						} else
-							message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 						break;
 					default:
 						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
