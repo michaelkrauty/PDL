@@ -209,9 +209,7 @@ client.on('message', async (message) => {
 			break;
 		// help command, shows help dialogue
 		case 'help':
-			msg = strings.help;
-			if (admin) msg += `\n${strings.admin_help}`;
-			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
+			message.channel.send(strings.help.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
