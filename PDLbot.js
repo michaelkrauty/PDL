@@ -143,7 +143,7 @@ client.on('message', async (message) => {
 		user = await new User(user_id, db, client).init();
 	// create cmd and args variables
 	var args = message.content.substring(1).split(' ');
-	const cmd = args[0];
+	const cmd = args[0].toLocaleLowerCase();
 	args = args.splice(1);
 	// check if user is admin
 	// get admin role
