@@ -396,6 +396,7 @@ client.on('message', async (message) => {
 			break;
 		// oldsr command, shows rank and skill rating (deprecated)
 		case 'oldsr':
+		case 'sr2':
 			if (args.length == 0) {
 				// gets user skill rating
 				// check if user is registered
@@ -439,7 +440,6 @@ client.on('message', async (message) => {
 		case 'rank':
 		case 'skill':
 		case 'sr':
-		case 'sr2':
 			// TODO: add !sr <player>
 			// check if user is registered
 			if (!user) {
