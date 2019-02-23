@@ -441,7 +441,6 @@ exports.getMatch = async (match_id) => {
  * @description get the top x players on the leaderboard
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
- * @todo add rating method
  */
 exports.getTopPlayers = async (amount, rating_method) => {
 	var res = await exports.sql('SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;', amount);
@@ -454,7 +453,6 @@ exports.getTopPlayers = async (amount, rating_method) => {
  * @description get the top x players on the leaderboard
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
- * @todo add rating method
  */
 exports.getTopCompetingPlayers = async (amount, rating_method) => {
 	var res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
@@ -464,10 +462,9 @@ exports.getTopCompetingPlayers = async (amount, rating_method) => {
 }
 
 /**
- * @description get the top x players on the leaderboard
+ * @description get similarly ranked players to the user, amount is how many other users above/below to show
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
- * @todo add rating method
  */
 exports.getNearbyPlayers = async (user_id, amount) => {
 	var res = await exports.sql('SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users WHERE id=? AND competing=true UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.id = ? && users.id != ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
