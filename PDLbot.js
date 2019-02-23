@@ -143,7 +143,7 @@ client.on('message', async (message) => {
 		user = await new User(user_id, db, client).init();
 	// create cmd and args variables
 	var args = message.content.substring(1).split(' ');
-	const cmd = args[0];
+	const cmd = args[0].toLocaleLowerCase();
 	args = args.splice(1);
 	// check if user is admin
 	// get admin role
@@ -155,6 +155,44 @@ client.on('message', async (message) => {
 		user_commands_running.delete(message.id);
 		return;
 	}
+
+	// top command, shows top 100 competing players by elo
+	if (cmd === 'top' && args.length > -1 && args.length < 2) {
+		let numPlayers = 100;
+		// parse amount argument if admin
+		if (admin && args.length == 1 && !isNaN(parseInt(args[0])))
+			numPlayers = parseInt(args[0]);
+		// get top players
+		var top_players = await db.getTopCompetingPlayers(numPlayers);
+		if (!top_players) {
+			message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
+			// remove command message from pending user responses
+			user_commands_running.delete(message.id);
+			return;
+		}
+		if (top_players.length > 0) {
+			// construct message
+			var msg = '';
+			var rank = 1;
+			for (i = 0; i < top_players.length; i++) {
+				// get player username
+				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+				// get number of confirmed matches
+				var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
+				// only show players with enough provisional matches played
+				if (numMatches && numMatches.length >= config.provisional_matches) {
+					msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+					rank++;
+				}
+			}
+			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', top_players.length));
+		} else
+			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
+		// remove command message from pending user responses
+		user_commands_running.delete(message.id);
+		return;
+	}
+
 	switch (cmd) {
 		// version command, shows current bot version
 		case 'version':
@@ -358,6 +396,7 @@ client.on('message', async (message) => {
 			break;
 		// oldsr command, shows rank and skill rating (deprecated)
 		case 'oldsr':
+		case 'sr2':
 			if (args.length == 0) {
 				// gets user skill rating
 				// check if user is registered
@@ -401,7 +440,6 @@ client.on('message', async (message) => {
 		case 'rank':
 		case 'skill':
 		case 'sr':
-		case 'sr2':
 			// TODO: add !sr <player>
 			// check if user is registered
 			if (!user) {
@@ -1030,37 +1068,7 @@ client.on('message', async (message) => {
 		case 'admin':
 			// require admin
 			if (!admin) break;
-			// top command, shows top 25 competing players by elo
-			if (args.length > 0 && args.length < 3 && args[0].toLowerCase() === 'top') {
-				let numPlayers = 25;
-				if (args.length == 2)
-					if (!isNaN(parseInt(args[1])))
-						numPlayers = parseInt(args[1]);
-				// get top players
-				var top_players = await db.getTopCompetingPlayers(numPlayers);
-				if (!top_players) {
-					message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
-					break;
-				}
-				if (top_players.length > 0) {
-					// construct message
-					var msg = '';
-					for (i = 0; i < top_players.length; i++) {
-						// get player username
-						var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-						// get number of confirmed matches
-						var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
-						// strikethrough if player hasn't completed provisional matches
-						if (numMatches && numMatches.length >= config.provisional_matches)
-							msg += `\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-						else
-							msg += `~~\`${(i + 1)}. ${player_username}: ${top_players[i].elo_rating}\`~~\n`;
-					}
-					message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
-				} else
-					message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
-				break;
-			} else if (args.length == 1) {
+			if (args.length == 1) {
 				switch (args[0]) {
 					// channels command, shows channels being used by bot
 					case 'channels':
@@ -1345,34 +1353,6 @@ client.on('message', async (message) => {
 					default: break;
 				}
 			}
-			break;
-		// top command, shows top 25 competing players by elo
-		case 'top':
-		case 'leaderboard':
-			if (args.length != 0) break;
-			// get top players
-			var top_players = await db.getTopCompetingPlayers(25);
-			if (!top_players) {
-				message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
-				break;
-			}
-			var players = [];
-			for (var p in top_players) {
-				var numMatches = await db.getUserNumConfirmedMatches(top_players[p].id);
-				if (numMatches && numMatches.length >= config.provisional_matches)
-					players.push(top_players[p]);
-			}
-			if (players.length > 0) {
-				// construct message
-				var msg = '';
-				for (i = 0; i < players.length; i++) {
-					// get player username
-					var player_username = await getDiscordUsernameFromDiscordId(players[i].discord_id);
-					msg += `\`${(i + 1)}. ${player_username}: ${players[i].elo_rating}\`\n`;
-				}
-				message.channel.send(strings.top_players.replaceAll('{top_players}', msg));
-			} else
-				message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 			break;
 	}
 	// remove command message from pending user responses
