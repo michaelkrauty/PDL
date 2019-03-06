@@ -174,6 +174,7 @@ client.on('message', async (message) => {
 			// construct message
 			var msg = '';
 			var rank = 1;
+			var num_players = 0;
 			for (i = 0; i < top_players.length; i++) {
 				// get player username
 				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
@@ -183,9 +184,10 @@ client.on('message', async (message) => {
 				if (numMatches && numMatches.length >= config.provisional_matches) {
 					msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
 					rank++;
+					num_players++;
 				}
 			}
-			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', top_players.length));
+			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', num_players));
 		} else
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 		// remove command message from pending user responses
