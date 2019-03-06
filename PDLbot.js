@@ -178,15 +178,10 @@ client.on('message', async (message) => {
 			for (i = 0; i < top_players.length; i++) {
 				// get player username
 				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-				// get number of confirmed matches
-				var numMatches = await db.getUserNumConfirmedMatches(top_players[i].id);
-				// only show players with enough provisional matches played
-				if (numMatches && numMatches.length >= config.provisional_matches) {
 					msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
 					rank++;
 					num_players++;
 				}
-			}
 			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', num_players));
 		} else
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
@@ -457,10 +452,10 @@ client.on('message', async (message) => {
 			}
 			// check if user has played enough provisional matches to show elo
 			var numMatches = await db.getUserNumConfirmedMatches(user.id);
-			if (!numMatches || numMatches.length < config.provisional_matches) {
+			if (!numMatches || numMatches < config.provisional_matches) {
 				if (!numMatches)
 					numMatches = [];
-				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches.length).replaceAll('{provisional_matches}', config.provisional_matches));
+				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
 				break;
 			}
 			// get player and nearby players

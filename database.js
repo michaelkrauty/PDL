@@ -421,7 +421,7 @@ exports.getUserLatestMatchesOfPreviousWeek = async (user_id) => {
 exports.getUserNumConfirmedMatches = async (user_id) => {
 	var res = await exports.sql('SELECT * FROM matches WHERE ((player_id=? OR opponent_id=?) AND confirmed=true) ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
-		return res;
+		return res.length;
 	return false;
 }
 
@@ -454,10 +454,48 @@ exports.getTopPlayers = async (amount, rating_method) => {
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
  */
-exports.getTopCompetingPlayers = async (amount, rating_method) => {
+exports.getTopCompetingPlayers = async (amount) => {
+	// get top x players by elo rating
 	var res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
-	if (res.length > 0)
-		return res;
+	// loop through retrieved players and sort out the ones without enough matches
+	var players = [];
+	for (var i in res) {
+		// get number of confirmed matches
+		var numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
+		// only show players with enough provisional matches played
+		if (numMatches && numMatches >= config.provisional_matches) {
+			players.push(res[i]);
+		}
+	}
+	if (players.length < amount) {
+		var loop = true;
+		var offset = amount;
+		// loop until we get enough competing users or run out of user entries
+		while (loop) {
+			// break the loop if we already have the specified amount of players
+			if (players.length >= amount) {
+				loop = false;
+				break;
+			}
+			var p = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT 1 OFFSET ?;', offset);
+			offset++;
+			// break the loop if no player was retrieved (we ran out of players)
+			if (!p || p.length < 1) {
+				loop = false;
+				break;
+			}
+			else {
+				// get number of confirmed matches
+				var numMatches = await exports.getUserNumConfirmedMatches(p[0].id);
+				// only show players with enough provisional matches played
+				if (numMatches && numMatches >= config.provisional_matches) {
+					players.push(p[0]);
+				}
+			}
+		}
+	}
+	if (players.length > 0)
+		return players;
 	return false;
 }
 
