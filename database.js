@@ -28,7 +28,7 @@ module.exports.connect = function () {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
-		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `users`');
@@ -235,42 +235,6 @@ exports.getUserEloRanking = async (user_id) => {
 }
 
 /**
- * @description get user's glicko2 rating
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_rating: int}
- */
-exports.getUserGlicko2Rating = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_rating FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_rating;
-	return false;
-}
-
-/**
- * @description get user's glicko2 deviation
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_deviation: int}
- */
-exports.getUserGlicko2Deviation = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_deviation FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_deviation;
-	return false;
-}
-
-/**
- * @description get user's glicko2 volatility
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_volatility: int}
- */
-exports.getUserGlicko2Volatility = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_volatility FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_volatility;
-	return false;
-}
-
-/**
  * @description set user's ELO ranking
  * @param {int} user_id the user's id
  * @param {int} elo the user's new ELO ranking
@@ -442,7 +406,7 @@ exports.getMatch = async (match_id) => {
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
  */
-exports.getTopPlayers = async (amount, rating_method) => {
+exports.getTopPlayers = async (amount) => {
 	var res = await exports.sql('SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;', amount);
 	if (res.length > 0)
 		return res;

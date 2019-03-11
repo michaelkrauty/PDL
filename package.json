@@ -13,8 +13,6 @@
 		"BigInt": "^5.5.3",
 		"discord.js": "^11.4.2",
 		"elo-rating": "^1.0.1",
-		"glicko2": "^0.8.4",
-		"glicko2-lite": "^1.0.1",
 		"mysql": "^2.16.0",
 		"node-schedule": "^1.3.1",
 		"winston": "^3.1.0"
