@@ -415,23 +415,30 @@ exports.getTopPlayers = async (amount) => {
 
 /**
  * @description get the top x players on the leaderboard
- * @param {int} amount the amount of top players to retrieve
+ * @param {int} amount the amount of top players to retrieve. If -1, all top competing players will be retrieved.
  * @returns {success: boolean, players: []}
  */
 exports.getTopCompetingPlayers = async (amount) => {
-	// get top x players by elo rating
-	var res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
+	// get top x players by elo rating. If amount is -1, get all top competing players.
+	var res;
+	if (amount == -1)
+		res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC;');
+	else
+		res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
 	// loop through retrieved players and sort out the ones without enough matches
 	var players = [];
 	for (var i in res) {
-		// get number of confirmed matches
-		var numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
-		// only show players with enough provisional matches played
-		if (numMatches && numMatches >= config.provisional_matches) {
+		// get number of confirmed matches if amount != -1
+		var numMatches = 0;
+		if (amount != -1)
+			numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
+		// only show players with enough provisional matches played if amount != -1
+		if (numMatches && numMatches >= config.provisional_matches || amount == -1)
 			players.push(res[i]);
-		}
 	}
-	if (players.length < amount) {
+	// if the amount of players in the array is less than the requested amount, contine retrieving players
+	// if amount is -1, all competing players have already been retrieved.
+	if (players.length < amount && amount != -1) {
 		var loop = true;
 		var offset = amount;
 		// loop until we get enough competing users or run out of user entries
@@ -441,14 +448,15 @@ exports.getTopCompetingPlayers = async (amount) => {
 				loop = false;
 				break;
 			}
+			// retrieve the next player
 			var p = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT 1 OFFSET ?;', offset);
 			offset++;
 			// break the loop if no player was retrieved (we ran out of players)
+			// else, check if the retrieved player has completed all provisional matches and add them to the players array if they have
 			if (!p || p.length < 1) {
 				loop = false;
 				break;
-			}
-			else {
+			} else {
 				// get number of confirmed matches
 				var numMatches = await exports.getUserNumConfirmedMatches(p[0].id);
 				// only show players with enough provisional matches played
