@@ -63,6 +63,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
+		// job runs 59 seconds after 12am Monday
 		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
@@ -177,10 +178,10 @@ client.on('message', async (message) => {
 			for (i = 0; i < top_players.length; i++) {
 				// get player username
 				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-					msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-					rank++;
-					num_players++;
-				}
+				msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+				rank++;
+				num_players++;
+			}
 			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', num_players));
 		} else
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
