@@ -28,7 +28,7 @@ module.exports.connect = function () {
 			if (err) throw err;
 		});
 		// create DB tables if they don't already exist
-		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), glicko2_rating int not null default 1500, glicko2_deviation int not null default 350, glicko2_volatility float not null default 0.06, elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
+		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `users`');
@@ -235,42 +235,6 @@ exports.getUserEloRanking = async (user_id) => {
 }
 
 /**
- * @description get user's glicko2 rating
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_rating: int}
- */
-exports.getUserGlicko2Rating = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_rating FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_rating;
-	return false;
-}
-
-/**
- * @description get user's glicko2 deviation
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_deviation: int}
- */
-exports.getUserGlicko2Deviation = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_deviation FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_deviation;
-	return false;
-}
-
-/**
- * @description get user's glicko2 volatility
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, glicko2_volatility: int}
- */
-exports.getUserGlicko2Volatility = async (user_id) => {
-	var res = await exports.sql('SELECT glicko2_volatility FROM users WHERE id=?;', user_id);
-	if (res.length > 0)
-		return res[0].glicko2_volatility;
-	return false;
-}
-
-/**
  * @description set user's ELO ranking
  * @param {int} user_id the user's id
  * @param {int} elo the user's new ELO ranking
@@ -442,7 +406,7 @@ exports.getMatch = async (match_id) => {
  * @param {int} amount the amount of top players to retrieve
  * @returns {success: boolean, players: []}
  */
-exports.getTopPlayers = async (amount, rating_method) => {
+exports.getTopPlayers = async (amount) => {
 	var res = await exports.sql('SELECT * FROM users ORDER BY elo_rating DESC LIMIT ?;', amount);
 	if (res.length > 0)
 		return res;
@@ -451,23 +415,30 @@ exports.getTopPlayers = async (amount, rating_method) => {
 
 /**
  * @description get the top x players on the leaderboard
- * @param {int} amount the amount of top players to retrieve
+ * @param {int} amount the amount of top players to retrieve. If -1, all top competing players will be retrieved.
  * @returns {success: boolean, players: []}
  */
 exports.getTopCompetingPlayers = async (amount) => {
-	// get top x players by elo rating
-	var res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
+	// get top x players by elo rating. If amount is -1, get all top competing players.
+	var res;
+	if (amount == -1)
+		res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC;');
+	else
+		res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
 	// loop through retrieved players and sort out the ones without enough matches
 	var players = [];
 	for (var i in res) {
-		// get number of confirmed matches
-		var numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
-		// only show players with enough provisional matches played
-		if (numMatches && numMatches >= config.provisional_matches) {
+		// get number of confirmed matches if amount != -1
+		var numMatches = 0;
+		if (amount != -1)
+			numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
+		// only show players with enough provisional matches played if amount != -1
+		if (numMatches && numMatches >= config.provisional_matches || amount == -1)
 			players.push(res[i]);
-		}
 	}
-	if (players.length < amount) {
+	// if the amount of players in the array is less than the requested amount, contine retrieving players
+	// if amount is -1, all competing players have already been retrieved.
+	if (players.length < amount && amount != -1) {
 		var loop = true;
 		var offset = amount;
 		// loop until we get enough competing users or run out of user entries
@@ -477,14 +448,15 @@ exports.getTopCompetingPlayers = async (amount) => {
 				loop = false;
 				break;
 			}
+			// retrieve the next player
 			var p = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT 1 OFFSET ?;', offset);
 			offset++;
 			// break the loop if no player was retrieved (we ran out of players)
+			// else, check if the retrieved player has completed all provisional matches and add them to the players array if they have
 			if (!p || p.length < 1) {
 				loop = false;
 				break;
-			}
-			else {
+			} else {
 				// get number of confirmed matches
 				var numMatches = await exports.getUserNumConfirmedMatches(p[0].id);
 				// only show players with enough provisional matches played

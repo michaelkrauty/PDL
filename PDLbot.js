@@ -14,9 +14,8 @@ const package = require('./package.json');
 
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
-const RatingMethod = { ELO: 0, GLICKO2_LIVE: 1, GLICKO2_SCHEDULE: 2 };
 const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', WIN_CONFIRM: '✅', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
-exports = MatchResult, RatingMethod;
+exports = MatchResult;
 
 // runtime variables
 var discord_channels_to_use;
@@ -64,6 +63,7 @@ client.once('ready', async () => {
 	await db.connect();
 	// setup weekly elo decay job, if enabled
 	if (config.weekly_elo_decay) {
+		// job runs 59 seconds after 12am Monday
 		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
 			// decay inactive users and get a list of users whose elo has been decayed
 			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
@@ -178,13 +178,32 @@ client.on('message', async (message) => {
 			for (i = 0; i < top_players.length; i++) {
 				// get player username
 				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-					msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-					rank++;
-					num_players++;
-				}
+				msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+				rank++;
+				num_players++;
+			}
 			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', num_players));
 		} else
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
+		// remove command message from pending user responses
+		user_commands_running.delete(message.id);
+		return;
+	}
+
+	if (cmd === 'matchups' && admin) {
+		var msg = `**__Suggested matchups for this week:__**\n`;
+		// loop through all competing players
+		var players = await db.getTopCompetingPlayers(-1);
+		for (var i = 0; i < players.length; i++) {
+			var p1 = players[i];
+			var p2 = players[i + 1];
+			// if p2 is null, p1 is the last player in the list
+			if (p2 != null)
+				msg += `${tag(p1.discord_id)} vs. ${tag(p2.discord_id)}\n`;
+			// skip ahead one player, since we just listed them.
+			i++;
+		}
+		message.channel.send(msg);
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
