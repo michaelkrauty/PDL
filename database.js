@@ -41,7 +41,7 @@ module.exports.connect = function () {
 		await con.query('CREATE TABLE IF NOT EXISTS matchups (id tinyint primary key auto_increment, matchups longtext);', function (err, res) {
 			if (err) throw err;
 			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `matches`');
+				log.info('Created MySQL table `matchups`');
 		});
 		// end connection to database
 		await con.end();
