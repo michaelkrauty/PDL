@@ -1,6 +1,6 @@
 {
 	"name": "PDL-bot",
-	"version": "0.4.18",
+	"version": "0.4.19",
 	"description": "Pavlov Duel League bot",
 	"license": "MIT",
 	"author": "scorched",
@@ -14,7 +14,7 @@
 		"discord.js": "^11.4.2",
 		"elo-rating": "^1.0.1",
 		"mysql": "^2.16.0",
-		"node-schedule": "^1.3.1",
-		"winston": "^3.1.0"
+		"node-schedule": "^1.3.2",
+		"winston": "^3.2.1"
 	}
 }

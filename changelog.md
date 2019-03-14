@@ -1,3 +1,7 @@
+v0.4.19
+- generated weekly matchups are now stored in the database
+- !matchups does not generate matchups, instead it gets the generated matchups for that week from the database.
+
 v0.4.18
 - enabled weekly matchup announcement
 - !matchups no longer tags users, only the weekly matchup announcement tags users.
