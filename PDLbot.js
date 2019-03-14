@@ -214,20 +214,8 @@ client.on('message', async (message) => {
 		return;
 	}
 
-	if (cmd === 'matchups' && admin) {
-		var msg = `**__Suggested matchups for this week:__**\n`;
-		// loop through all competing players
-		var players = await db.getTopCompetingPlayers(-1);
-		for (var i = 0; i < players.length; i++) {
-			var p1 = players[i];
-			var p2 = players[i + 1];
-			// if p2 is null, p1 is the last player in the list
-			if (p2 != null)
-				msg += `${tag(p1.discord_id)} vs. ${tag(p2.discord_id)}\n`;
-			// skip ahead one player, since we just listed them.
-			i++;
-		}
-		message.channel.send(msg);
+	if (cmd === 'matchups') {
+		await suggestMatchups(message.channel, false);
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
