@@ -215,15 +215,6 @@ client.on('message', async (message) => {
 			message.channel.send(`v${package.version}`);
 			break;
 		// TODO: remove this command before release, for debug only
-		// say command, makes the bot say a message
-		case 'say':
-			// construct and send message
-			var msg = '';
-			for (i = 0; i < args.length; i++)
-				(i - 1 < args.length) ? msg += `${args[i]} ` : msg += args[i];
-			message.channel.send(msg);
-			break;
-		// TODO: remove this command before release, for debug only
 		// debug command, displays user data
 		case 'debug':
 			// mention
