@@ -61,6 +61,9 @@ const strings = {
 	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
 	weekly_challenge_reset: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}',
 	weekly_elo_decay: 'The following players\' ratings were decayed for not completing a match last week:\n{players}',
+	suggested_matchups_message: '**__Suggested matchups for this week:__**\n',
+	suggested_matchups_playerlist_tag: '{player1} vs. {player2}\n',
+	suggested_matchups_playerlist: '`{player1} vs. {player2}`\n',
 	error_one_command_at_a_time: '{user} only one command can be run at a time.',
 	generic_error: '{user} something went wrong, an admin has been notified.'
 }

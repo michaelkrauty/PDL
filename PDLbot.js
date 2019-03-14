@@ -97,6 +97,20 @@ client.once('ready', async () => {
 			log.info(`${new Date()}: ELO Decayed`);
 		});
 	}
+	// setup weekly matchup suggestions, if enabled
+	if (config.suggested_weekly_matchups_channel != '0') {
+		// job runs at 1pm EST on Monday
+		schedule.scheduleJob('WeeklyMatchups', '0 0 13 * * 1', async () => {
+			// get the channel
+			var channel = guild.channels.get(config.suggested_weekly_matchups_channel);
+			// check if the channel exists
+			if (channel != null)
+				// check if welcome message is set
+				if (strings.welcome_message != '')
+					// send welcome message
+					suggestMatchups(channel, true);
+		});
+	}
 	// startup complete
 	started = true;
 	log.info(`${client.user.username} startup complete!`);
@@ -1513,4 +1527,32 @@ async function decayInactiveElo(amount) {
 async function getDiscordUsernameFromDiscordId(discord_id) {
 	var user = await client.fetchUser(discord_id);
 	return user.username;
+}
+
+async function suggestMatchups(channel, tagUsers) {
+	// compose matchups message
+	var msg = strings.suggested_matchups_message;
+	// loop through all competing players
+	var players = await db.getTopCompetingPlayers(-1);
+	// leave out the odd player out
+	if (config.suggested_matchups_odd_player != 0 && players.length % 2 != 0)
+		for (var p in players)
+			if (players[p].discord_id == config.suggested_matchups_odd_player_out)
+				players.splice(p, 1);
+	// loop through competing players
+	for (var i = 0; i < players.length; i++) {
+		var p1 = players[i];
+		var p2 = players[i + 1];
+		// ensure the players aren't null
+		if (p1 != null && p2 != null) {
+			if (tagUsers)
+				msg += strings.suggested_matchups_playerlist_tag.replaceAll('{player1}', tag(p1.discord_id)).replaceAll('{player2}', tag(p2.discord_id));
+			else
+				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
+		}
+		// skip ahead one player, since we just listed them.
+		i++;
+	}
+	channel.send(msg);
+	return;
 }
