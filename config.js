@@ -1,4 +1,6 @@
 module.exports.config = {
+	// the ID of the discord server (can be found by enabling developer mode in discord (Settings->Appearance->Developer Mode), right clicking on the discord server, and copying the ID here)
+	guild_id: '0',
 	// default starting elo
 	// NOTE: this value only takes effect for the first user to register.
 	default_starting_elo: 1200,

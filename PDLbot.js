@@ -18,15 +18,16 @@ const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', WIN_CONFIR
 exports = MatchResult;
 
 // runtime variables
-var discord_channels_to_use;
-var started = false;
+var discord_channels_to_use,
+	started = false,
+	guild;
 
 // configure logger settings
 log.remove(log.transports.Console);
 log.add(new log.transports.Console, { colorize: true });
 log.level = 'debug';
 
-// initialize Discord bot
+// initialize discord client
 const client = new discord.Client();
 client.login(config_db.bot_token).catch((err) => {
 	log.error('Could not connect to discord servers:');
@@ -36,6 +37,15 @@ client.login(config_db.bot_token).catch((err) => {
 // called when the bot starts up
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
+	// set guild based on guild id in config
+	let g = await client.guilds.get(config.guild_id);
+	if (g != null) {
+		guild = g;
+	} else {
+		log.error(`Could not find discord guild with guild ID specified in config.js, shutting down.`);
+		client.destroy();
+		process.exit(1);
+	}
 	// add bot version to bot name, if enabled
 	if (config.enable_version_in_bot_name) {
 		let cName = client.user.username;
