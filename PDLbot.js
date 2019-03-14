@@ -108,7 +108,7 @@ client.once('ready', async () => {
 				// check if welcome message is set
 				if (strings.welcome_message != '')
 					// send welcome message
-					suggestMatchups(channel, true);
+					suggestMatchups(channel, true, true);
 		});
 	}
 	// startup complete
@@ -215,7 +215,20 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'matchups') {
-		await suggestMatchups(message.channel, false);
+		var players = await db.getWeeklyMatchups();
+		// compose matchups message
+		var msg = strings.suggested_matchups_message;
+		// loop through competing players
+		for (var i = 0; i < players.length; i++) {
+			var p1 = players[i];
+			var p2 = players[i + 1];
+			// ensure the players aren't null
+			if (p1 != null && p2 != null)
+				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
+			// skip ahead one player, since we just listed them.
+			i++;
+		}
+		message.channel.send(msg);
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
@@ -1517,7 +1530,9 @@ async function getDiscordUsernameFromDiscordId(discord_id) {
 	return user.username;
 }
 
-async function suggestMatchups(channel, tagUsers) {
+async function suggestMatchups(channel, tagUsers, save) {
+	// array to store players in if we are saving this player list
+	var saveList = [];
 	// compose matchups message
 	var msg = strings.suggested_matchups_message;
 	// loop through all competing players
@@ -1537,10 +1552,17 @@ async function suggestMatchups(channel, tagUsers) {
 				msg += strings.suggested_matchups_playerlist_tag.replaceAll('{player1}', tag(p1.discord_id)).replaceAll('{player2}', tag(p2.discord_id));
 			else
 				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
+			// add the players to the save list
+			if (save) {
+				saveList.push({ id: p1.id, discord_id: p1.discord_id });
+				saveList.push({ id: p2.id, discord_id: p2.discord_id });
+			}
 		}
 		// skip ahead one player, since we just listed them.
 		i++;
 	}
+	if (save)
+		await db.saveWeeklyMatchups(saveList);
 	channel.send(msg);
 	return;
 }

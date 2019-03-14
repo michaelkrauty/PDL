@@ -38,6 +38,11 @@ module.exports.connect = function () {
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matches`');
 		});
+		await con.query('CREATE TABLE IF NOT EXISTS matchups (id tinyint primary key auto_increment, matchups longtext);', function (err, res) {
+			if (err) throw err;
+			if (res['warningCount'] == 0)
+				log.info('Created MySQL table `matches`');
+		});
 		// end connection to database
 		await con.end();
 		// create mysql connection pool
@@ -480,5 +485,30 @@ exports.getNearbyPlayers = async (user_id, amount) => {
 	var res = await exports.sql('SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users WHERE id=? AND competing=true UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating = s.elo_rating WHERE s.id = ? && users.id != ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating < s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating DESC LIMIT ?) UNION ALL (SELECT users.id, users.discord_id, users.elo_rating, users.competing FROM users INNER JOIN users s ON users.elo_rating > s.elo_rating WHERE s.id = ? && users.competing=true ORDER BY users.elo_rating LIMIT ?);', [user_id, user_id, user_id, amount * 2, user_id, amount, user_id, amount]);
 	if (res.length > 0)
 		return res;
+	return false;
+}
+
+/**
+ * @description save weekly matchups in the database
+ */
+exports.saveWeeklyMatchups = async (matchups) => {
+	var query = await exports.sql('SELECT id FROM matchups WHERE id=1;');
+	var res;
+	if (query.length > 0)
+		res = await exports.sql('UPDATE matchups SET matchups=? WHERE id=1;', JSON.stringify(matchups));
+	else
+		res = await exports.sql('INSERT INTO matchups (matchups) VALUES (?);', JSON.stringify(matchups));
+	return res.length > 0;
+}
+
+/**
+ * @description save weekly matchups in the database
+ */
+exports.getWeeklyMatchups = async () => {
+	var res = await exports.sql('SELECT matchups FROM matchups WHERE id=1;');
+	if (res.length > 0) {
+		var arr = JSON.parse(res[0].matchups);
+		return arr;
+	}
 	return false;
 }
