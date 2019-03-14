@@ -18,15 +18,16 @@ const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', WIN_CONFIR
 exports = MatchResult;
 
 // runtime variables
-var discord_channels_to_use;
-var started = false;
+var discord_channels_to_use,
+	started = false,
+	guild;
 
 // configure logger settings
 log.remove(log.transports.Console);
 log.add(new log.transports.Console, { colorize: true });
 log.level = 'debug';
 
-// initialize Discord bot
+// initialize discord client
 const client = new discord.Client();
 client.login(config_db.bot_token).catch((err) => {
 	log.error('Could not connect to discord servers:');
@@ -36,6 +37,15 @@ client.login(config_db.bot_token).catch((err) => {
 // called when the bot starts up
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
+	// set guild based on guild id in config
+	let g = await client.guilds.get(config.guild_id);
+	if (g != null) {
+		guild = g;
+	} else {
+		log.error(`Could not find discord guild with guild ID specified in config.js, shutting down.`);
+		client.destroy();
+		process.exit(1);
+	}
 	// add bot version to bot name, if enabled
 	if (config.enable_version_in_bot_name) {
 		let cName = client.user.username;
@@ -85,6 +95,20 @@ client.once('ready', async () => {
 					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
 			}
 			log.info(`${new Date()}: ELO Decayed`);
+		});
+	}
+	// setup weekly matchup suggestions, if enabled
+	if (config.suggested_weekly_matchups_channel != '0') {
+		// job runs at 1pm EST on Monday
+		schedule.scheduleJob('WeeklyMatchups', '0 0 13 * * 1', async () => {
+			// get the channel
+			var channel = guild.channels.get(config.suggested_weekly_matchups_channel);
+			// check if the channel exists
+			if (channel != null)
+				// check if welcome message is set
+				if (strings.welcome_message != '')
+					// send welcome message
+					suggestMatchups(channel, true);
 		});
 	}
 	// startup complete
@@ -190,20 +214,8 @@ client.on('message', async (message) => {
 		return;
 	}
 
-	if (cmd === 'matchups' && admin) {
-		var msg = `**__Suggested matchups for this week:__**\n`;
-		// loop through all competing players
-		var players = await db.getTopCompetingPlayers(-1);
-		for (var i = 0; i < players.length; i++) {
-			var p1 = players[i];
-			var p2 = players[i + 1];
-			// if p2 is null, p1 is the last player in the list
-			if (p2 != null)
-				msg += `${tag(p1.discord_id)} vs. ${tag(p2.discord_id)}\n`;
-			// skip ahead one player, since we just listed them.
-			i++;
-		}
-		message.channel.send(msg);
+	if (cmd === 'matchups') {
+		await suggestMatchups(message.channel, false);
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
@@ -213,15 +225,6 @@ client.on('message', async (message) => {
 		// version command, shows current bot version
 		case 'version':
 			message.channel.send(`v${package.version}`);
-			break;
-		// TODO: remove this command before release, for debug only
-		// say command, makes the bot say a message
-		case 'say':
-			// construct and send message
-			var msg = '';
-			for (i = 0; i < args.length; i++)
-				(i - 1 < args.length) ? msg += `${args[i]} ` : msg += args[i];
-			message.channel.send(msg);
 			break;
 		// TODO: remove this command before release, for debug only
 		// debug command, displays user data
@@ -1512,4 +1515,32 @@ async function decayInactiveElo(amount) {
 async function getDiscordUsernameFromDiscordId(discord_id) {
 	var user = await client.fetchUser(discord_id);
 	return user.username;
+}
+
+async function suggestMatchups(channel, tagUsers) {
+	// compose matchups message
+	var msg = strings.suggested_matchups_message;
+	// loop through all competing players
+	var players = await db.getTopCompetingPlayers(-1);
+	// leave out the odd player out
+	if (config.suggested_matchups_odd_player != 0 && players.length % 2 != 0)
+		for (var p in players)
+			if (players[p].discord_id == config.suggested_matchups_odd_player_out)
+				players.splice(p, 1);
+	// loop through competing players
+	for (var i = 0; i < players.length; i++) {
+		var p1 = players[i];
+		var p2 = players[i + 1];
+		// ensure the players aren't null
+		if (p1 != null && p2 != null) {
+			if (tagUsers)
+				msg += strings.suggested_matchups_playerlist_tag.replaceAll('{player1}', tag(p1.discord_id)).replaceAll('{player2}', tag(p2.discord_id));
+			else
+				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
+		}
+		// skip ahead one player, since we just listed them.
+		i++;
+	}
+	channel.send(msg);
+	return;
 }
