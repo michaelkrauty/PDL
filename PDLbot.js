@@ -489,7 +489,7 @@ client.on('message', async (message) => {
 			var numMatches = await db.getUserNumConfirmedMatches(user.id);
 			if (!numMatches || numMatches < config.provisional_matches) {
 				if (!numMatches)
-					numMatches = [];
+					numMatches = 0;
 				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
 				break;
 			}
