@@ -489,7 +489,7 @@ client.on('message', async (message) => {
 			var numMatches = await db.getUserNumConfirmedMatches(user.id);
 			if (!numMatches || numMatches < config.provisional_matches) {
 				if (!numMatches)
-					numMatches = [];
+					numMatches = 0;
 				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
 				break;
 			}
@@ -650,7 +650,6 @@ client.on('message', async (message) => {
 							await r.message.react(ReactionEmoji.LOSS);
 						} else {
 							// the match was confirmed
-							if (config.rating_method == RatingMethod.ELO) {
 								// get player's elo rating
 								var playerElo = await db.getUserEloRating(match.player_id);
 								if (!playerElo)
@@ -708,7 +707,6 @@ client.on('message', async (message) => {
 									.replaceAll('{new_player_elo}', newPlayerElo)
 									.replaceAll('{old_opponent_elo}', opponentElo)
 									.replaceAll('{new_opponent_elo}', newOpponentElo));
-							}
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from the map where the value is the message author id

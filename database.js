@@ -388,7 +388,7 @@ exports.getUserLatestMatchesOfPreviousWeek = async (user_id) => {
  * @returns {success: boolean, match: []}
  */
 exports.getUserNumConfirmedMatches = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE ((player_id=? OR opponent_id=?) AND confirmed=true) ORDER BY id ASC;', [user_id, user_id]);
+	var res = await exports.sql('SELECT id FROM matches WHERE ((player_id=? OR opponent_id=?) AND confirmed=true) ORDER BY id ASC;', [user_id, user_id]);
 	if (res.length > 0)
 		return res.length;
 	return false;
