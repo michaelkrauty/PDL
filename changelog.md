@@ -1,3 +1,7 @@
+v0.4.20
+- fixed bug in !elo showing (/6) matches instead of (0/6) matches
+- fixed bug in !confirm preventing matches from being confirmed
+
 v0.4.19
 - generated weekly matchups are now stored in the database
 - !matchups does not generate matchups, instead it gets the generated matchups for that week from the database.
