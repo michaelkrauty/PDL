@@ -1155,16 +1155,16 @@ client.on('message', async (message) => {
 							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
 						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
-					// unrecognized command shows admin help
-					default:
-						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
-						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
-						break;
 					// show average elo
 					case 'avg':
 						var avg = await db.getAverageElo();
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
+						break;
+					// unrecognized command shows admin help
+					default:
+						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
+						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 						break;
 				}
 				break;
@@ -1556,7 +1556,7 @@ async function suggestMatchups(channel, tagUsers, save) {
 			if (players[p].discord_id == config.suggested_matchups_odd_player_out)
 				players.splice(p, 1);
 	// loop through competing players
-	for (var i = 0; i < players.length; i++) {
+	for (var i = 0; i < players.length; i += 2) {
 		var p1 = players[i];
 		var p2 = players[i + 1];
 		// ensure the players aren't null
@@ -1571,8 +1571,6 @@ async function suggestMatchups(channel, tagUsers, save) {
 				saveList.push({ id: p2.id, discord_id: p2.discord_id });
 			}
 		}
-		// skip ahead one player, since we just listed them.
-		i++;
 	}
 	if (save)
 		await db.saveWeeklyMatchups(saveList);
