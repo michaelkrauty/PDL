@@ -1155,21 +1155,19 @@ client.on('message', async (message) => {
 							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
 						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
-					// help command, shows admin help
-					case 'help':
+					// unrecognized command shows admin help
+					default:
 						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
 						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 						break;
+					// show average elo
 					case 'avg':
 						var avg = await db.getAverageElo();
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
 						break;
-					default:
-						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
-						message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
-						break;
 				}
+				break;
 			} else if (args.length == 2) {
 				// get match
 				var match = await db.getMatch(args[1]);
@@ -1383,6 +1381,8 @@ client.on('message', async (message) => {
 					default: break;
 				}
 			}
+			msg = `${tag(message.author.id)}\n${strings.admin_help}`;
+			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
 			break;
 	}
 	// remove command message from pending user responses
