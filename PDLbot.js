@@ -883,7 +883,7 @@ client.on('message', async (message) => {
 					else
 						unconfirmed_matches.push(user_matches[n]);
 				}
-				var str = strings.matches_dialogue
+				var str = strings.matches_dialogue_other
 					.replaceAll('{user}', tag(message.author.id))
 					.replaceAll('{target}', mention.username)
 					.replaceAll('{num_matches}', confirmed_matches.length + unconfirmed_matches.length)
@@ -1016,7 +1016,10 @@ client.on('message', async (message) => {
 				else
 					unconfirmed_matches.push(user_matches[n]);
 			}
-			var str = `${tag(message.author.id)} this week's matches (${confirmed_matches.length + unconfirmed_matches.length}/${config.maximum_weekly_challenges}):\n`;
+			var str = strings.matches_dialogue
+				.replaceAll('{user}', tag(message.author.id))
+				.replaceAll('{num_matches}', confirmed_matches.length + unconfirmed_matches.length)
+				.replaceAll('{num_max_matches}', config.maximum_weekly_challenges);
 			if (unconfirmed_matches.length > 0) {
 				str += strings.matches_unconfirmed;
 				for (var n in unconfirmed_matches) {
