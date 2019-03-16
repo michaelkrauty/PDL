@@ -105,10 +105,8 @@ client.once('ready', async () => {
 			var channel = guild.channels.get(config.suggested_weekly_matchups_channel);
 			// check if the channel exists
 			if (channel != null)
-				// check if welcome message is set
-				if (strings.welcome_message != '')
-					// send welcome message
-					suggestMatchups(channel, true, true);
+				// run matchup suggestion function, which will save the matchups in the database
+				suggestMatchups(channel, true, true);
 		});
 	}
 	// startup complete
