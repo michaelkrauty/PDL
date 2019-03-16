@@ -1097,7 +1097,7 @@ client.on('message', async (message) => {
 						// list channels
 						var msg = '';
 						for (i = 0; i < discord_channels_to_use.length; i++)
-							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+							msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
 						message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
 					// init command, to initialize a channel for use by the bot
@@ -1122,7 +1122,7 @@ client.on('message', async (message) => {
 						// success, list channels
 						var msg = '';
 						for (i = 0; i < discord_channels_to_use.length; i++)
-							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+							msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
 						message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
 					// deinit command, makes the bot stop using a channel
@@ -1144,7 +1144,7 @@ client.on('message', async (message) => {
 						// list channels
 						var msg = '';
 						for (i = 0; i < discord_channels_to_use.length; i++)
-							msg += `${discord_channels_to_use[i]}:${client.channels.get(discord_channels_to_use[i])}\n`;
+							msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
 						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
 					// show average elo
