@@ -315,7 +315,6 @@ client.on('message', async (message) => {
 		case 'challenging':
 			break;
 		// compete command, registers the user in the database and/or enables competing for the user
-		case 'register':
 		case 'compete':
 			// require no arguments
 			if (args.length != 0) {
@@ -353,7 +352,6 @@ client.on('message', async (message) => {
 				message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// quit command, disables competing for the user
-		case 'retire':
 		case 'quit':
 			// check if user is registered
 			if (!user) {
@@ -426,8 +424,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.target_is_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 			}
 			break;
-		// oldsr command, shows rank and skill rating (deprecated)
-		case 'oldsr':
+		// old sr command, shows rank and skill rating (deprecated). Useful for debug
 		case 'sr2':
 			if (args.length == 0) {
 				// gets user skill rating
@@ -468,11 +465,7 @@ client.on('message', async (message) => {
 			break;
 		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
 		case 'elo':
-		case 'rating':
-		case 'rank':
-		case 'skill':
-		case 'sr':
-			// TODO: add !sr <player>
+			// TODO: add !elo <player>
 			// check if user is registered
 			if (!user) {
 				// user is not registered
@@ -534,7 +527,6 @@ client.on('message', async (message) => {
 			break;
 		// confirm command, shows pending match submissions
 		case 'confirm':
-		case 'confirmations':
 			if (args.length == 0) {
 				// show pending match submissions vs the user
 				// check if user is registered
