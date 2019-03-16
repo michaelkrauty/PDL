@@ -21,7 +21,7 @@ module.exports.config = {
 	// player (admin) to leave out of the weekly recommended matchups in case of an uneven amount of players. Set to 0 to disable.
 	suggested_matchups_odd_player_out: '0',
 	// adds the bot version to the bot name on startup
-	enable_version_in_bot_name: true,
+	enable_version_in_bot_name: false,
 	// channel ID to send wecome message to when a new user joins. Set to 0 to disable.
 	welcome_channel: '0',
 	// admin role name (case sensitive)
