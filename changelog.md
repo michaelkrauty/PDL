@@ -1,3 +1,15 @@
+v0.4.21
+- nicknames will now be used where possible
+- removed unused command aliases
+- updated help/admin help dialogue
+- admin channel commands no longer show channel id
+- bot no longer shows version in name by default
+- updated !matches strings, added a string to strings.js
+
+v0.4.20
+- fixed bug in !elo showing (/6) matches instead of (0/6) matches
+- fixed bug in !confirm preventing matches from being confirmed
+
 v0.4.19
 - generated weekly matchups are now stored in the database
 - !matchups does not generate matchups, instead it gets the generated matchups for that week from the database.
