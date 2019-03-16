@@ -180,7 +180,7 @@ client.on('message', async (message) => {
 
 	// top command, shows top 100 competing players by elo
 	if (cmd === 'top' && args.length > -1 && args.length < 2) {
-		let numPlayers = 100;
+		let numPlayers = config.top_players;
 		// parse amount argument if admin
 		if (admin && args.length == 1 && !isNaN(parseInt(args[0])))
 			numPlayers = parseInt(args[0]);
