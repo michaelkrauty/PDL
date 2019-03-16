@@ -39,9 +39,11 @@ client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// set guild based on guild id in config
 	let g = await client.guilds.get(config.guild_id);
+	// ensure the guild was found
 	if (g != null) {
 		guild = g;
 	} else {
+		// guild ID in the config is incorrect or not set
 		log.error(`Could not find discord guild with guild ID specified in config.js, shutting down.`);
 		client.destroy();
 		process.exit(1);
@@ -116,18 +118,17 @@ client.once('ready', async () => {
 
 // called when a new member joins the discord server
 client.on('guildMemberAdd', member => {
-	// check if the welcome channel id is set in the config
-	if (config.welcome_channel == '0') return;
-	// get the channel
-	var channel = member.guild.channels.get(config.welcome_channel);
-	// check if the channel exists
-	if (channel != null) {
-		// check if welcome message is set
-		if (strings.welcome_message != '')
+	// check if welcome channel and message are set
+	if (config.welcome_channel != '0' && strings.welcome_message != '') {
+		// get the channel
+		var channel = member.guild.channels.get(config.welcome_channel);
+		// check if the channel exists
+		if (channel != null)
 			// send welcome message
 			channel.send(strings.welcome_message.replaceAll('{user_tag}', tag(member.user.id)).replaceAll('{user_name}', member.user.username));
-	} else
-		log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
+		else
+			log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
+	}
 });
 
 // store discord ids running commands
@@ -178,7 +179,7 @@ client.on('message', async (message) => {
 		return;
 	}
 
-	// top command, shows top 100 competing players by elo
+	// top command, shows top competing players ordered by elo
 	if (cmd === 'top' && args.length > -1 && args.length < 2) {
 		let numPlayers = config.top_players;
 		// parse amount argument if admin
@@ -187,6 +188,7 @@ client.on('message', async (message) => {
 		// get top players
 		var top_players = await db.getTopCompetingPlayers(numPlayers);
 		if (!top_players) {
+			// couldn't get top players
 			message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
 			// remove command message from pending user responses
 			user_commands_running.delete(message.id);
@@ -195,36 +197,35 @@ client.on('message', async (message) => {
 		if (top_players.length > 0) {
 			// construct message
 			var msg = '';
-			var rank = 1;
-			var num_players = 0;
+			// loop through players and append to message
 			for (i = 0; i < top_players.length; i++) {
 				// get player username
 				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-				msg += `\`${rank}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-				rank++;
-				num_players++;
+				// construct one line of the message
+				msg += `\`${i + 1}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
 			}
-			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', num_players));
+			// send it
+			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', top_players.length));
 		} else
+			// no top players
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
 	}
 
+	// matchups command, shows generated weekly matchups
 	if (cmd === 'matchups') {
 		var players = await db.getWeeklyMatchups();
 		// compose matchups message
 		var msg = strings.suggested_matchups_message;
-		// loop through competing players
-		for (var i = 0; i < players.length; i++) {
+		// loop through competing players 2 at a time
+		for (var i = 0; i < players.length; i += 2) {
 			var p1 = players[i];
 			var p2 = players[i + 1];
 			// ensure the players aren't null
 			if (p1 != null && p2 != null)
 				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
-			// skip ahead one player, since we just listed them.
-			i++;
 		}
 		message.channel.send(msg);
 		// remove command message from pending user responses
@@ -237,7 +238,6 @@ client.on('message', async (message) => {
 		case 'version':
 			message.channel.send(`v${package.version}`);
 			break;
-		// TODO: remove this command before release, for debug only
 		// debug command, displays user data
 		case 'debug':
 			// mention
@@ -1548,7 +1548,7 @@ async function suggestMatchups(channel, tagUsers, save) {
 		for (var p in players)
 			if (players[p].discord_id == config.suggested_matchups_odd_player_out)
 				players.splice(p, 1);
-	// loop through competing players
+	// loop through competing players 2 at a time
 	for (var i = 0; i < players.length; i += 2) {
 		var p1 = players[i];
 		var p2 = players[i + 1];
