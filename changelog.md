@@ -1,3 +1,6 @@
+v0.4.22
+- added !challenging command to show if the sender is challenging or not
+
 v0.4.21
 - nicknames will now be used where possible
 - removed unused command aliases

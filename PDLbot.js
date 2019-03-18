@@ -282,7 +282,7 @@ client.on('message', async (message) => {
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
-			let challengeme = await message.guild.roles.find(role => role.name === "challengeme");
+			var challengeme = await message.guild.roles.find(role => role.name === "challengeme");
 			if (challengeme == null || challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
@@ -301,16 +301,37 @@ client.on('message', async (message) => {
 			if (message.member._roles.includes(challengeme.id)) {
 				// toggle off
 				message.member.removeRole(challengeme);
-				message.channel.send(`${tag(message.author.id)} no longer has role challengeme.`);
+				message.channel.send(`${tag(message.author.id)} is no longer accepting challenges.`);
 			} else {
 				// toggle on
 				message.member.addRole(challengeme);
-				message.channel.send(`${tag(message.author.id)} now has role challengeme.`);
+				message.channel.send(`${tag(message.author.id)} is now accepting challenges.`);
 			}
 			break;
 		// challenging command, shows users with challengeme rank
-		// TODO
 		case 'challenging':
+			// get challengeme role
+			var challengeme = await message.guild.roles.find(role => role.name === "challengeme");
+			if (challengeme == null || challengeme.id == undefined) {
+				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
+				break;
+			}
+			if (args.length == 0) {
+				// ensure the user is registered
+				if (!user) {
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// ensure the user is competing
+				if (!user.competing) {
+					message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// tell the player whether they have the challengeme role
+				message.member._roles.includes(challengeme.id) ?
+					message.channel.send(`${tag(message.author.id)} is currently challenging.`) :
+					message.channel.send(`${tag(message.author.id)} is not currently challenging.`);
+			}
 			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'compete':
