@@ -20,6 +20,7 @@ const strings = {
 	compete_already_competing: '{user} you are already competing in PDL.',
 	quit_not_competing: '{user} not competing. Compete with !compete',
 	user_no_longer_competing: '{user} is no longer competing in PDL!',
+	competing_no_user_specified: '{user} usage: !competing @<user>',
 	target_is_registered: '{user} {target} is registered in the Pavlov Duel League.',
 	compete_try_again: '{user} Usage: !compete',
 	user_skill_rating: '{user}(#{elo_rank}) skill rating: {elo_rating}',

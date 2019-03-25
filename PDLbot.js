@@ -453,7 +453,7 @@ client.on('message', async (message) => {
 				var mention = message.mentions.users.values().next().value;
 				if (mention == undefined) {
 					// no mentions
-					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					message.channel.send(strings.competing_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
 				// get user's database id
