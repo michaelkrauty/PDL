@@ -1,3 +1,7 @@
+v0.4.24
+- add !admin generatematchups, to generate matchups on command
+- add !admin avg alias !admin average
+
 v0.4.23
 - users who leave the discord server will be retired from the standings and their elo will be set to average if above average
 - added !competing @user

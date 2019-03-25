@@ -453,7 +453,7 @@ client.on('message', async (message) => {
 				var mention = message.mentions.users.values().next().value;
 				if (mention == undefined) {
 					// no mentions
-					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					message.channel.send(strings.competing_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 					break;
 				}
 				// get user's database id
@@ -1227,10 +1227,15 @@ client.on('message', async (message) => {
 						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
 					// show average elo
+					case 'average':
 					case 'avg':
 						var avg = await db.getAverageElo();
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
+						break;
+					case 'generatematchups':
+						// run matchup suggestion function, which will save the matchups in the database but not tag users
+						suggestMatchups(message.channel, true, true);
 						break;
 					// unrecognized command shows admin help
 					default:
