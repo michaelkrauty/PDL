@@ -131,6 +131,36 @@ client.on('guildMemberAdd', member => {
 	}
 });
 
+client.on('guildMemberRemove', async member => {
+	// get user's database id
+	var user_id = await db.getUserIdFromDiscordId(member.user.id);
+	if (!user_id) return;
+	// create user object
+	var user = await new User(user_id, db, client).init();
+	if (!user) return;
+	// check if the user is currently competing
+	if (!user.competing) return;
+	// get average elo
+	var averageElo = await db.getAverageCompetingElo();
+	// set the user's elo to average if above average
+	if (user.elo_rating > averageElo)
+		await db.setUserEloRating(user.id, averageElo);
+	// check if competitor role is defined in config
+	if (config.competitor_role_name != null && config.competitor_role_name != '') {
+		// get competitor role as defined in config
+		let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
+		// ensure competitor role exists
+		if (competitorRole != null && competitorRole.id != undefined)
+			// check if user has competitor role
+			if (member._roles.includes(competitorRole.id))
+				// remove competitor role from user
+				member.removeRole(competitorRole);
+	}
+	// set the user's competing state to false
+	var res = await user.setCompeting(false);
+	if (res) log.info(`${member.user.username} has quit the PDL by leaving the server.`);
+});
+
 // store discord ids running commands
 var user_commands_running = new Map();
 // store reaction collectors in an array
