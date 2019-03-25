@@ -1233,6 +1233,10 @@ client.on('message', async (message) => {
 						var compAvg = await db.getAverageCompetingElo();
 						message.channel.send(`Average ELO: ${avg}\nAverage competing ELO: ${compAvg}`);
 						break;
+					case 'generatematchups':
+						// run matchup suggestion function, which will save the matchups in the database but not tag users
+						suggestMatchups(message.channel, true, true);
+						break;
 					// unrecognized command shows admin help
 					default:
 						msg = `${tag(message.author.id)}\n${strings.admin_help}`;
