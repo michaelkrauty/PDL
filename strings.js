@@ -13,6 +13,7 @@ const strings = {
 	error_target_not_registered: '{user} {target} is not registered in the Pavlov Duel League.',
 	user_is_competing: '{user} is competing in PDL.',
 	user_is_not_competing: '{user} is not competing in PDL.',
+	target_is_competing: '{user} {target} is competing in PDL.',
 	error_user_not_competing: '{user} you are not competing in PDL! Start competing with !compete.',
 	target_is_not_competing: '{user} {target} is not competing in PDL.',
 	user_now_competing: '{user} is now competing in PDL!\nPDL is an open challenge league, so you play whenever you want against whoever. You get three challenges a week that follow the format in #weekly-format.\nRules/ratings are linked in #register-rules-ratings\n-\nYou can set your role, check ratings and report matches using #pdl-bot\n-\nPlease note until you have confirmed 3 matches (6 games) you will not show up in the rankings or be eligible for rank based tournaments and events, you are accruing points during this probationary period but this allows the rating system to get a handle on your skill level before ranking you.\n-\nUse !help for more info.',

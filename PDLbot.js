@@ -436,16 +436,43 @@ client.on('message', async (message) => {
 			break;
 		// competing command, shows if user is competing or not
 		case 'competing':
-			// check if user is registered
-			if (!user) {
-				// not registered
-				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+			if (args.length == 0) {
+				// check if user is registered
+				if (!user) {
+					// not registered
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// check if user is currently competing
+				user.competing ?
+					message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
+			} else if (args.length == 1) {
+				// check for a mention
+				var mention = message.mentions.users.values().next().value;
+				if (mention == undefined) {
+					// no mentions
+					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// get user's database id
+				var user_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!user_id) {
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
+					break;
+				}
+				// create user object
+				var user = await new User(user_id, db, client).init();
+				if (!user) {
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
+					break;
+				}
+				// check if the user is currently competing
+				user.competing ?
+					message.channel.send(strings.target_is_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id))) :
+					message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 			}
-			// check if user is currently competing
-			user.competing ?
-				message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
-				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// check command, shows if user is registered in the database
 		case 'registered':
