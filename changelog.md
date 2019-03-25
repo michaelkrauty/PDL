@@ -1,3 +1,7 @@
+v0.4.23
+- users who leave the discord server will be retired from the standings and their elo will be set to average if above average
+- added !competing @user
+
 v0.4.22
 - added !challenging command to show if the sender is challenging or not
 

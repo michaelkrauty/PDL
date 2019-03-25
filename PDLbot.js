@@ -131,6 +131,36 @@ client.on('guildMemberAdd', member => {
 	}
 });
 
+client.on('guildMemberRemove', async member => {
+	// get user's database id
+	var user_id = await db.getUserIdFromDiscordId(member.user.id);
+	if (!user_id) return;
+	// create user object
+	var user = await new User(user_id, db, client).init();
+	if (!user) return;
+	// check if the user is currently competing
+	if (!user.competing) return;
+	// get average elo
+	var averageElo = await db.getAverageCompetingElo();
+	// set the user's elo to average if above average
+	if (user.elo_rating > averageElo)
+		await db.setUserEloRating(user.id, averageElo);
+	// check if competitor role is defined in config
+	if (config.competitor_role_name != null && config.competitor_role_name != '') {
+		// get competitor role as defined in config
+		let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
+		// ensure competitor role exists
+		if (competitorRole != null && competitorRole.id != undefined)
+			// check if user has competitor role
+			if (member._roles.includes(competitorRole.id))
+				// remove competitor role from user
+				member.removeRole(competitorRole);
+	}
+	// set the user's competing state to false
+	var res = await user.setCompeting(false);
+	if (res) log.info(`${member.user.username} has quit the PDL by leaving the server.`);
+});
+
 // store discord ids running commands
 var user_commands_running = new Map();
 // store reaction collectors in an array
@@ -406,16 +436,43 @@ client.on('message', async (message) => {
 			break;
 		// competing command, shows if user is competing or not
 		case 'competing':
-			// check if user is registered
-			if (!user) {
-				// not registered
-				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+			if (args.length == 0) {
+				// check if user is registered
+				if (!user) {
+					// not registered
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// check if user is currently competing
+				user.competing ?
+					message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
+			} else if (args.length == 1) {
+				// check for a mention
+				var mention = message.mentions.users.values().next().value;
+				if (mention == undefined) {
+					// no mentions
+					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+				// get user's database id
+				var user_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!user_id) {
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
+					break;
+				}
+				// create user object
+				var user = await new User(user_id, db, client).init();
+				if (!user) {
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
+					break;
+				}
+				// check if the user is currently competing
+				user.competing ?
+					message.channel.send(strings.target_is_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id))) :
+					message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 			}
-			// check if user is currently competing
-			user.competing ?
-				message.channel.send(strings.user_is_competing.replaceAll('{user}', tag(message.author.id))) :
-				message.channel.send(strings.user_is_not_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// check command, shows if user is registered in the database
 		case 'registered':
