@@ -1227,6 +1227,7 @@ client.on('message', async (message) => {
 						message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 						break;
 					// show average elo
+					case 'average':
 					case 'avg':
 						var avg = await db.getAverageElo();
 						var compAvg = await db.getAverageCompetingElo();
