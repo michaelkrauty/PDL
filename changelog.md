@@ -1,3 +1,6 @@
+v0.4.25
+- fixed incredibly strange bug where message.guild was undefined
+
 v0.4.24
 - add !admin generatematchups, to generate matchups on command
 
