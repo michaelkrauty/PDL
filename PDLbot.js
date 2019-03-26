@@ -200,7 +200,7 @@ client.on('message', async (message) => {
 	args = args.splice(1);
 	// check if user is admin
 	// get admin role
-	let adminRole = await message.guild.roles.find(role => role.name === config.admin_role_name);
+	let adminRole = await guild.roles.find(role => role.name === config.admin_role_name);
 	var admin = adminRole != null && adminRole.id != undefined && message.member.roles.has(adminRole.id);
 	// is the channel being used by the bot?
 	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin') {
@@ -312,7 +312,7 @@ client.on('message', async (message) => {
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
-			var challengeme = await message.guild.roles.find(role => role.name === "challengeme");
+			var challengeme = await guild.roles.find(role => role.name === "challengeme");
 			if (challengeme == null || challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
@@ -341,7 +341,7 @@ client.on('message', async (message) => {
 		// challenging command, shows users with challengeme rank
 		case 'challenging':
 			// get challengeme role
-			var challengeme = await message.guild.roles.find(role => role.name === "challengeme");
+			var challengeme = await guild.roles.find(role => role.name === "challengeme");
 			if (challengeme == null || challengeme.id == undefined) {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
@@ -387,7 +387,7 @@ client.on('message', async (message) => {
 			// check if competitor role is defined in config
 			if (config.competitor_role_name != null && config.competitor_role_name != '') {
 				// get competitor role as defined in config
-				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
 				// ensure competitor role exists
 				if (competitorRole != null && competitorRole.id != undefined)
 					// check if user has competitor role
@@ -421,7 +421,7 @@ client.on('message', async (message) => {
 			// check if competitor role is defined in config
 			if (config.competitor_role_name != null && config.competitor_role_name != '') {
 				// get competitor role as defined in config
-				let competitorRole = await message.guild.roles.find(role => role.name === config.competitor_role_name);
+				let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
 				// ensure competitor role exists
 				if (competitorRole != null && competitorRole.id != undefined)
 					// check if user has competitor role
@@ -713,7 +713,7 @@ client.on('message', async (message) => {
 								.replaceAll('{user}', tag(message.author.id))
 								.replaceAll('{opponent}', tag(opponent_data.discord_id))
 								.replaceAll('{match_id}', match.id)
-								.replaceAll('{admin}', tagRole(message.guild.roles.find(role => role.name === config.admin_role_name).id))
+								.replaceAll('{admin}', tagRole(guild.roles.find(role => role.name === config.admin_role_name).id))
 							);
 							await r.message.react(ReactionEmoji.LOSS);
 						} else {
