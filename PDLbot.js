@@ -249,13 +249,32 @@ client.on('message', async (message) => {
 		var players = await db.getWeeklyMatchups();
 		// compose matchups message
 		var msg = strings.suggested_matchups_message;
+		var playerlist_string = '`{player1} vs. {player2}`\n';
 		// loop through competing players 2 at a time
 		for (var i = 0; i < players.length; i += 2) {
 			var p1 = players[i];
 			var p2 = players[i + 1];
 			// ensure the players aren't null
-			if (p1 != null && p2 != null)
-				msg += strings.suggested_matchups_playerlist.replaceAll('{player1}', await getDiscordUsernameFromDiscordId(p1.discord_id)).replaceAll('{player2}', await getDiscordUsernameFromDiscordId(p2.discord_id));
+			if (p1 != null && p2 != null) {
+				p1Author = p1.discord_id.toString() === message.author.id.toString();
+				p2Author = p2.discord_id.toString() === message.author.id.toString();
+				p1Author ?
+					p1_username = tag(message.author.id) :
+					p1_username = await getDiscordUsernameFromDiscordId(p1.discord_id);
+				p2Author ?
+					p2_username = tag(message.author.id) :
+					p2_username = await getDiscordUsernameFromDiscordId(p2.discord_id);
+				if (!p1Author && !p2Author)
+					msg += playerlist_string.replaceAll('{player1}', p1_username).replaceAll('{player2}', p2_username);
+				else {
+					if (p1Author)
+						msg += playerlist_string.substring(1).replaceAll('{player1}', tag(message.author.id) + ' `').replaceAll('{player2}', p2_username);
+					else {
+						var str = playerlist_string.replaceAll('{player1}', p1_username).replaceAll('{player2}', '` ' + tag(message.author.id));
+						msg += str.substring(0, str.length - 2) + '\n';
+					}
+				}
+			}
 		}
 		message.channel.send(msg);
 		// remove command message from pending user responses
