@@ -42,6 +42,7 @@ client.once('ready', async () => {
 	// ensure the guild was found
 	if (g != null) {
 		guild = g;
+		log.info(`Guild ${guild.name} (${guild.id}) found.`);
 	} else {
 		// guild ID in the config is incorrect or not set
 		log.error(`Could not find discord guild with guild ID specified in config.js, shutting down.`);
