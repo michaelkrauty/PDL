@@ -381,7 +381,7 @@ client.on('message', async (message) => {
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 					break;
 				}
-				targetUser = await new User(target_id, db, client);
+				targetUser = await new User(target_id, db, client).init();
 			}
 			// ensure the user is registered
 			if (!targetUser) {
