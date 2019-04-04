@@ -366,22 +366,45 @@ client.on('message', async (message) => {
 				message.channel.send(`${tag(message.author.id)} could not find role challengeme.`);
 				break;
 			}
+			var targetUser;
 			if (args.length == 0) {
+				targetUser = user;
+			} else if (args.length == 1) {
+				// check for a mention
+				var mention = message.mentions.users.values().next().value;
+				if (mention == undefined) {
+					message.channel.send(strings.challenging_no_user_specified);
+					break;
+				}
+				// get target user's database id
+				var target_id = await db.getUserIdFromDiscordId(mention.id);
+				if (!target_id) {
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
+					break;
+				}
+				targetUser = await new User(target_id, db, client);
+			}
 				// ensure the user is registered
-				if (!user) {
-					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+			if (!targetUser) {
+				user == targetUser ?
+					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 					break;
 				}
 				// ensure the user is competing
-				if (!user.competing) {
-					message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
+			if (!targetUser.competing) {
+				user == targetUser ?
+					message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.error_user_not_competing_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 					break;
 				}
 				// tell the player whether they have the challengeme role
+			targetUser == user ?
+				message.channel.send(strings.user_is_accepting_challenges.replaceAll('{user}', tag(message.author.id))) :
+				message.channel.send(strings.user_is_not_accepting_challenges.replaceAll('{user}', tag(message.author.id)));
 				message.member._roles.includes(challengeme.id) ?
-					message.channel.send(`${tag(message.author.id)} is currently challenging.`) :
-					message.channel.send(`${tag(message.author.id)} is not currently challenging.`);
-			}
+				message.channel.send(strings.user_is_accepting_challenges_other.replaceAll('{user}', tag(message.author.id))) :
+				message.channel.send(strings.user_is_not_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'compete':
