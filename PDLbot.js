@@ -383,25 +383,25 @@ client.on('message', async (message) => {
 				}
 				targetUser = await new User(target_id, db, client);
 			}
-				// ensure the user is registered
+			// ensure the user is registered
 			if (!targetUser) {
 				user == targetUser ?
 					message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id))) :
 					message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
-					break;
-				}
-				// ensure the user is competing
+				break;
+			}
+			// ensure the user is competing
 			if (!targetUser.competing) {
 				user == targetUser ?
 					message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id))) :
 					message.channel.send(strings.error_user_not_competing_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
-					break;
-				}
-				// tell the player whether they have the challengeme role
+				break;
+			}
+			// tell the player whether they have the challengeme role
 			targetUser == user ?
 				message.channel.send(strings.user_is_accepting_challenges.replaceAll('{user}', tag(message.author.id))) :
 				message.channel.send(strings.user_is_not_accepting_challenges.replaceAll('{user}', tag(message.author.id)));
-				message.member._roles.includes(challengeme.id) ?
+			message.member._roles.includes(challengeme.id) ?
 				message.channel.send(strings.user_is_accepting_challenges_other.replaceAll('{user}', tag(message.author.id))) :
 				message.channel.send(strings.user_is_not_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)));
 			break;
