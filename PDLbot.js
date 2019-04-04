@@ -397,13 +397,22 @@ client.on('message', async (message) => {
 					message.channel.send(strings.error_user_not_competing_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 				break;
 			}
+			var hasRole = false;
+			if (user == targetUser) {
+				hasRole = message.member._roles.includes(challengeme.id);
+			} else {
+				var member = guild.members.find(member => member.id === mention.id)
+				hasRole = member._roles.includes(challengeme.id);
+			}
 			// tell the player whether they have the challengeme role
-			targetUser == user ?
-				message.channel.send(strings.user_is_accepting_challenges.replaceAll('{user}', tag(message.author.id))) :
-				message.channel.send(strings.user_is_not_accepting_challenges.replaceAll('{user}', tag(message.author.id)));
-			message.member._roles.includes(challengeme.id) ?
-				message.channel.send(strings.user_is_accepting_challenges_other.replaceAll('{user}', tag(message.author.id))) :
-				message.channel.send(strings.user_is_not_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)));
+			if (targetUser == user)
+				hasRole ?
+					message.channel.send(strings.user_is_accepting_challenges.replaceAll('{user}', tag(message.author.id))) :
+					message.channel.send(strings.user_is_not_accepting_challenges.replaceAll('{user}', tag(message.author.id)));
+			else
+				hasRole ?
+					message.channel.send(strings.user_is_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id))) :
+					message.channel.send(strings.user_is_not_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'compete':
