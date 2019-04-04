@@ -38,10 +38,9 @@ client.login(config_db.bot_token).catch((err) => {
 client.once('ready', async () => {
 	log.info(`Starting ${client.user.username} v${package.version} - (${client.user.id})`);
 	// set guild based on guild id in config
-	let g = await client.guilds.get(config.guild_id);
+	guild = await client.guilds.get(config.guild_id);
 	// ensure the guild was found
-	if (g != null) {
-		guild = g;
+	if (guild != null) {
 		log.info(`Guild ${guild.name} (${guild.id}) found.`);
 	} else {
 		// guild ID in the config is incorrect or not set
