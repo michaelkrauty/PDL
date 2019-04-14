@@ -1554,6 +1554,17 @@ client.on('message', async (message) => {
 					user_commands_running.delete(message.id);
 					return;
 				}
+				if (args[0].toLowerCase() == 'say' && args.length > 2) {
+					if (message.mentions.channels.size > 0) {
+						var str = '';
+						for (var i = 2; i < args.length; i++)
+							str += args[i] + ' ';
+						message.mentions.channels.values().next().value.send(str.trim());
+						// remove command message from pending user responses
+						user_commands_running.delete(message.id);
+						return;
+					}
+				}
 			}
 			msg = `${tag(message.author.id)}\n${strings.admin_help}`;
 			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
