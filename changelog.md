@@ -1,3 +1,8 @@
+v0.4.26
+- !matchups now tags the command sender
+- add !challenging @user
+- add !admin say
+
 v0.4.25
 - fixed incredibly strange bug where message.guild was undefined
 
