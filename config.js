@@ -20,6 +20,8 @@ module.exports.config = {
 	auto_quit: true,
 	// how many weeks does a player have to be inactive to be auto-quit?
 	auto_quit_weeks: 6,
+	// channel to send auto-quit messages to
+	auto_quit_channel: '',
 	// how many players should be shown with !top by default?
 	top_players: 100,
 	// channel to post suggested weekly matchups to. Set to 0 to disable.
