@@ -383,6 +383,19 @@ exports.getUserLatestMatchesOfPreviousWeek = async (user_id) => {
 }
 
 /**
+ * @description get user's latest matches within n weeks ago
+ * @param {bigint} user_id the user's id
+ * @param {int} weeks amount of weeks back to get matches from (0 = this week, 1 = previous week, etc.)
+ * @returns {success: boolean, match: []}
+ */
+exports.getUserRecentMatches = async (user_id, weeks) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) >= YEARWEEK(CURDATE(), 1) - ?) ORDER BY id ASC;', [user_id, user_id, weeks]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+/**
  * @description get user's latest match
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, match: []}
