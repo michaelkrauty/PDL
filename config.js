@@ -16,6 +16,10 @@ module.exports.config = {
 	weekly_elo_decay: true,
 	// how much should elo decay on a weekly basis?
 	weekly_elo_decay_amount: 25,
+	// auto-quit users who are inactive for n weeks?
+	auto_quit: true,
+	// how many weeks does a player have to be inactive to be auto-quit?
+	auto_quit_weeks: 6,
 	// how many players should be shown with !top by default?
 	top_players: 100,
 	// channel to post suggested weekly matchups to. Set to 0 to disable.
