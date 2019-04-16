@@ -65,6 +65,8 @@ const strings = {
 	not_enough_provisional_matches_played: '{user} you have not played enough matches to show your ELO rating yet. ({num_games_played}/{provisional_matches})',
 	weekly_challenge_reset: '-------------------------------------\n**Weekly Challenges Reset**\n-------------------------------------\nMaximum challenges allowed per week: {matchlimit}',
 	weekly_elo_decay: 'The following players\' ratings were decayed for not completing a match last week:\n{players}',
+	auto_quit_warning_message: 'The following players have not completed a match within {weeks} weeks and will be auto-quit next week if one or more match is not played:',
+	auto_quit_message: 'The following players were auto-quit due to being inactive for {weeks} weeks:',
 	user_is_accepting_challenges: '{user} is currently accepting challenges.',
 	user_is_not_accepting_challenges: '{user} is not currently accepting challenges.',
 	user_is_accepting_challenges_other: '{user} {target} is currently accepting challenges.',
