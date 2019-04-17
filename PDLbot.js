@@ -1554,11 +1554,15 @@ client.on('message', async (message) => {
 					user_commands_running.delete(message.id);
 					return;
 				}
+				// say command, make the bot say a message
 				if (args[0].toLowerCase() == 'say' && args.length > 2) {
+					// ensure the message has a channel tagged
 					if (message.mentions.channels.size > 0) {
+						// construct message
 						var str = '';
 						for (var i = 2; i < args.length; i++)
 							str += args[i] + ' ';
+						// send the message to the tagged channel
 						message.mentions.channels.values().next().value.send(str.trim());
 						// remove command message from pending user responses
 						user_commands_running.delete(message.id);
