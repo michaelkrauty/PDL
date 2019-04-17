@@ -1,3 +1,8 @@
+v0.4.27
+- added n week inactivity auto-quit
+- added n-1 week inactivity auto-quit warning
+- added !admin warn #channel
+
 v0.4.26
 - !matchups now tags the command sender
 - add !challenging @user
