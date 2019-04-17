@@ -205,11 +205,9 @@ exports.getUsersToDecayElo = async () => {
 		// get all user matches to check if the user has 0 matches, in which case their elo is not decayed.
 		var allMatches = await exports.getAllUserMatches(res[r].id);
 		// get all matches from the previous week
-		var previousWeekMatches = await exports.getUserLatestMatchesOfPreviousWeek(res[r].id);
-		// get all matches from this week
-		var thisWeekMatches = await exports.getUserLatestMatchesOfWeek(res[r].id);
+		var previousWeekMatches = await exports.getUserRecentMatches(res[r].id, 1);
 		// decay elo if no matches from the previous week, no matches from this week, and >1 game total
-		if (!previousWeekMatches && !thisWeekMatches && allMatches)
+		if (!previousWeekMatches && allMatches)
 			users.push(res[r]);
 	}
 	return users;
@@ -359,24 +357,13 @@ exports.getUserLatestMatchVs = async (user_id, target_id) => {
 }
 
 /**
- * @description get user's latest matches of this week
+ * @description get user's latest matches within n weeks ago
  * @param {bigint} user_id the user's id
+ * @param {int} weeks amount of weeks back to get matches from (0 = this week, 1 = previous week, etc.)
  * @returns {success: boolean, match: []}
  */
-exports.getUserLatestMatchesOfWeek = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) = YEARWEEK(CURDATE(), 1)) ORDER BY id ASC;', [user_id, user_id]);
-	if (res.length > 0)
-		return res;
-	return false;
-}
-
-/**
- * @description get user's latest match
- * @param {bigint} user_id the user's id
- * @returns {success: boolean, match: []}
- */
-exports.getUserLatestMatchesOfPreviousWeek = async (user_id) => {
-	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) = (YEARWEEK(CURDATE(), 1)) - 1) ORDER BY id ASC;', [user_id, user_id]);
+exports.getUserRecentMatches = async (user_id, weeks) => {
+	var res = await exports.sql('SELECT * FROM matches WHERE (player_id=? OR opponent_id=?) AND (YEARWEEK(`timestamp`, 1) >= YEARWEEK(CURDATE(), 1) - ?) ORDER BY id ASC;', [user_id, user_id, weeks]);
 	if (res.length > 0)
 		return res;
 	return false;

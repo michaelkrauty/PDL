@@ -73,32 +73,81 @@ client.once('ready', async () => {
 	discord_channels_to_use = await require('./channels.json').data;
 	// connect to database
 	await db.connect();
-	// setup weekly elo decay job, if enabled
-	if (config.weekly_elo_decay) {
-		// job runs 59 seconds after 12am Monday
-		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
-			// decay inactive users and get a list of users whose elo has been decayed
-			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
-			// string to contain decayed players' usernames and old/new elo
-			var decayedStr = '';
-			// construct player list for message
-			if (decayed.length > 0) {
-				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
-				for (var p in decayed) {
-					let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
-					decayedStr += `\`${decay}\`\n`;
-					log.info(`(USER ${decayed[p].id}):${decay}`);
+	// job runs 59 seconds after 12am Monday
+	schedule.scheduleJob('WeeklyEloQuit', '59 0 0 * * 1', async () => {
+		// weekly auto-quit, if enabled
+		if (config.auto_quit) {
+			var autoQuitChannel = client.channels.get(config.auto_quit_channel);
+			if (autoQuitChannel) {
+				// auto quit users after n weeks of inactivity
+				var quit = [];
+				var competing = await db.getTopCompetingPlayers(-1);
+				for (var i = 1; i < competing.length; i++) {
+					var matches = await db.getUserRecentMatches(competing[i].id, 6);
+					if (!matches) {
+						var member = await guild.members.find(member => member.id.toString() === competing[i].discord_id.toString());
+						if (member != null) {
+							await quitUser(member.user.id);
+							console.log(`Auto-quit ${await getDiscordUsernameFromDiscordId(member.user.id)} for being AFK for ${config.auto_quit_weeks} weeks.`);
+							quit.push(competing[i].discord_id);
+						}
+					}
 				}
+				if (quit.length > 0) {
+					var msg = strings.auto_quit_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+					for (var i = 0; i < quit.length; i++) {
+						msg += `${tag(quit[i])}\n`
+					}
+					autoQuitChannel.send(msg);
+				}
+
+				// warn users that they will be auto-quit after n weeks of inactivity
+				var warned = [];
+				var competing = await db.getTopCompetingPlayers(-1);
+				for (var i = 1; i < competing.length; i++) {
+					var matches = await db.getUserRecentMatches(competing[i].id, config.auto_quit_weeks - 1);
+					if (!matches) {
+						warned.push(competing[i].discord_id);
+					}
+				}
+				msg = strings.auto_quit_warning_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+				for (var i = 0; i < warned.length; i++) {
+					msg += `${tag(warned[i])}`;
+					if (i != warned.length - 1)
+						msg += `, `;
+				}
+				autoQuitChannel.send(msg);
+			} else {
+				log.error(`Could not find auto_quit_channel '${config.auto_quit_channel}' as defined in config.js`);
 			}
-			// send message to active channels
-			for (var c in discord_channels_to_use) {
-				client.channels.get(discord_channels_to_use[c]).send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
+		}
+		// weekly elo decay, if enabled
+		if (config.weekly_elo_decay) {
+			var weeklyEloDecayChannel = client.channels.get(config.weekly_elo_decay_channel);
+			if (weeklyEloDecayChannel) {
+				// decay inactive users and get a list of users whose elo has been decayed
+				var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
+				// string to contain decayed players' usernames and old/new elo
+				var decayedStr = '';
+				// construct player list for message
+				if (decayed.length > 0) {
+					log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
+					for (var p in decayed) {
+						let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
+						decayedStr += `\`${decay}\`\n`;
+						log.info(`(USER ${decayed[p].id}):${decay}`);
+					}
+				}
+				// send message to channel
+				weeklyEloDecayChannel.send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
 				if (decayed.length > 0)
-					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
+					weeklyEloDecayChannel.send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
+				log.info(`${new Date()}: ELO Decayed`);
+			} else {
+				log.error(`Could not find weekly_elo_decay_channel '${config.weekly_elo_decay_channel}' as defined in config.js`);
 			}
-			log.info(`${new Date()}: ELO Decayed`);
-		});
-	}
+		}
+	});
 	// setup weekly matchup suggestions, if enabled
 	if (config.suggested_weekly_matchups_channel != '0') {
 		// job runs at 1pm EST on Monday
@@ -106,7 +155,7 @@ client.once('ready', async () => {
 			// get the channel
 			var channel = guild.channels.get(config.suggested_weekly_matchups_channel);
 			// check if the channel exists
-			if (channel != null)
+			if (channel)
 				// run matchup suggestion function, which will save the matchups in the database
 				suggestMatchups(channel, true, true);
 		});
@@ -135,30 +184,8 @@ client.on('guildMemberRemove', async member => {
 	// get user's database id
 	var user_id = await db.getUserIdFromDiscordId(member.user.id);
 	if (!user_id) return;
-	// create user object
-	var user = await new User(user_id, db, client).init();
-	if (!user) return;
-	// check if the user is currently competing
-	if (!user.competing) return;
-	// get average elo
-	var averageElo = await db.getAverageCompetingElo();
-	// set the user's elo to average if above average
-	if (user.elo_rating > averageElo)
-		await db.setUserEloRating(user.id, averageElo);
-	// check if competitor role is defined in config
-	if (config.competitor_role_name != null && config.competitor_role_name != '') {
-		// get competitor role as defined in config
-		let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
-		// ensure competitor role exists
-		if (competitorRole != null && competitorRole.id != undefined)
-			// check if user has competitor role
-			if (member._roles.includes(competitorRole.id))
-				// remove competitor role from user
-				member.removeRole(competitorRole);
-	}
-	// set the user's competing state to false
-	var res = await user.setCompeting(false);
-	if (res) log.info(`${member.user.username} has quit the PDL by leaving the server.`);
+	var quit = await quitUser(member.user.id);
+	if (quit) log.info(`${member.user.username} has quit by leaving the server.`);
 });
 
 // store discord ids running commands
@@ -464,25 +491,8 @@ client.on('message', async (message) => {
 				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// get average elo
-			var averageElo = await db.getAverageCompetingElo();
-			// set the user's elo to average if above average
-			if (user.elo_rating > averageElo)
-				await db.setUserEloRating(user.id, averageElo);
-			// check if competitor role is defined in config
-			if (config.competitor_role_name != null && config.competitor_role_name != '') {
-				// get competitor role as defined in config
-				let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
-				// ensure competitor role exists
-				if (competitorRole != null && competitorRole.id != undefined)
-					// check if user has competitor role
-					if (message.member._roles.includes(competitorRole.id))
-						// remove competitor role from user
-						message.member.removeRole(competitorRole);
-			}
-			// set the user's competing state to false
-			var res = await user.setCompeting(false);
-			if (res)
+			var quit = await quitUser(message.member.user.id);
+			if (quit)
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// competing command, shows if user is competing or not
@@ -889,7 +899,7 @@ client.on('message', async (message) => {
 				break;
 			}
 			// get the user's latest matches of the week
-			var user_matches = await db.getUserLatestMatchesOfWeek(user.id);
+			var user_matches = await db.getUserRecentMatches(user.id, 0);
 			// check if user has played the maximum amount of games this week as defined in the config
 			if (user_matches)
 				if (user_matches.length >= config.maximum_weekly_challenges) {
@@ -898,7 +908,7 @@ client.on('message', async (message) => {
 					break;
 				}
 			// get the mention's latest matches of the week
-			var target_latest_matches = await db.getUserLatestMatchesOfWeek(target.id);
+			var target_latest_matches = await db.getUserRecentMatches(target.id, 0);
 			// check if target has played the maximum amount of games this week as defined in the config
 			if (target_latest_matches)
 				if (target_latest_matches.length >= config.maximum_weekly_challenges) {
@@ -1554,12 +1564,40 @@ client.on('message', async (message) => {
 					user_commands_running.delete(message.id);
 					return;
 				}
+				// say command, make the bot say a message
 				if (args[0].toLowerCase() == 'say' && args.length > 2) {
+					// ensure the message has a channel tagged
 					if (message.mentions.channels.size > 0) {
+						// construct message
 						var str = '';
 						for (var i = 2; i < args.length; i++)
 							str += args[i] + ' ';
+						// send the message to the tagged channel
 						message.mentions.channels.values().next().value.send(str.trim());
+						// remove command message from pending user responses
+						user_commands_running.delete(message.id);
+						return;
+					}
+				}
+				// warn command, warn inactive users that they will be quit next week
+				if (args[0].toLowerCase() == 'warn' && args.length == 2) {
+					if (message.mentions.channels.size > 0) {
+						// warn users that they will be auto-quit after n weeks of inactivity
+						var quit = [];
+						var competing = await db.getTopCompetingPlayers(-1);
+						for (var i = 1; i < competing.length; i++) {
+							var matches = await db.getUserRecentMatches(competing[i].id, config.auto_quit_weeks - 1);
+							if (!matches) {
+								quit.push(competing[i].discord_id);
+							}
+						}
+						var msg = strings.auto_quit_warning_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+						for (var i = 0; i < quit.length; i++) {
+							msg += `${tag(quit[i])}`;
+							if (i != quit.length - 1)
+								msg += `, `;
+						}
+						message.mentions.channels.values().next().value.send(msg);
 						// remove command message from pending user responses
 						user_commands_running.delete(message.id);
 						return;
@@ -1761,4 +1799,22 @@ async function suggestMatchups(channel, tagUsers, save) {
 		await db.saveWeeklyMatchups(saveList);
 	channel.send(msg);
 	return;
+}
+
+// quit a user
+async function quitUser(discord_id) {
+	// get database id from discord id
+	var user_id = await db.getUserIdFromDiscordId(discord_id);
+	// create user object
+	var user = await new User(user_id, db, client).init();
+	if (!user) return;
+	// check if the user is currently competing
+	if (!user.competing) return;
+	// get average elo
+	var averageElo = await db.getAverageCompetingElo();
+	// set the user's elo to average if above average
+	if (user.elo_rating > averageElo)
+		await db.setUserEloRating(user.id, averageElo);
+	// set the user's competing state to false
+	return await user.setCompeting(false);
 }
