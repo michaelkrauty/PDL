@@ -135,30 +135,8 @@ client.on('guildMemberRemove', async member => {
 	// get user's database id
 	var user_id = await db.getUserIdFromDiscordId(member.user.id);
 	if (!user_id) return;
-	// create user object
-	var user = await new User(user_id, db, client).init();
-	if (!user) return;
-	// check if the user is currently competing
-	if (!user.competing) return;
-	// get average elo
-	var averageElo = await db.getAverageCompetingElo();
-	// set the user's elo to average if above average
-	if (user.elo_rating > averageElo)
-		await db.setUserEloRating(user.id, averageElo);
-	// check if competitor role is defined in config
-	if (config.competitor_role_name != null && config.competitor_role_name != '') {
-		// get competitor role as defined in config
-		let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
-		// ensure competitor role exists
-		if (competitorRole != null && competitorRole.id != undefined)
-			// check if user has competitor role
-			if (member._roles.includes(competitorRole.id))
-				// remove competitor role from user
-				member.removeRole(competitorRole);
-	}
-	// set the user's competing state to false
-	var res = await user.setCompeting(false);
-	if (res) log.info(`${member.user.username} has quit the PDL by leaving the server.`);
+	var quit = await quitUser(member.user.id);
+	if (quit) log.info(`${member.user.username} has quit by leaving the server.`);
 });
 
 // store discord ids running commands
@@ -464,25 +442,8 @@ client.on('message', async (message) => {
 				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// get average elo
-			var averageElo = await db.getAverageCompetingElo();
-			// set the user's elo to average if above average
-			if (user.elo_rating > averageElo)
-				await db.setUserEloRating(user.id, averageElo);
-			// check if competitor role is defined in config
-			if (config.competitor_role_name != null && config.competitor_role_name != '') {
-				// get competitor role as defined in config
-				let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
-				// ensure competitor role exists
-				if (competitorRole != null && competitorRole.id != undefined)
-					// check if user has competitor role
-					if (message.member._roles.includes(competitorRole.id))
-						// remove competitor role from user
-						message.member.removeRole(competitorRole);
-			}
-			// set the user's competing state to false
-			var res = await user.setCompeting(false);
-			if (res)
+			var quit = await quitUser(message.member.user.id);
+			if (quit)
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
 		// competing command, shows if user is competing or not
@@ -1789,4 +1750,22 @@ async function suggestMatchups(channel, tagUsers, save) {
 		await db.saveWeeklyMatchups(saveList);
 	channel.send(msg);
 	return;
+}
+
+// quit a user
+async function quitUser(discord_id) {
+	// get database id from discord id
+	var user_id = await db.getUserIdFromDiscordId(discord_id);
+	// create user object
+	var user = await new User(user_id, db, client).init();
+	if (!user) return;
+	// check if the user is currently competing
+	if (!user.competing) return;
+	// get average elo
+	var averageElo = await db.getAverageCompetingElo();
+	// set the user's elo to average if above average
+	if (user.elo_rating > averageElo)
+		await db.setUserEloRating(user.id, averageElo);
+	// set the user's competing state to false
+	return await user.setCompeting(false);
 }
