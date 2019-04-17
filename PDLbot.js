@@ -133,9 +133,8 @@ client.once('ready', async () => {
 				if (decayed.length > 0) {
 					log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
 					for (var p in decayed) {
-						let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
-						decayedStr += `\`${decay}\`\n`;
-						log.info(`(USER ${decayed[p].id}):${decay}`);
+						decayedStr += `${tag(decayed[p].discord_id)}: ${decayed[p].old_elo}->${decayed[p].new_elo}\n`
+						log.info(`(${decayed[p].id}:${decayed[p].discord_username}):${decayed[p].old_elo}->${decayed[p].new_elo}`);
 					}
 				}
 				// send message to channel
@@ -1740,7 +1739,13 @@ async function decayInactiveElo(amount) {
 		await db.setUserEloRating(user.id, newElo);
 		// get player username
 		var player_username = await getDiscordUsernameFromDiscordId(user.discord_id);
-		decayed.push({ id: user.id, discord_username: player_username, old_elo: user.elo_rating, new_elo: newElo });
+		decayed.push({
+			id: user.id,
+			discord_id: user.discord_id,
+			discord_username: player_username,
+			old_elo: user.elo_rating,
+			new_elo: newElo
+		});
 	}
 	return decayed;
 }
