@@ -889,7 +889,7 @@ client.on('message', async (message) => {
 				break;
 			}
 			// get the user's latest matches of the week
-			var user_matches = await db.getUserLatestMatchesOfWeek(user.id);
+			var user_matches = await db.getUserRecentMatches(user.id, 0);
 			// check if user has played the maximum amount of games this week as defined in the config
 			if (user_matches)
 				if (user_matches.length >= config.maximum_weekly_challenges) {
@@ -898,7 +898,7 @@ client.on('message', async (message) => {
 					break;
 				}
 			// get the mention's latest matches of the week
-			var target_latest_matches = await db.getUserLatestMatchesOfWeek(target.id);
+			var target_latest_matches = await db.getUserRecentMatches(target.id, 0);
 			// check if target has played the maximum amount of games this week as defined in the config
 			if (target_latest_matches)
 				if (target_latest_matches.length >= config.maximum_weekly_challenges) {
