@@ -73,32 +73,81 @@ client.once('ready', async () => {
 	discord_channels_to_use = await require('./channels.json').data;
 	// connect to database
 	await db.connect();
-	// setup weekly elo decay job, if enabled
-	if (config.weekly_elo_decay) {
-		// job runs 59 seconds after 12am Monday
-		schedule.scheduleJob('DecayElo', '59 0 0 * * 1', async () => {
-			// decay inactive users and get a list of users whose elo has been decayed
-			var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
-			// string to contain decayed players' usernames and old/new elo
-			var decayedStr = '';
-			// construct player list for message
-			if (decayed.length > 0) {
-				log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
-				for (var p in decayed) {
-					let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
-					decayedStr += `\`${decay}\`\n`;
-					log.info(`(USER ${decayed[p].id}):${decay}`);
+	// job runs 59 seconds after 12am Monday
+	schedule.scheduleJob('WeeklyEloQuit', '59 0 0 * * 1', async () => {
+		// weekly auto-quit, if enabled
+		if (config.auto_quit) {
+			var autoQuitChannel = client.channels.get(config.auto_quit_channel);
+			if (autoQuitChannel) {
+				// auto quit users after n weeks of inactivity
+				var quit = [];
+				var competing = await db.getTopCompetingPlayers(-1);
+				for (var i = 1; i < competing.length; i++) {
+					var matches = await db.getUserRecentMatches(competing[i].id, 6);
+					if (!matches) {
+						var member = await guild.members.find(member => member.id.toString() === competing[i].discord_id.toString());
+						if (member != null) {
+							await quitUser(member.user.id);
+							console.log(`Auto-quit ${await getDiscordUsernameFromDiscordId(member.user.id)} for being AFK for ${config.auto_quit_weeks} weeks.`);
+							quit.push(competing[i].discord_id);
+						}
+					}
 				}
+				if (quit.length > 0) {
+					var msg = strings.auto_quit_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+					for (var i = 0; i < quit.length; i++) {
+						msg += `${tag(quit[i])}\n`
+					}
+					autoQuitChannel.send(msg);
+				}
+
+				// warn users that they will be auto-quit after n weeks of inactivity
+				var warned = [];
+				var competing = await db.getTopCompetingPlayers(-1);
+				for (var i = 1; i < competing.length; i++) {
+					var matches = await db.getUserRecentMatches(competing[i].id, config.auto_quit_weeks - 1);
+					if (!matches) {
+						warned.push(competing[i].discord_id);
+					}
+				}
+				msg = strings.auto_quit_warning_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+				for (var i = 0; i < warned.length; i++) {
+					msg += `${tag(warned[i])}`;
+					if (i != warned.length - 1)
+						msg += `, `;
+				}
+				autoQuitChannel.send(msg);
+			} else {
+				log.error(`Could not find auto_quit_channel '${config.auto_quit_channel}' as defined in config.js`);
 			}
-			// send message to active channels
-			for (var c in discord_channels_to_use) {
-				client.channels.get(discord_channels_to_use[c]).send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
+		}
+		// weekly elo decay, if enabled
+		if (config.weekly_elo_decay) {
+			var weeklyEloDecayChannel = client.channels.get(config.weekly_elo_decay_channel);
+			if (weeklyEloDecayChannel) {
+				// decay inactive users and get a list of users whose elo has been decayed
+				var decayed = await decayInactiveElo(config.weekly_elo_decay_amount);
+				// string to contain decayed players' usernames and old/new elo
+				var decayedStr = '';
+				// construct player list for message
+				if (decayed.length > 0) {
+					log.info(`Decayed the following players ELO by ${config.weekly_elo_decay_amount}:`);
+					for (var p in decayed) {
+						let decay = `${decayed[p].discord_username}: ${decayed[p].old_elo}->${decayed[p].new_elo}`
+						decayedStr += `\`${decay}\`\n`;
+						log.info(`(USER ${decayed[p].id}):${decay}`);
+					}
+				}
+				// send message to channel
+				weeklyEloDecayChannel.send(strings.weekly_challenge_reset.replaceAll('{matchlimit}', config.maximum_weekly_challenges));
 				if (decayed.length > 0)
-					client.channels.get(discord_channels_to_use[c]).send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
+					weeklyEloDecayChannel.send(strings.weekly_elo_decay.replaceAll('{players}', decayedStr));
+				log.info(`${new Date()}: ELO Decayed`);
+			} else {
+				log.error(`Could not find weekly_elo_decay_channel '${config.weekly_elo_decay_channel}' as defined in config.js`);
 			}
-			log.info(`${new Date()}: ELO Decayed`);
-		});
-	}
+		}
+	});
 	// setup weekly matchup suggestions, if enabled
 	if (config.suggested_weekly_matchups_channel != '0') {
 		// job runs at 1pm EST on Monday
@@ -106,7 +155,7 @@ client.once('ready', async () => {
 			// get the channel
 			var channel = guild.channels.get(config.suggested_weekly_matchups_channel);
 			// check if the channel exists
-			if (channel != null)
+			if (channel)
 				// run matchup suggestion function, which will save the matchups in the database
 				suggestMatchups(channel, true, true);
 		});
