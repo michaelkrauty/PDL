@@ -16,6 +16,8 @@ module.exports.config = {
 	weekly_elo_decay: true,
 	// how much should elo decay on a weekly basis?
 	weekly_elo_decay_amount: 25,
+	// channel to post elo decay message to
+	weekly_elo_decay_channel: '',
 	// auto-quit users who are inactive for n weeks?
 	auto_quit: true,
 	// how many weeks does a player have to be inactive to be auto-quit?
