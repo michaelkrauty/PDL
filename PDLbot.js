@@ -1569,6 +1569,30 @@ client.on('message', async (message) => {
 						return;
 					}
 				}
+				// warn command, warn inactive users that they will be quit next week
+				if (args[0].toLowerCase() == 'warn' && args.length == 2) {
+					if (message.mentions.channels.size > 0) {
+						// warn users that they will be auto-quit after n weeks of inactivity
+						var quit = [];
+						var competing = await db.getTopCompetingPlayers(-1);
+						for (var i = 1; i < competing.length; i++) {
+							var matches = await db.getUserRecentMatches(competing[i].id, config.auto_quit_weeks - 1);
+							if (!matches) {
+								quit.push(competing[i].discord_id);
+							}
+						}
+						var msg = strings.auto_quit_warning_message.replaceAll('{weeks}', config.auto_quit_weeks) + '\n';
+						for (var i = 0; i < quit.length; i++) {
+							msg += `${tag(quit[i])}`;
+							if (i != quit.length - 1)
+								msg += `, `;
+						}
+						message.mentions.channels.values().next().value.send(msg);
+						// remove command message from pending user responses
+						user_commands_running.delete(message.id);
+						return;
+					}
+				}
 			}
 			msg = `${tag(message.author.id)}\n${strings.admin_help}`;
 			message.channel.send(msg.replaceAll('{user}', tag(message.author.id)));
