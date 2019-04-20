@@ -622,42 +622,33 @@ client.on('message', async (message) => {
 				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
 				break;
 			}
-			// get player and nearby players
-			var nearby_players = await db.getNearbyPlayers(user.id, 2);
-			if (!nearby_players || nearby_players.length < 1) {
-				// failed to get similarly ranked players
-				message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-				throw (`Could not getNearbyPlayers(${user.id}, 2)`);
+
+			// get all competing players in order of rank
+			var top = [];
+			var players = await db.getTopCompetingPlayers(-1);
+			for (var i in players) {
+				var numMatches = await db.getUserNumConfirmedMatches(players[i].id);
+				if (numMatches && numMatches >= config.provisional_matches)
+					top.push(players[i]);
 			}
-			// sort the players by elo
-			nearby_players.sort(function (a, b) {
-				return !(a.elo_rating > b.elo_rating);
-			});
+
 			// find the user in the player list
 			var player_index = 0;
-			for (i = 0; i < nearby_players.length; i++)
-				if (nearby_players[i].id == user.id)
+			for (i = 0; i < top.length; i++)
+				if (top[i].id == user.id)
 					player_index = i;
+
 			// construct message
 			var msg = '';
-			for (i = 0; i < nearby_players.length; i++) {
-				// do nothing if not within 2 above and 2 below the player
-				if (i < player_index - 2 || i > player_index + 2)
+			for (i = player_index - 2; i < player_index + 3; i++) {
+				if (i >= top.length)
 					continue;
-				// get user elo rank
-				var rank = await db.getUserEloRanking(nearby_players[i].id);
-				if (!rank) {
-					// failed to get player's elo ranking
-					message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-					throw (`Could not getUserEloRanking(${nearby_players[i].id})`);
-				}
 				// get player username
-				var username = await getDiscordUsernameFromDiscordId(nearby_players[i].discord_id);
+				var username = await getDiscordUsernameFromDiscordId(top[i].discord_id);
 				// list top players
-				if (nearby_players[i].id == user.id)
-					username = `**${username}**`;
-				msg += `${rank}. ${username}: ${nearby_players[i].elo_rating} ELO\n`;
-
+				if (top[i].id == user.id)
+					username = tag(top[i].discord_id);
+				msg += `${i + 1}. ${username}: ${top[i].elo_rating} ELO\n`;
 			}
 			message.channel.send(msg);
 			break;
