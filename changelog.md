@@ -1,3 +1,6 @@
+v0.4.29
+- fixed !elo showing incorrect rank in some cases
+
 v0.4.28
 - weekly elo decay message now tags users
 
