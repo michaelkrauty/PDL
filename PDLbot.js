@@ -641,7 +641,7 @@ client.on('message', async (message) => {
 			// construct message
 			var msg = '';
 			for (i = player_index - 2; i < player_index + 3; i++) {
-				if (i >= top.length)
+				if (i >= top.length || !top[i])
 					continue;
 				// get player username
 				var username = await getDiscordUsernameFromDiscordId(top[i].discord_id);

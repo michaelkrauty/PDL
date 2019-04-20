@@ -1,3 +1,6 @@
+v0.4.30
+- fixed bug in !elo concerning the top 2 players using the command
+
 v0.4.29
 - fixed !elo showing incorrect rank in some cases
 
