@@ -1,3 +1,6 @@
+v1.0.0
+- bot is complete
+
 v0.4.30
 - fixed bug in !elo concerning the top 2 players using the command
 
