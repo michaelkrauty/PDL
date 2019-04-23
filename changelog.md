@@ -1,3 +1,6 @@
+v1.0.1
+- remove challengeme role on quit
+
 v1.0.0
 - bot is complete
 
