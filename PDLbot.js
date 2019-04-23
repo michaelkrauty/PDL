@@ -1811,6 +1811,22 @@ async function quitUser(discord_id) {
 	// set the user's elo to average if above average
 	if (user.elo_rating > averageElo)
 		await db.setUserEloRating(user.id, averageElo);
+	// check if competitor role is defined in config
+	if (config.competitor_role_name != null && config.competitor_role_name != '') {
+		// get competitor role as defined in config
+		let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
+		// ensure competitor role exists
+		if (competitorRole != null && competitorRole.id != undefined) {
+			// get member
+			var member = await guild.members.find(member => member.id.toString() === discord_id.toString());
+			if (member != null) {
+				// check if user has competitor role
+				if (!member._roles.includes(competitorRole.id))
+					// add competitor role to user
+					member.removeRole(competitorRole);
+			}
+		}
+	}
 	// set the user's competing state to false
 	return await user.setCompeting(false);
 }
