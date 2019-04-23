@@ -468,7 +468,7 @@ client.on('message', async (message) => {
 				// ensure competitor role exists
 				if (competitorRole != null && competitorRole.id != undefined)
 					// check if user has competitor role
-					if (!message.member._roles.includes(competitorRole.id))
+					if (!message.member._roles.includes(competitorRole))
 						// add competitor role to user
 						message.member.addRole(competitorRole);
 			}
@@ -1821,10 +1821,23 @@ async function quitUser(discord_id) {
 			var member = await guild.members.find(member => member.id.toString() === discord_id.toString());
 			if (member != null) {
 				// check if user has competitor role
-				if (!member._roles.includes(competitorRole.id))
+				if (!member._roles.includes(competitorRole))
 					// add competitor role to user
 					member.removeRole(competitorRole);
 			}
+		}
+	}
+	// get challengeme role
+	let challengemeRole = await guild.roles.find(role => role.name === 'challengeme');
+	// ensure challengeme role exists
+	if (challengemeRole != null && challengemeRole.id != undefined) {
+		// get member
+		var member = await guild.members.find(member => member.id.toString() === discord_id.toString());
+		if (member != null) {
+			// check if user has challengeme role
+			if (!member._roles.includes(challengemeRole))
+				// add challengeme role to user
+				member.removeRole(challengemeRole);
 		}
 	}
 	// set the user's competing state to false
