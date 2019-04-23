@@ -1827,6 +1827,19 @@ async function quitUser(discord_id) {
 			}
 		}
 	}
+	// get challengeme role
+	let challengemeRole = await guild.roles.find(role => role.name === 'challengeme');
+	// ensure challengeme role exists
+	if (challengemeRole != null && challengemeRole.id != undefined) {
+		// get member
+		var member = await guild.members.find(member => member.id.toString() === discord_id.toString());
+		if (member != null) {
+			// check if user has challengeme role
+			if (!member._roles.includes(challengemeRole))
+				// add challengeme role to user
+				member.removeRole(challengemeRole);
+		}
+	}
 	// set the user's competing state to false
 	return await user.setCompeting(false);
 }
