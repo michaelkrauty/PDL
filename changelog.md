@@ -1,5 +1,8 @@
-v1.0.1
+v1.0.2
 - remove challengeme role on quit
+
+v1.0.1
+- remove competitor role on quit
 
 v1.0.0
 - bot is complete
