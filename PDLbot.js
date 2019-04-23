@@ -468,7 +468,7 @@ client.on('message', async (message) => {
 				// ensure competitor role exists
 				if (competitorRole != null && competitorRole.id != undefined)
 					// check if user has competitor role
-					if (!message.member._roles.includes(competitorRole.id))
+					if (!message.member._roles.includes(competitorRole))
 						// add competitor role to user
 						message.member.addRole(competitorRole);
 			}
@@ -1821,7 +1821,7 @@ async function quitUser(discord_id) {
 			var member = await guild.members.find(member => member.id.toString() === discord_id.toString());
 			if (member != null) {
 				// check if user has competitor role
-				if (!member._roles.includes(competitorRole.id))
+				if (!member._roles.includes(competitorRole))
 					// add competitor role to user
 					member.removeRole(competitorRole);
 			}
