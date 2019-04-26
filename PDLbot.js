@@ -14,11 +14,12 @@ const package = require('./package.json');
 
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
-const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', WIN_CONFIRM: '✅', LOSS_CONFIRM: '❌', CANCEL: '🇽' };
+const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', CANCEL: '🇽', WIN_CONFIRM: '✅', LOSS_CONFIRM: '❌', CANCEL_CONFIRM: '🔷' };
 exports = MatchResult;
 
 // runtime variables
 var discord_channels_to_use,
+	botChannels,
 	started = false,
 	guild;
 
@@ -71,8 +72,11 @@ client.once('ready', async () => {
 	// setup json storage files
 	await fm.checkFile('./channels.json');
 	discord_channels_to_use = await require('./channels.json').data;
-	// connect to database
+	// connect to database and check tables
 	await db.connect();
+	await db.checkTables();
+	// retrieve channels to use from database
+	botChannels = await db.getChannels();
 	// job runs 59 seconds after 12am Monday
 	schedule.scheduleJob('WeeklyEloQuit', '59 0 0 * * 1', async () => {
 		// weekly auto-quit, if enabled
@@ -166,17 +170,14 @@ client.once('ready', async () => {
 
 // called when a new member joins the discord server
 client.on('guildMemberAdd', member => {
-	// check if welcome channel and message are set
-	if (config.welcome_channel != '0' && strings.welcome_message != '') {
-		// get the channel
-		var channel = member.guild.channels.get(config.welcome_channel);
-		// check if the channel exists
-		if (channel != null)
-			// send welcome message
-			channel.send(strings.welcome_message.replaceAll('{user_tag}', tag(member.user.id)).replaceAll('{user_name}', member.user.username));
-		else
-			log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
-	}
+	// get the channel
+	var channel = member.guild.channels.get(config.welcome_channel);
+	// check if the channel exists
+	if (channel != null)
+		// send welcome message
+		channel.send(strings.welcome_message.replaceAll('{user_tag}', tag(member.user.id)).replaceAll('{user_name}', member.user.username));
+	else
+		log.error('Channel to use for welcome message could not be found with the channel ID in the config.');
 });
 
 client.on('guildMemberRemove', async member => {
@@ -229,10 +230,37 @@ client.on('message', async (message) => {
 	let adminRole = await guild.roles.find(role => role.name === config.admin_role_name);
 	var admin = adminRole != null && adminRole.id != undefined && message.member.roles.has(adminRole.id);
 	// is the channel being used by the bot?
-	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin') {
+	var isBotChannel = false;
+	var channelMatchFormat;
+	for (var c in botChannels) {
+		if (botChannels[c].id.toString() === message.channel.id.toString()) {
+			isBotChannel = true;
+			channelMatchFormat = botChannels[c].type;
+		}
+	}
+	if (!isBotChannel && cmd != 'admin') {
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
+	}
+
+	if (cmd === 'test') {
+		var msg = await message.channel.send('testing');
+		var matchId = 69;
+		onThumbsUp = async () => {
+			await msg.channel.send('thumbs up');
+			await msg.channel.send(matchId);
+		}
+		onThumbsDown = async () => {
+			await msg.channel.send('thumbs down');
+		}
+		onCancel = async (str = null) => {
+			if (str)
+				await msg.channel.send(`${tag(message.author.id)} Cancelled: ${str}`);
+			else
+				await msg.channel.send(`${tag(message.author.id)} Cancelled.`);
+		}
+		await listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel);
 	}
 
 	// top command, shows top competing players ordered by elo
@@ -306,6 +334,103 @@ client.on('message', async (message) => {
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
+	}
+
+	if (cmd === 'createteam') {
+		if (args.length > 0) {
+			var dbTeam = await db.getTeam(channelMatchFormat, args[0]);
+			if (!dbTeam) {
+				var teamCreated = await db.createTeam(channelMatchFormat, args[0]);
+				if (teamCreated) {
+					if (!await guild.roles.find(role => role.name === args[0])) {
+						var role = await guild.createRole({
+							name: args[0],
+							color: getRandomColor(),
+							hoist: true,
+							position: guild.roles.size - 2,
+							mentionable: true
+						});
+						if (await guild.member(message.author).addRole(role))
+							message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
+					} else {
+						message.channel.send(`Team "${args[0]}" already exists!`);
+					}
+				} else {
+					message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+					log.error(`Couldn't create team ${args[0]} for ${await getDiscordUsernameFromDiscordId(message.author.id)}`);
+				}
+			} else {
+				message.channel.send(`Team "${args[0]}" already exists!`);
+			}
+		} else {
+			message.channel.send(`Usage: !createteam <teamname>`);
+		}
+	}
+
+	if (cmd === 'join') {
+		if (args.length == 1) {
+			var team = await db.getTeam('2v2', args[0]);
+			if (team) {
+				//TODO: check the database for the team
+				//TODO: check the database for an invite
+				var teamRole = await guild.roles.find(role => role.name === args[0]);
+				if (teamRole) {
+					var dbJoin = await db.modifyTeam(channelMatchFormat, team.name, 'members', [message.author.id]);
+					if (dbJoin) {
+						if (await guild.member(message.author).addRole(teamRole)) {
+							message.channel.send(`${tag(message.author.id)} has joined the team ${tagRole(teamRole.id)}!`);
+						} else {
+							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							log.error(`Couldn't add team role ${team.name} to ${await getDiscordUsernameFromDiscordId(message.author.id)}`)
+						}
+					} else {
+						message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+						log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team.name} in DB`);
+					}
+				} else {
+					message.channel.send(`Couldn't find the team role "${args[0]}"`);
+				}
+			} else {
+				message.channel.send(`Couldn't find the team "${args[0]}"`);
+			}
+		} else {
+			message.channel.send(`Usage: !join <teamname>`);
+		}
+	}
+
+	if (cmd === 'leaveteam') {
+		//TODO: check the database for the team
+		//TODO: allow user to tag own team in command
+		if (args.length == 0) {
+			//TODO: get team name from database
+			var teamRole = await guild.roles.find(role => role.name === 'test')
+			if (guild.member(message.author)._roles.includes(teamRole.id)) {
+				guild.member(message.author).removeRole(teamRole);
+				message.channel.send(`${tag(message.author.id)} has left team test!`);
+			} else {
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+			}
+		}
+		//TODO: disband the team if the player leaving is the last one on the team
+	}
+
+	if (cmd === 'invite') {
+		//TODO: check the database for the team and invite
+		//TODO: add invite to database
+	}
+
+	if (cmd === 'disbandteam') {
+		//TODO: check the database for the team
+		// requires majority of team members to confirm to disband
+	}
+
+	if (cmd === 'teamname') {
+		//TODO: get team from database
+		//TODO: set new team name
+	}
+
+	if (cmd === 'teamcolor') {
+		//TODO: get player's team from database, and set team role color based on args[0] or random
 	}
 
 	switch (cmd) {
@@ -1225,36 +1350,36 @@ client.on('message', async (message) => {
 				if (args[0].toLowerCase() == 'channels' && args.length == 1) {
 					// list channels
 					var msg = '';
-					for (i = 0; i < discord_channels_to_use.length; i++)
-						msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
+					for (i = 0; i < botChannels.length; i++)
+						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
 					message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
 					return;
 				}
 				// init command, to initialize a channel for use by the bot
-				if (args[0].toLowerCase() == 'init' && args.length == 1) {
-					var channels = discord_channels_to_use;
+				if (args[0].toLowerCase() == 'init' && args.length == 2) {
 					// loop through channels, check if current channel is already added
-					if (channels != undefined) {
-						if (channels.includes(message.channel.id)) {
+					for (var c in botChannels) {
+						if (botChannels[c].id.toString() === message.channel.id.toString()) {
+							// already using channel
 							message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
-							break;
+							// remove command message from pending user responses
+							user_commands_running.delete(message.id);
+							return;
 						}
-						// add current channel to channels list
-						channels.push(message.channel.id);
-					} else
-						// add current channel to channels list
-						channels = [message.channel.id];
-					// write data to file
-					await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-						if (err) throw err;
-					});
-					discord_channels_to_use = require('./channels.json').data;
+					}
+					// add current channel to channels list
+					await db.createChannel(message.channel.id, args[1]);
+					// create teams table for channel
+					await db.createTeamTable(args[1]);
+					// create matches table for channel
+					await db.createMatchesTable(args[1]);
 					// success, list channels
+					botChannels = await db.getChannels();
 					var msg = '';
-					for (i = 0; i < discord_channels_to_use.length; i++)
-						msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
+					for (i = 0; i < botChannels.length; i++)
+						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
 					message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
@@ -1263,24 +1388,23 @@ client.on('message', async (message) => {
 				// deinit command, makes the bot stop using a channel
 				if (args[0].toLowerCase() == 'deinit' && args.length == 1) {
 					// check if channel is being used currently
-					var channels = discord_channels_to_use;
-					if (channels == undefined || !channels.includes(message.channel.id)) {
+					var channelInUse = false;
+					for (var c in botChannels)
+						if (botChannels[c].id.toString() === message.channel.id.toString())
+							channelInUse = true;
+					if (!channelInUse) {
 						message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
 						break;
 					}
 					// stop using this channel
-					channels.splice(channels.indexOf(message.channel.id), 1);
-					await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
-						log.error(err);
-					});
+					await db.removeChannel(message.channel.id);
 					// refresh the channels list
-					discord_channels_to_use = require('./channels.json').data;
+					botChannels = await db.getChannels();
 					// list channels
 					var msg = '';
-					for (i = 0; i < discord_channels_to_use.length; i++)
-						msg += `${client.channels.get(discord_channels_to_use[i])}\n`;
-					message.channel.send(strings.deinit_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
+					for (i = 0; i < botChannels.length; i++)
+						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
+					message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
 					return;
@@ -1842,4 +1966,64 @@ async function quitUser(discord_id) {
 	}
 	// set the user's competing state to false
 	return await user.setCompeting(false);
+}
+
+// get a random color
+function getRandomColor() {
+	var letters = '0123456789ABCDEF';
+	var color = '#';
+	for (var i = 0; i < 6; i++) {
+		color += letters[Math.floor(Math.random() * 16)];
+	}
+	return color;
+}
+
+async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel) {
+	// ensure only one response from the user per message by storing message ids in collected array
+	var collected = [];
+	// ensure one instance of the command
+	user_commands_running.set(msg.id, message.author.id);
+	// await y/n/cancel reaction from user for 60 seconds
+	var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
+	var collector = await msg.createReactionCollector(filter, { time: 60000 });
+	collector.on('collect', async (r) => {
+		// already got a response from the user for this message
+		if (collected.includes(r.message.id))
+			return;
+		// prevent the user from reacting to the same message again
+		await collected.push(r.message.id);
+		// confirm or dispute?
+		if (r._emoji.name === ReactionEmoji.WIN) {
+			await msg.react(ReactionEmoji.WIN_CONFIRM);
+			await onThumbsUp();
+		} else if (r._emoji.name === ReactionEmoji.LOSS) {
+			await msg.react(ReactionEmoji.LOSS_CONFIRM);
+			await onThumbsDown();
+		} else if (r._emoji.name === ReactionEmoji.CANCEL) {
+			await msg.react(ReactionEmoji.CANCEL_CONFIRM);
+			await onCancel();
+		}
+		// remove reaction message from pending user responses
+		user_commands_running.delete(r.message.id);
+	});
+	collector.on('end', async () => {
+		// collector ends when the filter time is up
+		// loop through all collectors
+		for (var c in collectors) {
+			// if this collector's message id is a key in the map of users running commands, and the value is the author's discord id
+			if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
+				// timed out, cancel
+				await collectors[c].message.react(ReactionEmoji.CANCEL_CONFIRM);
+				await onCancel(`Timed out.`);
+				// remove reaction message from pending user responses
+				user_commands_running.delete(collectors[c].message.id);
+			}
+		}
+	});
+	// add submission reactions to msg
+	await msg.react(ReactionEmoji.WIN);
+	await msg.react(ReactionEmoji.LOSS);
+	await msg.react(ReactionEmoji.CANCEL);
+	// add the reaction collector to the a array of collectors
+	await collectors.push(collector);
 }

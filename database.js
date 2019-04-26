@@ -1,6 +1,7 @@
 const log = require('winston');
 const config = require('./config.js').config;
 const config_db = require('./config_db.js').db;
+var pool;
 
 /**
  * @description connects to SQL database and creates necessary tables
@@ -10,41 +11,6 @@ module.exports.connect = function () {
 		let mysql = await require('mysql');
 		// connect to MySQL DB
 		log.info(`Connecting to MySQL DB: ${config_db.user}@${config_db.host}...`);
-		let con = await mysql.createConnection({
-			host: config_db.host,
-			user: config_db.user,
-			password: config_db.password
-		});
-		await con.connect(function (err) {
-			if (err) throw err;
-			log.info('Connected to MySQL DB!');
-		});
-		// create DB if it doesn't already exist
-		await con.query(`CREATE DATABASE IF NOT EXISTS ${config_db.database};`, function (err) {
-			if (err) throw err;
-		});
-		// select DB
-		await con.query(`USE ${config_db.database};`, function (err) {
-			if (err) throw err;
-		});
-		// create DB tables if they don't already exist
-		await con.query('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default 1500, competing boolean not null default false);', function (err, res) {
-			if (err) throw err;
-			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `users`');
-		});
-		await con.query('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp);', function (err, res) {
-			if (err) throw err;
-			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `matches`');
-		});
-		await con.query('CREATE TABLE IF NOT EXISTS matchups (id tinyint primary key auto_increment, matchups longtext);', function (err, res) {
-			if (err) throw err;
-			if (res['warningCount'] == 0)
-				log.info('Created MySQL table `matchups`');
-		});
-		// end connection to database
-		await con.end();
 		// create mysql connection pool
 		pool = await mysql.createPool({
 			host: config_db.host,
@@ -52,8 +18,25 @@ module.exports.connect = function () {
 			user: config_db.user,
 			password: config_db.password
 		});
+		log.info('Connected to MySQL DB!');
 		resolve();
 	});
+}
+
+module.exports.checkTables = async () => {
+	// create DB tables if they don't already exist
+	var usersCreated = await exports.sql('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default 1500, competing boolean not null default false);');
+	if (usersCreated.warningCount === 0)
+		log.info(`Created 'users' table`);
+	var matchesCreated = await exports.sql('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp);');
+	if (matchesCreated.warningCount === 0)
+		log.info(`Created 'matches' table`);
+	var matchupsCreated = await exports.sql('CREATE TABLE IF NOT EXISTS matchups (id tinyint primary key auto_increment, matchups longtext);');
+	if (matchupsCreated.warningCount === 0)
+		log.info(`Created 'matchups' table`);
+	var channelsCreated = await exports.sql('CREATE TABLE IF NOT EXISTS channels (id varchar(255), type varchar(255));');
+	if (channelsCreated.warningCount === 0)
+		log.info(`Created 'channels' table`);
 }
 
 /**
@@ -497,5 +480,70 @@ exports.getWeeklyMatchups = async () => {
 		var arr = JSON.parse(res[0].matchups);
 		return arr;
 	}
+	return false;
+}
+
+exports.createChannel = async (id, type) => {
+	var res = await exports.sql('INSERT INTO channels (id, type) VALUES (?,?);', [id, type]);
+	return res.length > 0;
+}
+
+exports.removeChannel = async (id) => {
+	var res = await exports.sql('DELETE FROM channels WHERE id=?', id)
+	return res.length > 0;
+}
+
+exports.getChannels = async () => {
+	var res = await exports.sql('SELECT * FROM channels;');
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.getChannel = async (id) => {
+	var res = await exports.sql('SELECT * FROM channels WHERE id=?;', id);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.createTeamTable = async (type) => {
+	var res = await exports.sql('CREATE TABLE IF NOT EXISTS `?` (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255));', ['teams_' + type]);
+}
+
+exports.createTeam = async (type, teamName) => {
+	var res = await exports.sql('INSERT INTO `?` (name) VALUES (?);', ['teams_' + type, teamName]);
+	return res.warningCount === 0;
+}
+
+exports.getTeam = async (type, teamName) => {
+	var res = await exports.sql('SELECT * FROM `?` WHERE name=?;', ['teams_' + type, teamName]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.modifyTeam = async (type, teamName, key, value) => {
+	var res = await exports.sql('UPDATE `?` SET ?=? WHERE name=?;'['teams_' + type, key, value, teamName]);
+	return res.length > 0;
+}
+
+exports.createMatchesTable = async (type) => {
+	var res = await exports.sql('CREATE TABLE IF NOT EXISTS `?` (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int, team2_net_elo int, timestamp timestamp not null default current_timestamp);', 'matches_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createInvite = async (type, teamName, discordIdFrom, discordIdTo) => {
+	var res = await exports.sql('INSERT INTO `?` (name, from, to) VALUES (?,?,?);', ['invites_' + type, teamName, discordIdFrom, discordIdTo]);
+	return res.length > 0;
+}
+
+exports.getInvite = async (type, sender, discordId) => {
+	var from = 'to';
+	if (sender)
+		from = 'from';
+	var res = await exports.sql('SELECT * FROM `?` WHERE ?=?', ['invites_' + type, from, discordId]);
+	if (res.length > 0)
+		return res;
 	return false;
 }
