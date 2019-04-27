@@ -561,6 +561,25 @@ client.on('message', async (message) => {
 					message.channel.send(strings.user_is_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id))) :
 					message.channel.send(strings.user_is_not_accepting_challenges_other.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(mention.id)));
 			break;
+		// register command, registers the user in the database
+		case 'register':
+			// require no arguments
+			if (args.length != 0) {
+				message.channel.send(strings.compete_try_again.replaceAll('{user}', tag(message.author.id)));
+				break;
+			}
+			// register user if they're not already in the DB
+			if (!user)
+				if (await db.registerUser(message.author.id))
+					// user registered
+					message.channel.send(strings.user_is_now_registered.replaceAll('{user}', tag(message.author.id)));
+				else
+					// user is already registered
+					message.channel.send(strings.error_user_already_registered.replaceAll('{user}', tag(message.author.id)));
+			else
+				// user is already registered
+				message.channel.send(strings.error_user_already_registered.replaceAll('{user}', tag(message.author.id)));
+			break;
 		// compete command, registers the user in the database and/or enables competing for the user
 		case 'compete':
 			// require no arguments
@@ -570,7 +589,7 @@ client.on('message', async (message) => {
 			}
 			// register user if they're not already in the DB
 			if (!user) {
-				await db.registerUser(message.author.id, message.author.username);
+				await db.registerUser(message.author.id);
 				// get user's new user ID
 				user_id = await db.getUserIdFromDiscordId(message.author.id);
 				// create new User class

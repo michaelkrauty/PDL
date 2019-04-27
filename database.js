@@ -94,7 +94,7 @@ exports.registerUser = async (discord_id) => {
 		var created = await exports.createUserInDB(discord_id);
 		return created.length > 0;
 	}
-	return exists;
+	return false;
 }
 
 /**
