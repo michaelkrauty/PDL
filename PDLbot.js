@@ -796,11 +796,6 @@ client.on('message', async (message) => {
 				}
 				// waiting_for_input will be true if there is one or more match which the user should confirm with reaction emojis
 				var waiting_for_input = false;
-				// ensure only one response from the user per message by storing message ids in collected array
-				var collected = [];
-				// ties message id to match id
-				// key: message id, value: match id
-				var user_pending_matches = new Map();
 				// loop through retrieved matches
 				for (var m in latest_matches) {
 					var match = latest_matches[m];
@@ -825,7 +820,7 @@ client.on('message', async (message) => {
 					var text = '';
 					submitter_was_user ? text += strings.pending_submitter_was_user : text += strings.pending_submitter_was_not_user;
 					// send it
-					var msg = await message.channel.send(text
+					var reactionMessage = await message.channel.send(text
 						.replaceAll('{user}', tag(message.author.id))
 						.replaceAll('{opponent_name}', opponent_username)
 						.replaceAll('{match_id}', match.id)
@@ -836,147 +831,94 @@ client.on('message', async (message) => {
 						continue;
 					// ask the user to thumb up/down whether they won or not after looping through all unconfirmed matches
 					waiting_for_input = true;
-					// tie the message id to the match id
-					user_pending_matches.set(msg.id, match.id);
-					// ensure one instance of the command
-					user_commands_running.set(msg.id, message.author.id);
-					// await y/n/cancel reaction from user for 60 seconds
-					var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
-					var collector = msg.createReactionCollector(filter, { time: 60000 });
-					collector.on('collect', async (r) => {
-						// already got a response from the user for this message
-						if (collected.includes(r.message.id))
-							return;
-						// return if the message id isn't tied to a match id, for whatever reason
-						if (!user_pending_matches.has(r.message.id))
-							return;
-						// get match id from map using message id for key
-						var match_id = user_pending_matches.get(r.message.id);
-						// put the message id in the collected array, to prevent the user from reacting to the same message again
-						// TODO: I believe collected will continue to grow as players use the confirm command
-						collected.push(r.message.id);
-						// get match
-						var match = await db.getMatch(match_id);
-						if (!match)
-							throw (`Could not getMatch(${match_id})`);
-						// return if the match is already confirmed, for whatever reason
-						if (match.confirmed)
-							return;
-						// confirm or dispute?
-						var confirm;
-						if (r._emoji.name === ReactionEmoji.WIN) {
-							// user confirms the match result
-							await r.message.react(ReactionEmoji.WIN_CONFIRM);
-							confirm = MatchResult.WIN;
-						} else if (r._emoji.name === ReactionEmoji.LOSS) {
-							// user disputes the match result
-							await r.message.react(ReactionEmoji.LOSS_CONFIRM);
-							confirm = MatchResult.LOSS;
-						} else if (r._emoji.name === ReactionEmoji.CANCEL) {
-							// user cancelled
-							user_pending_matches.delete(r.message.id);
-							user_commands_running.delete(r.message.id);
-							await r.message.react(ReactionEmoji.CONFIRMED);
-							return;
-						}
-						// get opponent data
-						var opponent_data = await db.getUserDataUsingId(match.player_id);
-						if (!opponent_data)
+
+					// get match
+					var match = await db.getMatch(match.id);
+					if (!match)
+						throw (`Could not getMatch(${match.id})`);
+					// return if the match is already confirmed, for whatever reason
+					if (match.confirmed)
+						return;
+					// get opponent data
+					var opponent_data = await db.getUserDataUsingId(match.player_id);
+					if (!opponent_data)
+						throw (`Could not getUserDataUsingId(${match.player_id})`);
+					onThumbsUp = async (match) => {
+						// the match was confirmed
+						// get player's elo rating
+						var playerElo = await db.getUserEloRating(match.player_id);
+						if (!playerElo)
+							throw (`Could not getUserEloRating(${match.player_id})`);
+						// get opponent's elo rating
+						var opponentElo = await db.getUserEloRating(match.opponent_id);
+						if (!opponentElo)
+							throw (`Could not getUserEloRating(${match.opponent_id})`);
+						// calculate new elo
+						var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
+						// new players' elo, plus bonus elo as defined in the config
+						var newPlayerElo = eloCalculation.new_player_elo;
+						var newOpponentElo = eloCalculation.new_opponent_elo;
+						// set players' new elo rating
+						await db.setUserEloRating(match.player_id, newPlayerElo);
+						await db.setUserEloRating(match.opponent_id, newOpponentElo);
+						// update the match info
+						// use player elo + net elo instead of new player elo, so if the match is ever cancelled, we can revert elo properly.
+						await db.updateMatch(match.id, true, playerElo, playerElo + eloCalculation.net_player_elo, opponentElo, opponentElo + eloCalculation.net_opponent_elo);
+						// get player's new rank
+						var player_rank = await db.getUserEloRanking(match.player_id);
+						if (!player_rank)
+							throw (`Could not getUserEloRanking(${match.player_id})`);
+						// get opponent's new rank
+						var opponent_rank = await db.getUserEloRanking(match.opponent_id);
+						if (!opponent_rank)
+							throw (`Could not getUserEloRanking(${match.opponent_id})`);
+						// get player data
+						var player_data = await db.getUserDataUsingId(match.player_id);
+						if (!player_data)
 							throw (`Could not getUserDataUsingId(${match.player_id})`);
-						if (!confirm) {
-							// the match was disputed
-							await r.message.channel.send(strings.pending_dispute
-								.replaceAll('{user}', tag(message.author.id))
-								.replaceAll('{opponent}', tag(opponent_data.discord_id))
-								.replaceAll('{match_id}', match.id)
-								.replaceAll('{admin}', tagRole(guild.roles.find(role => role.name === config.admin_role_name).id))
-							);
-							await r.message.react(ReactionEmoji.LOSS);
-						} else {
-							// the match was confirmed
-							// get player's elo rating
-							var playerElo = await db.getUserEloRating(match.player_id);
-							if (!playerElo)
-								throw (`Could not getUserEloRating(${match.player_id})`);
-							// get opponent's elo rating
-							var opponentElo = await db.getUserEloRating(match.opponent_id);
-							if (!opponentElo)
-								throw (`Could not getUserEloRating(${match.opponent_id})`);
-							// calculate new elo
-							var eloCalculation = calculateElo(playerElo, opponentElo, null, null, null, null, match.result);
-							// new players' elo, plus bonus elo as defined in the config
-							var newPlayerElo = eloCalculation.new_player_elo;
-							var newOpponentElo = eloCalculation.new_opponent_elo;
-							// set players' new elo rating
-							await db.setUserEloRating(match.player_id, newPlayerElo);
-							await db.setUserEloRating(match.opponent_id, newOpponentElo);
-							// update the match info
-							// use player elo + net elo instead of new player elo, so if the match is ever cancelled, we can revert elo properly.
-							await db.updateMatch(match.id, true, playerElo, playerElo + eloCalculation.net_player_elo, opponentElo, opponentElo + eloCalculation.net_opponent_elo);
-							// get player's new rank
-							var player_rank = await db.getUserEloRanking(match.player_id);
-							if (!player_rank)
-								throw (`Could not getUserEloRanking(${match.player_id})`);
-							// get opponent's new rank
-							var opponent_rank = await db.getUserEloRanking(match.opponent_id);
-							if (!opponent_rank)
-								throw (`Could not getUserEloRanking(${match.opponent_id})`);
-							// get player data
-							var player_data = await db.getUserDataUsingId(match.player_id);
-							if (!player_data)
-								throw (`Could not getUserDataUsingId(${match.player_id})`);
-							// get opponent data
-							var opponent_data = await db.getUserDataUsingId(match.opponent_id);
-							if (!opponent_data)
-								throw (`Could not getUserDataUsingId(${match.opponent_id})`);
-							// get player username
-							var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
-							// get opponent username
-							var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
-							// compose message with elo change and tag the players
-							var winloss;
-							match.result ? winloss = 'win' : winloss = 'loss';
-							await message.channel.send(strings.pending_confirm
-								.replaceAll('{new_elo_message}', strings.new_elo_message)
-								.replaceAll('{match_id}', match.id)
-								.replaceAll('{winloss}', winloss)
-								.replaceAll('{user}', tag(message.author.id))
-								.replaceAll('{player}', tag(player_data.discord_id))
-								.replaceAll('{opponent}', tag(opponent_data.discord_id))
-								.replaceAll('{player_name}', player_username)
-								.replaceAll('{opponent_name}', opponent_username)
-								.replaceAll('{player_elo_rank}', player_rank)
-								.replaceAll('{opponent_elo_rank}', opponent_rank)
-								.replaceAll('{old_player_elo}', playerElo)
-								.replaceAll('{new_player_elo}', newPlayerElo)
-								.replaceAll('{old_opponent_elo}', opponentElo)
-								.replaceAll('{new_opponent_elo}', newOpponentElo));
-							await r.message.react(ReactionEmoji.WIN);
-						}
-						// remove message from the map where the value is the message author id
-						user_commands_running.delete(r.message.id);
-					});
-					// add submission reactions to msg
-					await msg.react(ReactionEmoji.WIN);
-					await msg.react(ReactionEmoji.LOSS);
-					await msg.react(ReactionEmoji.CANCEL);
-					collector.on('end', collected => {
-						// collector ends when the filter time is up
-						// loop through all collectors
-						for (var c in collectors) {
-							// remove the message id from the map which stoes the match id
-							user_pending_matches.delete(collectors[c].message.id);
-							// if this collector's message id is a key in the map of users running commands, and the value is the author's discord id
-							if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
-								// remove this collector's message id entry from the map
-								user_commands_running.delete(collectors[c].message.id);
-								// react to the message to signify that it was cancelled
-								collectors[c].message.react(ReactionEmoji.CONFIRMED);
-							}
-						}
-					});
-					// add the reaction collector to the a array of collectors
-					collectors.push(collector);
+						// get opponent data
+						var opponent_data = await db.getUserDataUsingId(match.opponent_id);
+						if (!opponent_data)
+							throw (`Could not getUserDataUsingId(${match.opponent_id})`);
+						// get player username
+						var player_username = await getDiscordUsernameFromDiscordId(player_data.discord_id);
+						// get opponent username
+						var opponent_username = await getDiscordUsernameFromDiscordId(opponent_data.discord_id);
+						// compose message with elo change and tag the players
+						var winloss;
+						match.result ? winloss = 'win' : winloss = 'loss';
+						await message.channel.send(strings.pending_confirm
+							.replaceAll('{new_elo_message}', strings.new_elo_message)
+							.replaceAll('{match_id}', match.id)
+							.replaceAll('{winloss}', winloss)
+							.replaceAll('{user}', tag(message.author.id))
+							.replaceAll('{player}', tag(player_data.discord_id))
+							.replaceAll('{opponent}', tag(opponent_data.discord_id))
+							.replaceAll('{player_name}', player_username)
+							.replaceAll('{opponent_name}', opponent_username)
+							.replaceAll('{player_elo_rank}', player_rank)
+							.replaceAll('{opponent_elo_rank}', opponent_rank)
+							.replaceAll('{old_player_elo}', playerElo)
+							.replaceAll('{new_player_elo}', newPlayerElo)
+							.replaceAll('{old_opponent_elo}', opponentElo)
+							.replaceAll('{new_opponent_elo}', newOpponentElo));
+					}
+					onThumbsDown = async (match) => {
+						// the match was disputed
+						await message.channel.send(strings.pending_dispute
+							.replaceAll('{user}', tag(message.author.id))
+							.replaceAll('{opponent}', tag(opponent_data.discord_id))
+							.replaceAll('{match_id}', match.id)
+							.replaceAll('{admin}', tagRole(guild.roles.find(role => role.name === config.admin_role_name).id))
+						);
+					}
+					onCancel = async (cancelMsg = null) => {
+						if (cancelMsg)
+							await message.channel.send(`${tag(message.author.id)} Cancelled: ${cancelMsg}`);
+						else
+							await message.channel.send(`${tag(message.author.id)} Cancelled.`);
+					}
+					await listenForReaction(message, reactionMessage, onThumbsUp, onThumbsDown, onCancel, match);
 				}
 				// a match has confirm and dispute emojis waiting for input
 				if (waiting_for_input)
@@ -993,20 +935,20 @@ client.on('message', async (message) => {
 			}
 			// check for a mention
 			var mention = message.mentions.users.values().next().value;
-			if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
+			if (args.length != 1 || !mention || mention.id == message.author.id) {
 				// no mentions, too many arguments, or user mentioned self
 				message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
 			// get mention's database id
-			var mention_discord_id = await db.getUserIdFromDiscordId(mention.id);
-			if (!mention_discord_id) {
+			var mentionId = await db.getUserIdFromDiscordId(mention.id);
+			if (!mentionId) {
 				// mention is not registered
 				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
 				break;
 			}
 			// get mention data
-			var target = await new User(mention_discord_id, db, client).init();
+			var target = await new User(mentionId, db, client).init();
 			// check if mention is competing
 			if (!target.competing) {
 				// mention is not competing
@@ -1033,61 +975,32 @@ client.on('message', async (message) => {
 				}
 			// ask the user if they won
 			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
-			// ensure only one response from the user by storing the message id and author id in map
-			user_commands_running.set(msg.id, message.author.id);
-			// ensure only one response from the user by storing message id in collected array
-			var collected = [];
-			// await y/n/cancel reaction from user for 60 seconds
-			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
-			var collector = msg.createReactionCollector(filter, { time: 60000 });
-			// TODO: apply multiple !confirm fix to !submit
-			collector.on('collect', async (r) => {
-				// user already reacted to this message
-				if (collected.includes(r.message.id))
-					return;
-				// add the message to the collected array to ensure only one response from the user
-				collected.push(r.message.id);
-				// user reacted y/n, what was the match result?
-				var result;
-				if (r._emoji.name === ReactionEmoji.WIN)
-					result = MatchResult.WIN;
-				else if (r._emoji.name === ReactionEmoji.LOSS)
-					result = MatchResult.LOSS;
-				else if (r._emoji.name === ReactionEmoji.CANCEL) {
-					collector.stop();
-					return;
-				}
-				// get player's elo rating
-				var playerElo = user.elo_rating;
-				// get opponent's elo rating
-				var opponentElo = target.elo_rating;
+			// get player's elo rating
+			var playerElo = user.elo_rating;
+			// get opponent's elo rating
+			var opponentElo = target.elo_rating;
+			onThumbsUp = async () => {
 				// submit match result
-				await db.submitMatchResult(user.id, target.id, (result == MatchResult.WIN), playerElo, opponentElo, null, null);
+				await db.submitMatchResult(user.id, target.id, true, playerElo, opponentElo, null, null);
 				// ask the target user to confirm the game
 				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
-				collector.stop();
-				// remove message from pending user responses
-				user_commands_running.delete(msg.id);
-				msg.react(ReactionEmoji.CONFIRMED);
-			});
-			// add submission reactions to msg
-			await msg.react(ReactionEmoji.WIN);
-			await msg.react(ReactionEmoji.LOSS);
-			await msg.react(ReactionEmoji.CANCEL);
-			collector.on('end', collected => {
-				if (collected.size < 1) {
+			}
+			onThumbsDown = async () => {
+				// submit match result
+				await db.submitMatchResult(user.id, target.id, false, playerElo, opponentElo, null, null);
+				// ask the target user to confirm the game
+				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
+			}
+			onCancel = async (cancelMsg = null) => {
+				if (cancelMsg) {
 					// no y/n reaction was collected
 					message.channel.send(strings.match_submit_timeout.replaceAll('{user}', tag(message.author.id)));
-				} else if (collected.get(ReactionEmoji.CANCEL) != null) {
+				} else {
 					// submission cancelled by user
 					message.channel.send(strings.match_submit_cancel.replaceAll('{user}', tag(message.author.id)));
-					msg.react(ReactionEmoji.CONFIRMED);
 				}
-				// remove message from pending user responses
-				user_commands_running.delete(msg.id);
-			});
+			}
+			await listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel);
 			break;
 		// matches command, shows matches from this week and past week
 		case 'matches':
