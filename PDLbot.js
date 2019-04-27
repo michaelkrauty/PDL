@@ -9,7 +9,6 @@ const config_db = require('./config_db.js');
 const db = require('./database.js');
 const User = require('./User.js').User;
 const strings = require('./strings.js');
-const fm = require('./filemanager.js');
 const package = require('./package.json');
 
 // enums
@@ -18,8 +17,7 @@ const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', CANCEL: '�
 exports = MatchResult;
 
 // runtime variables
-var discord_channels_to_use,
-	botChannels,
+var botChannels,
 	started = false,
 	guild;
 
@@ -69,9 +67,6 @@ client.once('ready', async () => {
 				});
 		}
 	}
-	// setup json storage files
-	await fm.checkFile('./channels.json');
-	discord_channels_to_use = await require('./channels.json').data;
 	// connect to database and check tables
 	await db.connect();
 	await db.checkTables();
