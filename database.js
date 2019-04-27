@@ -508,33 +508,33 @@ exports.getChannel = async (id) => {
 }
 
 exports.createTeamTable = async (type) => {
-	var res = await exports.sql('CREATE TABLE IF NOT EXISTS `?` (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255));', ['teams_' + type]);
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255));`, ['teams_' + type]);
 }
 
 exports.createTeam = async (type, teamName) => {
-	var res = await exports.sql('INSERT INTO `?` (name) VALUES (?);', ['teams_' + type, teamName]);
+	var res = await exports.sql(`INSERT INTO ?? (name) VALUES (?);`, ['teams_' + type, teamName]);
 	return res.warningCount === 0;
 }
 
 exports.getTeam = async (type, teamName) => {
-	var res = await exports.sql('SELECT * FROM `?` WHERE name=?;', ['teams_' + type, teamName]);
+	var res = await exports.sql(`SELECT * FROM ?? WHERE name=?;`, ['teams_' + type, teamName]);
 	if (res.length > 0)
 		return res;
 	return false;
 }
 
 exports.modifyTeam = async (type, teamName, key, value) => {
-	var res = await exports.sql('UPDATE `?` SET ?=? WHERE name=?;'['teams_' + type, key, value, teamName]);
+	var res = await exports.sql(`UPDATE ?? SET ?=? WHERE name=?;`, ['teams_' + type, key, value, teamName]);
 	return res.length > 0;
 }
 
 exports.createMatchesTable = async (type) => {
-	var res = await exports.sql('CREATE TABLE IF NOT EXISTS `?` (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int, team2_net_elo int, timestamp timestamp not null default current_timestamp);', 'matches_' + type);
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int, team2_net_elo int, timestamp timestamp not null default current_timestamp);`, 'matches_' + type);
 	return res.warningCount === 0;
 }
 
 exports.createInvite = async (type, teamName, discordIdFrom, discordIdTo) => {
-	var res = await exports.sql('INSERT INTO `?` (name, from, to) VALUES (?,?,?);', ['invites_' + type, teamName, discordIdFrom, discordIdTo]);
+	var res = await exports.sql(`INSERT INTO ?? (name, from, to) VALUES (?,?,?);`, ['invites_' + type, teamName, discordIdFrom, discordIdTo]);
 	return res.length > 0;
 }
 
@@ -542,7 +542,7 @@ exports.getInvite = async (type, sender, discordId) => {
 	var from = 'to';
 	if (sender)
 		from = 'from';
-	var res = await exports.sql('SELECT * FROM `?` WHERE ?=?', ['invites_' + type, from, discordId]);
+	var res = await exports.sql(`SELECT * FROM ?? WHERE ?=?`, ['invites_' + type, from, discordId]);
 	if (res.length > 0)
 		return res;
 	return false;
