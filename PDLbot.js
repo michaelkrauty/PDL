@@ -236,25 +236,6 @@ client.on('message', async (message) => {
 		return;
 	}
 
-	if (cmd === 'test') {
-		var msg = await message.channel.send('testing');
-		var matchId = 69;
-		onThumbsUp = async () => {
-			await msg.channel.send('thumbs up');
-			await msg.channel.send(matchId);
-		}
-		onThumbsDown = async () => {
-			await msg.channel.send('thumbs down');
-		}
-		onCancel = async (str = null) => {
-			if (str)
-				await msg.channel.send(`${tag(message.author.id)} Cancelled: ${str}`);
-			else
-				await msg.channel.send(`${tag(message.author.id)} Cancelled.`);
-		}
-		await listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel);
-	}
-
 	// top command, shows top competing teams ordered by elo
 	if (cmd === 'top' && args.length > -1 && args.length < 2) {
 		var numTop = config.top_players;
