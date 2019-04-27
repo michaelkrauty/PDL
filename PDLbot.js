@@ -1978,7 +1978,7 @@ function getRandomColor() {
 	return color;
 }
 
-async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel) {
+async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel, data) {
 	// ensure only one response from the user per message by storing message ids in collected array
 	var collected = [];
 	// ensure one instance of the command
@@ -1995,10 +1995,10 @@ async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCance
 		// confirm or dispute?
 		if (r._emoji.name === ReactionEmoji.WIN) {
 			await msg.react(ReactionEmoji.WIN_CONFIRM);
-			await onThumbsUp();
+			await onThumbsUp(data);
 		} else if (r._emoji.name === ReactionEmoji.LOSS) {
 			await msg.react(ReactionEmoji.LOSS_CONFIRM);
-			await onThumbsDown();
+			await onThumbsDown(data);
 		} else if (r._emoji.name === ReactionEmoji.CANCEL) {
 			await msg.react(ReactionEmoji.CANCEL_CONFIRM);
 			await onCancel();
