@@ -224,16 +224,13 @@ client.on('message', async (message) => {
 	// get admin role
 	let adminRole = await guild.roles.find(role => role.name === config.admin_role_name);
 	var admin = adminRole != null && adminRole.id != undefined && message.member.roles.has(adminRole.id);
-	// is the channel being used by the bot?
-	var isBotChannel = false;
+	// find channel type
 	var channelMatchFormat;
-	for (var c in botChannels) {
-		if (botChannels[c].channel_id.toString() === message.channel.id.toString()) {
-			isBotChannel = true;
+	for (var c in botChannels)
+		if (botChannels[c].channel_id.toString() === message.channel.id.toString())
 			channelMatchFormat = botChannels[c].type;
-		}
-	}
-	if (!isBotChannel && cmd != 'admin') {
+	// ignore command if the channel type isn't found (channel not initialized) or the command isn't !admin
+	if (!channelMatchFormat && cmd != 'admin') {
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);
 		return;
