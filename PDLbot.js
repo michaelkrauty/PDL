@@ -255,35 +255,39 @@ client.on('message', async (message) => {
 		await listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCancel);
 	}
 
-	// top command, shows top competing players ordered by elo
+	// top command, shows top competing teams ordered by elo
 	if (cmd === 'top' && args.length > -1 && args.length < 2) {
-		let numPlayers = config.top_players;
+		var numTop = config.top_players;
 		// parse amount argument if admin
 		if (admin && args.length == 1 && !isNaN(parseInt(args[0])))
-			numPlayers = parseInt(args[0]);
-		// get top players
-		var top_players = await db.getTopCompetingPlayers(numPlayers);
-		if (!top_players) {
-			// couldn't get top players
+			numTop = parseInt(args[0]);
+		// get top list
+		var topList = await db.getTopCompetingTeams(channelMatchFormat, numTop);
+		if (!topList) {
+			// couldn't get top teams
 			message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
 			// remove command message from pending user responses
 			user_commands_running.delete(message.id);
 			return;
 		}
-		if (top_players.length > 0) {
+		if (topList.length > 0) {
 			// construct message
 			var msg = '';
-			// loop through players and append to message
-			for (i = 0; i < top_players.length; i++) {
+			// loop through teams and append to message
+			for (i = 0; i < topList.length; i++) {
 				// get player username
-				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+				var team;
+				if (channelMatchFormat === '1v1')
+					team = await getDiscordUsernameFromDiscordId(topList[i].discord_id);
+				else
+					team = topList[i].name
 				// construct one line of the message
-				msg += `\`${i + 1}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+				msg += `\`${i + 1}. ${team}: ${topList[i].elo_rating}\`\n`;
 			}
 			// send it
-			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', top_players.length));
+			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', topList.length));
 		} else
-			// no top players
+			// no top teams
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
 		// remove command message from pending user responses
 		user_commands_running.delete(message.id);

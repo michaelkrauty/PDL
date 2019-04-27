@@ -356,12 +356,24 @@ exports.getUserRecentMatches = async (user_id, weeks) => {
 }
 
 /**
- * @description get user's latest match
+ * @description get user's latest matches
  * @param {bigint} user_id the user's id
  * @returns {success: boolean, match: []}
  */
 exports.getUserNumConfirmedMatches = async (user_id) => {
 	var res = await exports.sql('SELECT id FROM matches WHERE ((player_id=? OR opponent_id=?) AND confirmed=true) ORDER BY id ASC;', [user_id, user_id]);
+	if (res.length > 0)
+		return res.length;
+	return false;
+}
+
+/**
+ * @description get team's latest matches
+ * @param {bigint} teamId the team's id
+ * @returns {success: boolean, match: []}
+ */
+exports.getTeamNumConfirmedMatches = async (format, teamId) => {
+	var res = await exports.sql('SELECT id FROM ?? WHERE ((team1=? OR team2=?) AND confirmed=true) ORDER BY id ASC;', ['matches_' + format, teamId, teamId]);
 	if (res.length > 0)
 		return res.length;
 	return false;
@@ -394,7 +406,7 @@ exports.getTopPlayers = async (amount) => {
 /**
  * @description get the top x players on the leaderboard
  * @param {int} amount the amount of top players to retrieve. If -1, all top competing players will be retrieved.
- * @returns {success: boolean, players: []}
+ * @returns [players] = false
  */
 exports.getTopCompetingPlayers = async (amount) => {
 	// get top x players by elo rating. If amount is -1, get all top competing players.
@@ -446,6 +458,79 @@ exports.getTopCompetingPlayers = async (amount) => {
 	}
 	if (players.length > 0)
 		return players;
+	return false;
+}
+
+/**
+ * @description get the top x teams on the leaderboard
+ * @param {int} amount the amount of top teams to retrieve. If -1, all top competing teams will be retrieved.
+ * @returns [teams], false
+ */
+exports.getTopCompetingTeams = async (format, amount) => {
+	// get top x teams by elo rating. If amount is -1, get all top competing teams.
+	var res;
+	if (amount == -1)
+		if (format === '1v1')
+			res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC;');
+		else
+			res = await exports.sql('SELECT * FROM ?? WHERE competing=true ORDER BY elo_rating DESC;', 'teams_' + format);
+	else
+		if (format === '1v1')
+			res = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', amount);
+		else
+			res = await exports.sql('SELECT * FROM ?? WHERE competing=true ORDER BY elo_rating DESC LIMIT ?;', ['teams_' + format, amount]);
+	// loop through retrieved teams and sort out the ones without enough matches
+	var teams = [];
+	for (var i in res) {
+		// get number of confirmed matches if amount != -1
+		var numMatches = 0;
+		if (amount != -1)
+			if (format === '1v1')
+				numMatches = await exports.getUserNumConfirmedMatches(res[i].id);
+			else
+				numMatches = await exports.getTeamNumConfirmedMatches(format, res[i].id);
+		// only show teams with enough provisional matches played if amount != -1
+		if (numMatches && numMatches >= config.provisional_matches || amount == -1)
+			teams.push(res[i]);
+	}
+	// if the amount of teams in the array is less than the requested amount, contine retrieving teams
+	// if amount is -1, all competing teams have already been retrieved.
+	if (teams.length < amount && amount != -1) {
+		var loop = true;
+		var offset = amount;
+		// loop until we get enough competing users or run out of user entries
+		while (loop) {
+			// break the loop if we already have the specified amount of teams
+			if (teams.length >= amount) {
+				loop = false;
+				break;
+			}
+			// retrieve the next player
+			if (format === '1v1')
+				var p = await exports.sql('SELECT * FROM users WHERE competing=true ORDER BY elo_rating DESC LIMIT 1 OFFSET ?;', offset);
+			else
+				var p = await exports.sql('SELECT * FROM ?? WHERE competing=true ORDER BY elo_rating DESC LIMIT 1 OFFSET ?;', ['teams_' + format, offset]);
+			offset++;
+			// break the loop if no player was retrieved (we ran out of teams)
+			// else, check if the retrieved player has completed all provisional matches and add them to the teams array if they have
+			if (!p || p.length < 1) {
+				loop = false;
+				break;
+			} else {
+				// get number of confirmed matches
+				if (format === '1v1')
+					var numMatches = await exports.getUserNumConfirmedMatches(p[0].id);
+				else
+					var numMatches = await exports.getTeamNumConfirmedMatches(format, p[0].id);
+				// only show teams with enough provisional matches played
+				if (numMatches && numMatches >= config.provisional_matches) {
+					teams.push(p[0]);
+				}
+			}
+		}
+	}
+	if (teams.length > 0)
+		return teams;
 	return false;
 }
 
