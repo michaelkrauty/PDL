@@ -34,7 +34,7 @@ module.exports.checkTables = async () => {
 	var matchupsCreated = await exports.sql('CREATE TABLE IF NOT EXISTS matchups (id tinyint primary key auto_increment, matchups longtext);');
 	if (matchupsCreated.warningCount === 0)
 		log.info(`Created 'matchups' table`);
-	var channelsCreated = await exports.sql('CREATE TABLE IF NOT EXISTS channels (id varchar(255), type varchar(255));');
+	var channelsCreated = await exports.sql('CREATE TABLE IF NOT EXISTS channels (id bigint primary key auto_increment, channel_id varchar(255), type varchar(255));');
 	if (channelsCreated.warningCount === 0)
 		log.info(`Created 'channels' table`);
 }
@@ -484,12 +484,12 @@ exports.getWeeklyMatchups = async () => {
 }
 
 exports.createChannel = async (id, type) => {
-	var res = await exports.sql('INSERT INTO channels (id, type) VALUES (?,?);', [id, type]);
+	var res = await exports.sql('INSERT INTO channels (channel_id, type) VALUES (?,?);', [id, type]);
 	return res.length > 0;
 }
 
 exports.removeChannel = async (id) => {
-	var res = await exports.sql('DELETE FROM channels WHERE id=?', id)
+	var res = await exports.sql('DELETE FROM channels WHERE channel_id=?', id)
 	return res.length > 0;
 }
 
@@ -501,7 +501,7 @@ exports.getChannels = async () => {
 }
 
 exports.getChannel = async (id) => {
-	var res = await exports.sql('SELECT * FROM channels WHERE id=?;', id);
+	var res = await exports.sql('SELECT * FROM channels WHERE channel_id=?;', id);
 	if (res.length > 0)
 		return res;
 	return false;

@@ -228,7 +228,7 @@ client.on('message', async (message) => {
 	var isBotChannel = false;
 	var channelMatchFormat;
 	for (var c in botChannels) {
-		if (botChannels[c].id.toString() === message.channel.id.toString()) {
+		if (botChannels[c].channel_id.toString() === message.channel.id.toString()) {
 			isBotChannel = true;
 			channelMatchFormat = botChannels[c].type;
 		}
@@ -1259,7 +1259,7 @@ client.on('message', async (message) => {
 					// list channels
 					var msg = '';
 					for (i = 0; i < botChannels.length; i++)
-						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
+						msg += `${client.channels.get(botChannels[i].channel_id)}:${botChannels[i].type}\n`;
 					message.channel.send(strings.channels_list.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
@@ -1269,7 +1269,7 @@ client.on('message', async (message) => {
 				if (args[0].toLowerCase() == 'init' && args.length == 2) {
 					// loop through channels, check if current channel is already added
 					for (var c in botChannels) {
-						if (botChannels[c].id.toString() === message.channel.id.toString()) {
+						if (botChannels[c].channel_id.toString() === message.channel.id.toString()) {
 							// already using channel
 							message.channel.send(strings.init_already_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
 							// remove command message from pending user responses
@@ -1287,7 +1287,7 @@ client.on('message', async (message) => {
 					botChannels = await db.getChannels();
 					var msg = '';
 					for (i = 0; i < botChannels.length; i++)
-						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
+						msg += `${client.channels.get(botChannels[i].channel_id)}:${botChannels[i].type}\n`;
 					message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
@@ -1298,7 +1298,7 @@ client.on('message', async (message) => {
 					// check if channel is being used currently
 					var channelInUse = false;
 					for (var c in botChannels)
-						if (botChannels[c].id.toString() === message.channel.id.toString())
+						if (botChannels[c].channel_id.toString() === message.channel.id.toString())
 							channelInUse = true;
 					if (!channelInUse) {
 						message.channel.send(strings.deinit_not_using_channel.replaceAll('{user}', tag(message.author.id)).replaceAll('{channel_id}', message.channel.id).replaceAll('{channel_name}', message.channel.name));
@@ -1311,7 +1311,7 @@ client.on('message', async (message) => {
 					// list channels
 					var msg = '';
 					for (i = 0; i < botChannels.length; i++)
-						msg += `${client.channels.get(botChannels[i].id)}:${botChannels[i].type}\n`;
+						msg += `${client.channels.get(botChannels[i].channel_id)}:${botChannels[i].type}\n`;
 					message.channel.send(strings.init_success.replaceAll('{user}', tag(message.author.id)).replaceAll('{channels}', msg));
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
