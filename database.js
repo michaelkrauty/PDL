@@ -25,7 +25,10 @@ module.exports.connect = function () {
 
 module.exports.checkTables = async () => {
 	// create DB tables if they don't already exist
-	var usersCreated = await exports.sql('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default 1500, competing boolean not null default false);');
+	let defaultElo = 1500;
+	if (config.default_starting_elo)
+		defaultElo = config.default_starting_elo;
+	var usersCreated = await exports.sql('CREATE TABLE IF NOT EXISTS users (id bigint primary key auto_increment, discord_id varchar(255), elo_rating int not null default ?, competing boolean not null default false);', defaultElo);
 	if (usersCreated.warningCount === 0)
 		log.info(`Created 'users' table`);
 	var matchesCreated = await exports.sql('CREATE TABLE IF NOT EXISTS matches (id bigint primary key auto_increment, player_id bigint not null, opponent_id bigint not null, result boolean not null default false, confirmed boolean not null default false, player_start_elo int, player_end_elo int, opponent_start_elo int, opponent_end_elo int, timestamp timestamp not null default current_timestamp);');
@@ -508,7 +511,11 @@ exports.getChannel = async (id) => {
 }
 
 exports.createTeamTable = async (type) => {
-	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255));`, ['teams_' + type]);
+	let defaultElo = 1500;
+	if (config.default_starting_elo)
+		defaultElo = config.default_starting_elo;
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255), elo_rating int default ? not null, competing boolean not null default false);`, ['teams_' + type, defaultElo]);
+	return res.warningCount === 0;
 }
 
 exports.createTeam = async (type, teamName) => {
