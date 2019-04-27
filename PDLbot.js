@@ -13,7 +13,7 @@ const package = require('./package.json');
 
 // enums
 const MatchResult = { WIN: 1, LOSS: 0 };
-const ReactionEmoji = { WIN: '👍', LOSS: '👎', CONFIRMED: '👌', CANCEL: '🇽', WIN_CONFIRM: '✅', LOSS_CONFIRM: '❌', CANCEL_CONFIRM: '🔷' };
+const ReactionEmoji = { THUMBS_UP: '👍', THUMBS_DOWN: '👎', CANCEL: '🇽', CONFIRMED: '✅', CANCELLED: '🔷' };
 exports = MatchResult;
 
 // runtime variables
@@ -1892,7 +1892,7 @@ async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCance
 	// ensure one instance of the command
 	user_commands_running.set(msg.id, message.author.id);
 	// await y/n/cancel reaction from user for 60 seconds
-	var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
+	var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.THUMBS_UP || reaction.emoji.name === ReactionEmoji.THUMBS_DOWN || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
 	var collector = await msg.createReactionCollector(filter, { time: 60000 });
 	collector.on('collect', async (r) => {
 		// already got a response from the user for this message
@@ -1901,14 +1901,14 @@ async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCance
 		// prevent the user from reacting to the same message again
 		await collected.push(r.message.id);
 		// confirm or dispute?
-		if (r._emoji.name === ReactionEmoji.WIN) {
-			await msg.react(ReactionEmoji.WIN_CONFIRM);
+		if (r._emoji.name === ReactionEmoji.THUMBS_UP) {
+			await msg.react(ReactionEmoji.CONFIRMED);
 			await onThumbsUp(data);
-		} else if (r._emoji.name === ReactionEmoji.LOSS) {
-			await msg.react(ReactionEmoji.LOSS_CONFIRM);
+		} else if (r._emoji.name === ReactionEmoji.THUMBS_DOWN) {
+			await msg.react(ReactionEmoji.CONFIRMED);
 			await onThumbsDown(data);
 		} else if (r._emoji.name === ReactionEmoji.CANCEL) {
-			await msg.react(ReactionEmoji.CANCEL_CONFIRM);
+			await msg.react(ReactionEmoji.CANCELLED);
 			await onCancel();
 		}
 		// remove reaction message from pending user responses
@@ -1921,7 +1921,7 @@ async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCance
 			// if this collector's message id is a key in the map of users running commands, and the value is the author's discord id
 			if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
 				// timed out, cancel
-				await collectors[c].message.react(ReactionEmoji.CANCEL_CONFIRM);
+				await collectors[c].message.react(ReactionEmoji.CANCELLED);
 				await onCancel(`Timed out.`);
 				// remove reaction message from pending user responses
 				user_commands_running.delete(collectors[c].message.id);
@@ -1929,8 +1929,8 @@ async function listenForReaction(message, msg, onThumbsUp, onThumbsDown, onCance
 		}
 	});
 	// add submission reactions to msg
-	await msg.react(ReactionEmoji.WIN);
-	await msg.react(ReactionEmoji.LOSS);
+	await msg.react(ReactionEmoji.THUMBS_UP);
+	await msg.react(ReactionEmoji.THUMBS_DOWN);
 	await msg.react(ReactionEmoji.CANCEL);
 	// add the reaction collector to the a array of collectors
 	await collectors.push(collector);
