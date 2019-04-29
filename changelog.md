@@ -1,3 +1,6 @@
+v1.0.3
+- fixed bug where players with 0 matches played would be auto-quit
+
 v1.0.2
 - remove challengeme role on quit
 
