@@ -83,8 +83,9 @@ client.once('ready', async () => {
 				var quit = [];
 				var competing = await db.getTopCompetingPlayers(-1);
 				for (var i = 1; i < competing.length; i++) {
+					var allMatches = await db.getAllUserMatches(competing[i].id);
 					var matches = await db.getUserRecentMatches(competing[i].id, config.auto_quit_weeks);
-					if (!matches) {
+					if (!matches && allMatches) {
 						var member = await guild.members.find(member => member.id.toString() === competing[i].discord_id.toString());
 						if (member != null) {
 							await quitUser(member.user.id);
