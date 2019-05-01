@@ -616,6 +616,9 @@ exports.getTeam = async (type, teamName) => {
 }
 
 exports.modifyTeam = async (type, teamName, key, value) => {
+	var res = await exports.sql(`UPDATE ?? SET ??=? WHERE name=?;`, ['teams_' + type, key, value, teamName]);
+	return res.warningCount === 0;
+}
 
 exports.getPlayerTeam = async (type, playerId) => {
 	var res = await exports.sql(`SELECT * FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
