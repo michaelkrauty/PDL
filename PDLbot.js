@@ -1358,6 +1358,8 @@ client.on('message', async (message) => {
 					await db.createChannel(message.channel.id, args[1]);
 					// create teams table for channel
 					await db.createTeamTable(args[1]);
+					// create team membership table for channel
+					await db.createTeamMembershipTable(args[1]);
 					// create matches table for channel
 					await db.createMatchesTable(args[1]);
 					// success, list channels

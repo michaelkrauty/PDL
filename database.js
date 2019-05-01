@@ -681,7 +681,12 @@ exports.disbandTeam = async (type, teamName) => {
 }
 
 exports.createMatchesTable = async (type) => {
-	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int, team2_net_elo int, timestamp timestamp not null default current_timestamp);`, 'matches_' + type);
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int not null, team2_net_elo int not null, timestamp timestamp not null default current_timestamp);`, 'matches_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createTeamMembershipTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, player_id bigint not null, team_id bigint not null);`, 'team_membership_' + type);
 	return res.warningCount === 0;
 }
 
