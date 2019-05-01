@@ -5,6 +5,7 @@ v2.0.0
 - added !leaveteam
 - added !teamcolor
 - added !teamname
+- added !team admin command
 
 v1.0.2
 - remove challengeme role on quit

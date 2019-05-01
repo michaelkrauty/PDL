@@ -485,6 +485,33 @@ client.on('message', async (message) => {
 			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
+	if (cmd === 'team' && admin) {
+		var role = message.mentions.roles.values().next().value;
+		var member = message.mentions.members.values().next().value;
+		if (args.length < 2 || (args.length == 1 && (role || member))) {
+			var team;
+			if (args.length == 1)
+				if (role) {
+					team = await db.getTeam(channelMatchFormat, role.name);
+				} else if (member) {
+					team = await db.getPlayerTeam(channelMatchFormat, await db.getUserIdFromDiscordId(member.id));
+				} else {
+					team = await db.getTeam(channelMatchFormat, args[0]);
+				}
+			else
+				team = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (team) {
+				var msg = `${tag(message.author.id)}\n\`\`\``;
+				for (var t in team[0]) {
+					msg += `${t}: ${team[0][t]}\n`;
+				}
+				message.channel.send(`${msg}\`\`\``);
+			} else
+				message.channel.send(`Couldn't find the team ${args[0]}`);
+		} else
+			message.channel.send(`Usage: !team <teamname>`);
+	}
+
 	switch (cmd) {
 		// version command, shows current bot version
 		case 'version':
