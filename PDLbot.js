@@ -430,8 +430,31 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'invite') {
-		//TODO: check the database for the team and invite
-		//TODO: add invite to database
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var userMention = message.mentions.users.values().next().value;
+				if (args.length == 1 && userMention) {
+					var targetUser = await new User(await db.getUserIdFromDiscordId(userMention.id), db, client).init();
+					if (targetUser) {
+						var inviteTo = await db.getInvite(channelMatchFormat, false, targetUser.id);
+						if (!inviteTo || (inviteTo && (inviteTo[0].team !== pTeam[0].id))) {
+							// create invite
+							var invite = await db.createInvite(channelMatchFormat, pTeam[0].id, user.id, targetUser.id);
+							if (invite)
+								message.channel.send(`${tag(userMention.id)} has been invited to ${pTeam[0].name} by ${tag(message.author.id)}`);
+							else
+								message.channel.send(`Couldn't invite ${await getDiscordUsernameFromDiscordId(userMention.id)}`);
+						} else
+							message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} has already been invited to ${pTeam[0].name}.`);
+					} else
+						message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} is not registered.`);
+				} else
+					message.channel.send(`Usage: !invite @<user>`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
 	if (cmd === 'disbandteam') {
@@ -1397,6 +1420,8 @@ client.on('message', async (message) => {
 					await db.createTeamMembershipTable(args[1]);
 					// create matches table for channel
 					await db.createMatchesTable(args[1]);
+					// create invites table for channel
+					await db.createInvitesTable(args[1]);
 					// success, list channels
 					botChannels = await db.getChannels();
 					var msg = '';

@@ -690,17 +690,39 @@ exports.createTeamMembershipTable = async (type) => {
 	return res.warningCount === 0;
 }
 
-exports.createInvite = async (type, teamName, discordIdFrom, discordIdTo) => {
-	var res = await exports.sql(`INSERT INTO ?? (name, from, to) VALUES (?,?,?);`, ['invites_' + type, teamName, discordIdFrom, discordIdTo]);
-	return res.length > 0;
+exports.createInvitesTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team bigint not null, player_from bigint not null, player_to bigint not null);`, 'team_invites_' + type);
+	return res.warningCount === 0;
 }
 
-exports.getInvite = async (type, sender, discordId) => {
-	var from = 'to';
-	if (sender)
-		from = 'from';
-	var res = await exports.sql(`SELECT * FROM ?? WHERE ?=?`, ['invites_' + type, from, discordId]);
+exports.createInvite = async (type, teamId, from, to) => {
+	var res = await exports.sql(`INSERT INTO ?? (team, player_from, player_to) VALUES (?,?,?);`, ['team_invites_' + type, teamId, from, to]);
+	return res.warningCount === 0;
+}
+
+exports.getInviteById = async (type, id) => {
+	var res = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['team_invites_' + type, id]);
 	if (res.length > 0)
 		return res;
 	return false;
+}
+
+/**
+ * @param type channel match format
+ * @param {boolean} sender fetch invite from sender? If false, reciever's invite is fetched
+ * @param id user id to/from
+ */
+exports.getInvite = async (type, sender, id) => {
+	var from = 'player_to';
+	if (sender)
+		from = 'player_from';
+	var res = await exports.sql(`SELECT * FROM ?? WHERE ??=?;`, ['team_invites_' + type, from, id]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.deleteInvite = async (type, id) => {
+	var res = await exports.sql(`DELETE FROM ?? WHERE id=?;`['team_invites_' + type, id]);
+	return res.warningCount === 0;
 }
