@@ -726,3 +726,31 @@ exports.deleteInvite = async (type, id) => {
 	var res = await exports.sql(`DELETE FROM ?? WHERE id=?;`['team_invites_' + type, id]);
 	return res.warningCount === 0;
 }
+
+exports.getDisbandVote = async (type, team) => {
+	var vote = await exports.sql(`SELECT * FROM ?? WHERE team=?`, ['team_disband_votes_' + type, team]);
+	if (vote.length > 0)
+		return vote;
+	return false;
+}
+
+exports.addDisbandVote = async (type, team, player) => {
+	var dbVote = await exports.getDisbandVote(type, team);
+	if (!dbVote) {
+		var createVote = await exports.sql(`INSERT INTO ?? (team, votes) VALUES (?,?)`, ['team_disband_votes_' + type, team, JSON.stringify([player])]);
+		return createVote.warningCount === 0;
+	} else {
+		var votes = JSON.parse(dbVote[0].votes);
+		var newVotes = [];
+		for (var v in votes)
+			newVotes.push(votes[v]);
+		newVotes.push(player);
+		var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?`, ['team_disband_votes_' + type, JSON.stringify(newVotes), team]);
+		return updated.warningCount === 0;
+	}
+}
+
+exports.deleteDisbandVote = async (type, team) => {
+	var deleted = await exports.sql(`DELETE FROM ?? WHERE team=?`, ['team_disband_votes_' + type, team]);
+	return deleted.warningCount === 0;
+}

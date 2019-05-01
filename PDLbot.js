@@ -458,7 +458,45 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'disbandteam') {
-		//TODO: check the database for the team
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var dbVote = await db.getDisbandVote(channelMatchFormat, pTeam[0].id);
+				var votes = [];
+				if (dbVote)
+					votes = JSON.parse(dbVote[0].votes);
+				for (var v in votes)
+					if (votes[v] === user.id) {
+						message.channel.send(`${tag(message.author.id)} you have already voted to disband ${pTeam[0].name}.`);
+						// remove command message from pending user responses
+						user_commands_running.delete(message.id);
+						return;
+					}
+				votes.push(user.id);
+				var members = JSON.parse(pTeam[0].members);
+				if (votes.length >= members.length / 2) {
+					if (dbVote) {
+						var disbandVoteDeleted = await db.deleteDisbandVote(channelMatchFormat, dbVote[0].id);
+						if (!disbandVoteDeleted)
+							message.channel.send(`Could not delete disband vote for ${pTeam[0].name}`);
+					}
+					var disbanded = await db.disbandTeam(channelMatchFormat, pTeam[0].name);
+					if (disbanded) {
+						await message.channel.send(`${await getTeamRole(pTeam[0].name)} has been disbanded! (${votes.length}/${Math.ceil(members.length / 2)} votes)`);
+						var teamRole = await getTeamRole(pTeam[0].name);
+						if (teamRole)
+							teamRole.delete();
+						else
+							message.channel.send(`Could not delete team role for ${pTeam[0].name}`);
+					}
+				} else {
+					await db.addDisbandVote(channelMatchFormat, pTeam[0].id, user.id);
+					message.channel.send(`${tag(message.author.id)} has voted to disband ${await getTeamRole(pTeam[0].name)}! (${votes.length}/${Math.ceil(members.length / 2)})`);
+				}
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 		// requires majority of team members to confirm to disband
 	}
 
@@ -1422,6 +1460,8 @@ client.on('message', async (message) => {
 					await db.createMatchesTable(args[1]);
 					// create invites table for channel
 					await db.createInvitesTable(args[1]);
+					// create disband votes table for channel
+					await db.createDisbandVotesTable(args[1]);
 					// success, list channels
 					botChannels = await db.getChannels();
 					var msg = '';
@@ -2022,6 +2062,10 @@ async function quitUser(discord_id) {
 	}
 	// set the user's competing state to false
 	return await user.setCompeting(false);
+}
+
+function getTeamLimit(type) {
+	return parseInt(type.split('v'));
 }
 
 // get a random color
