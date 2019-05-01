@@ -376,19 +376,34 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'leaveteam') {
-		//TODO: check the database for the team
-		//TODO: allow user to tag own team in command
-		if (args.length == 0) {
-			//TODO: get team name from database
-			var teamRole = await guild.roles.find(role => role.name === 'test')
-			if (guild.member(message.author)._roles.includes(teamRole.id)) {
-				guild.member(message.author).removeRole(teamRole);
-				message.channel.send(`${tag(message.author.id)} has left team test!`);
-			} else {
-				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
-			}
-		}
-		//TODO: disband the team if the player leaving is the last one on the team
+		var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+		if (pTeam) {
+			if (args.length == 0) {
+				var teamRole = await guild.roles.find(role => role.name === pTeam[0].name);
+				if (teamRole && guild.member(message.author)._roles.includes(teamRole.id)) {
+					var removedRole = await guild.member(message.author).removeRole(teamRole);
+					if (removedRole) {
+						var leftTeam = await db.removePlayerFromTeam(channelMatchFormat, user.id);
+						if (leftTeam.length > 0)
+							message.channel.send(`${tag(message.author.id)} has left team ${tagRole(teamRole.id)}!`);
+						else {
+							disbandedTeam = await db.disbandTeam(channelMatchFormat, pTeam[0].name);
+							if (disbandedTeam) {
+								await message.channel.send(`Team ${tagRole(teamRole.id)} has been disbanded!`);
+								teamRole.delete();
+							} else
+								message.channel.send(`Couldn't disband team ${tagRole(teamRole.id)}`);
+						}
+					} else
+						message.channel.send(`Couldn't remove role ${tagRole(teamRole.id)} from ${tag(message.author.id)}`);
+				} else {
+					message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+				}
+			} else
+			message.channel.send(`Usage: !leaveteam`);
+			//TODO: disband the team if the player leaving is the last one on the team
+		} else
+			message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 	}
 
 	if (cmd === 'invite') {

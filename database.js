@@ -616,8 +616,43 @@ exports.getTeam = async (type, teamName) => {
 }
 
 exports.modifyTeam = async (type, teamName, key, value) => {
-	var res = await exports.sql(`UPDATE ?? SET ?=? WHERE name=?;`, ['teams_' + type, key, value, teamName]);
-	return res.length > 0;
+
+exports.getPlayerTeam = async (type, playerId) => {
+	var res = await exports.sql(`SELECT * FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
+	if (res && res.length > 0) {
+		var ret = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['teams_' + type, res[0].id]);
+		if (ret)
+			return ret;
+	}
+	return false;
+}
+
+exports.removePlayerFromTeam = async (type, playerId) => {
+	var team = await exports.getPlayerTeam(type, playerId);
+	if (team) {
+		var currentMembers = JSON.parse(team[0].members);
+		var newMembers = [];
+		for (m in currentMembers)
+			if (currentMembers[m] !== playerId)
+				newMembers.push(currentMembers[m]);
+		var membersUpdate = await exports.sql(`UPDATE ?? SET members=? WHERE id=?;`, ['teams_' + type, JSON.stringify(newMembers), team[0].id]);
+		if (membersUpdate.warningCount === 0) {
+			var membershipUpdate = await exports.sql(`DELETE FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
+			if (membershipUpdate.warningCount === 0)
+				return newMembers;
+		}
+	}
+	return false;
+}
+
+exports.disbandTeam = async (type, teamName) => {
+	var team = await exports.getTeam(type, teamName);
+	if (team) {
+		await exports.sql(`DELETE FROM ?? WHERE id=?`, ['teams_' + type, team[0].id]);
+		await exports.sql(`DELETE FROM ?? WHERE team_id=?`, ['team_membership_' + type, team[0].id]);
+		return true;
+}
+	return false;
 }
 
 exports.createMatchesTable = async (type) => {

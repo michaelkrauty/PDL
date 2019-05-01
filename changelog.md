@@ -1,5 +1,6 @@
 v2.0.0
 - added !register
+- added !leaveteam
 - added !teamcolor
 - added !teamname
 
