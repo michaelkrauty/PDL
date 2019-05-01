@@ -1,6 +1,7 @@
 v2.0.0
 - added !register
 - added !teamcolor
+- added !teamname
 
 v1.0.2
 - remove challengeme role on quit

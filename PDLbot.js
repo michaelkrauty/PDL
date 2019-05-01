@@ -402,8 +402,36 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'teamname') {
-		//TODO: get team from database
-		//TODO: set new team name
+		// TODO: allow team names with spaces
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var tTeam = await db.getTeam(channelMatchFormat, args[0])
+				if (!tTeam) {
+					var role = guild.roles.find(r => r.name === pTeam[0].name);
+					if (role) {
+						if (args.length == 1) {
+							var oldName = pTeam[0].name;
+							var teamNameSet = await db.modifyTeam(channelMatchFormat, pTeam[0].name, 'name', args[0]);
+							if (teamNameSet) {
+								var teamRoleNameSet = role.setName(args[0]);
+								if (teamRoleNameSet) {
+									message.channel.send(`Renamed team ${oldName} to ${tagRole(role.id)}`);
+								}
+							} else {
+								message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								console.log(`Couldn't rename team ${pTeam[0].name} to ${args[0]}`);
+							}
+						} else
+							message.channel.send(`${tag(message.author.id)} please specify your new team name.`);
+					} else
+						message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+				} else
+					message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
 	if (cmd === 'teamcolor') {
