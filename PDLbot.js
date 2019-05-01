@@ -446,7 +446,7 @@ client.on('message', async (message) => {
 							var oldName = pTeam[0].name;
 							var teamNameSet = await db.modifyTeam(channelMatchFormat, pTeam[0].name, 'name', args[0]);
 							if (teamNameSet) {
-								var teamRoleNameSet = role.setName(args[0]);
+								var teamRoleNameSet = await role.setName(args[0]);
 								if (teamRoleNameSet) {
 									message.channel.send(`Renamed team ${oldName} to ${tagRole(role.id)}`);
 								}
