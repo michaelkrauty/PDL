@@ -386,7 +386,7 @@ client.on('message', async (message) => {
 					message.channel.send(`Couldn't find the team "${args[0]}"`);
 				}
 			} else {
-				message.channel.send(`Already a member of team ${pTeam.name}`);
+				message.channel.send(`Already a member of team ${pTeam[0].name}`);
 			}
 		} else {
 			message.channel.send(`Usage: !join <teamname>`);
