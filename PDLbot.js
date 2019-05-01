@@ -470,7 +470,7 @@ client.on('message', async (message) => {
 		if (user) {
 			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
 			if (pTeam) {
-				var role = guild.roles.find(r => r.name === 'dev');
+				var role = guild.roles.find(r => r.name === pTeam[0].name);
 				if (role) {
 					if (args.length == 1)
 						await role.setColor(args[0]);
