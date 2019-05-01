@@ -620,7 +620,7 @@ exports.modifyTeam = async (type, teamName, key, value) => {
 exports.getPlayerTeam = async (type, playerId) => {
 	var res = await exports.sql(`SELECT * FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
 	if (res && res.length > 0) {
-		var ret = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['teams_' + type, res[0].id]);
+		var ret = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['teams_' + type, res[0].team_id]);
 		if (ret)
 			return ret;
 	}
@@ -651,7 +651,7 @@ exports.disbandTeam = async (type, teamName) => {
 		await exports.sql(`DELETE FROM ?? WHERE id=?`, ['teams_' + type, team[0].id]);
 		await exports.sql(`DELETE FROM ?? WHERE team_id=?`, ['team_membership_' + type, team[0].id]);
 		return true;
-}
+	}
 	return false;
 }
 

@@ -400,7 +400,7 @@ client.on('message', async (message) => {
 					message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 				}
 			} else
-			message.channel.send(`Usage: !leaveteam`);
+				message.channel.send(`Usage: !leaveteam`);
 			//TODO: disband the team if the player leaving is the last one on the team
 		} else
 			message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
