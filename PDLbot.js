@@ -325,7 +325,7 @@ client.on('message', async (message) => {
 						var team = await db.getTeam(channelMatchFormat, args[0]);
 						var addedPlayerToTeam = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
 						if (addedPlayerToTeam) {
-							if (!await guild.roles.find(role => role.name === args[0])) {
+							if (!await getTeamRole(args[0])) {
 								var role = await guild.createRole({
 									name: args[0],
 									color: getRandomColor(),
@@ -336,11 +336,11 @@ client.on('message', async (message) => {
 								if (await guild.member(message.author).addRole(role))
 									message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
 							} else {
-								message.channel.send(`Team "${args[0]}" already exists!`);
+								message.channel.send(`Team ${args[0]} already exists!`);
 							}
 						} else {
 							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
-							log.error(`Couldn't add player ${await getDiscordUsernameFromDiscordId(message.author.id)} to team ${args[0]}`);
+							log.error(`Couldn't add player ${await getDiscordUsernameFromDiscordId(message.author.id)} to team ${team[0].name}`);
 						}
 					} else {
 						message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
@@ -371,7 +371,7 @@ client.on('message', async (message) => {
 				team = await db.getTeam(channelMatchFormat, teamName);
 				if (team) {
 					//TODO: check the database for an invite
-					var teamRole = await guild.roles.find(role => role.name === teamName);
+					var teamRole = await getTeamRole(teamName);
 					if (teamRole) {
 						var dbJoin = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
 						if (dbJoin) {
@@ -386,10 +386,10 @@ client.on('message', async (message) => {
 							log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team[0].name} in DB`);
 						}
 					} else {
-						message.channel.send(`Couldn't find the team role "${teamName}"`);
+						message.channel.send(`Couldn't find the team role ${teamName}`);
 					}
 				} else {
-					message.channel.send(`Couldn't find the team "${teamName}"`);
+					message.channel.send(`Couldn't find the team ${teamName}`);
 				}
 			} else {
 				message.channel.send(`Already a member of team ${pTeam[0].name}`);
@@ -403,7 +403,7 @@ client.on('message', async (message) => {
 		var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
 		if (pTeam) {
 			if (args.length == 0) {
-				var teamRole = await guild.roles.find(role => role.name === pTeam[0].name);
+				var teamRole = await getTeamRole(pTeam[0].name);
 				if (teamRole && guild.member(message.author)._roles.includes(teamRole.id)) {
 					var removedRole = await guild.member(message.author).removeRole(teamRole);
 					if (removedRole) {
@@ -469,7 +469,7 @@ client.on('message', async (message) => {
 			if (pTeam) {
 				var tTeam = await db.getTeam(channelMatchFormat, args[0])
 				if (!tTeam) {
-					var role = guild.roles.find(r => r.name === pTeam[0].name);
+					var role = await getTeamRole(pTeam[0].name);
 					if (role) {
 						if (args.length == 1) {
 							var oldName = pTeam[0].name;
@@ -499,7 +499,7 @@ client.on('message', async (message) => {
 		if (user) {
 			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
 			if (pTeam) {
-				var role = guild.roles.find(r => r.name === pTeam[0].name);
+				var role = await getTeamRole(pTeam[0].name);
 				if (role) {
 					if (args.length == 1)
 						await role.setColor(args[0]);
@@ -1801,6 +1801,15 @@ function tag(userID) {
  */
 function tagRole(roleID) {
 	return `<@&${roleID}>`;
+}
+
+/**
+ * @description Get the team role for the specified team name
+ * @param {string} teamName
+ * @return {role} the teams' role
+ */
+async function getTeamRole(teamName) {
+	return await guild.roles.find(role => role.name === teamName);
 }
 
 /**
