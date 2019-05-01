@@ -358,14 +358,20 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'jointeam') {
-		if (args.length == 1) {
+		var roleMention = message.mentions.roles.values().next().value;
+		if (args.length == 1 || (args.length == 1 && roleMention)) {
 			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
 			if (!pTeam) {
-				// TODO: team capitalization
-				var team = await db.getTeam(channelMatchFormat, args[0]);
+				// TODO: team capitalization and spaces
+				var teamName;
+				if (roleMention)
+					teamName = roleMention.name;
+				else
+					teamName = args[0];
+				team = await db.getTeam(channelMatchFormat, teamName);
 				if (team) {
 					//TODO: check the database for an invite
-					var teamRole = await guild.roles.find(role => role.name === args[0]);
+					var teamRole = await guild.roles.find(role => role.name === teamName);
 					if (teamRole) {
 						var dbJoin = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
 						if (dbJoin) {
@@ -380,10 +386,10 @@ client.on('message', async (message) => {
 							log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team[0].name} in DB`);
 						}
 					} else {
-						message.channel.send(`Couldn't find the team role "${args[0]}"`);
+						message.channel.send(`Couldn't find the team role "${teamName}"`);
 					}
 				} else {
-					message.channel.send(`Couldn't find the team "${args[0]}"`);
+					message.channel.send(`Couldn't find the team "${teamName}"`);
 				}
 			} else {
 				message.channel.send(`Already a member of team ${pTeam[0].name}`);
