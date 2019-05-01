@@ -407,7 +407,22 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'teamcolor') {
-		//TODO: get player's team from database, and set team role color based on args[0] or random
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var role = guild.roles.find(r => r.name === 'dev');
+				if (role) {
+					if (args.length == 1)
+						await role.setColor(args[0]);
+					else if (args.length < 1)
+						await role.setColor(getRandomColor());
+					message.channel.send(`Team ${tagRole(role.id)} color is now ${role.color}`);
+				} else
+					message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
 	switch (cmd) {
