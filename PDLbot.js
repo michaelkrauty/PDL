@@ -513,9 +513,12 @@ client.on('message', async (message) => {
 				}
 				message.channel.send(`${msg}\`\`\``);
 			} else
-				message.channel.send(`Couldn't find the team ${args[0]}`);
+				if (args[0])
+					message.channel.send(`${tag(message.author.id)} couldn't find the team ${args[0]}`);
+				else
+					message.channel.send(`${tag(message.author.id)} you are not currently on a team.`);
 		} else
-			message.channel.send(`Usage: !team <teamname>`);
+			message.channel.send(`${tag(message.author.id)} Usage: !team <teamname>`);
 	}
 
 	switch (cmd) {
