@@ -407,6 +407,7 @@ client.on('message', async (message) => {
 				if (teamRole && guild.member(message.author)._roles.includes(teamRole.id)) {
 					var removedRole = await guild.member(message.author).removeRole(teamRole);
 					if (removedRole) {
+						await db.removeDisbandVote(channelMatchFormat, pTeam[0].id, user.id);
 						var leftTeam = await db.removePlayerFromTeam(channelMatchFormat, user.id);
 						if (leftTeam.length > 0)
 							message.channel.send(`${tag(message.author.id)} has left team ${tagRole(teamRole.id)}!`);

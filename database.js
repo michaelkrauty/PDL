@@ -695,6 +695,11 @@ exports.createInvitesTable = async (type) => {
 	return res.warningCount === 0;
 }
 
+exports.createDisbandVotesTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team bigint not null, votes varchar(255));`, 'team_disband_votes_' + type);
+	return res.warningCount === 0;
+}
+
 exports.createInvite = async (type, teamId, from, to) => {
 	var res = await exports.sql(`INSERT INTO ?? (team, player_from, player_to) VALUES (?,?,?);`, ['team_invites_' + type, teamId, from, to]);
 	return res.warningCount === 0;
@@ -728,7 +733,7 @@ exports.deleteInvite = async (type, id) => {
 }
 
 exports.getDisbandVote = async (type, team) => {
-	var vote = await exports.sql(`SELECT * FROM ?? WHERE team=?`, ['team_disband_votes_' + type, team]);
+	var vote = await exports.sql(`SELECT * FROM ?? WHERE team=?;`, ['team_disband_votes_' + type, team]);
 	if (vote.length > 0)
 		return vote;
 	return false;
@@ -737,7 +742,7 @@ exports.getDisbandVote = async (type, team) => {
 exports.addDisbandVote = async (type, team, player) => {
 	var dbVote = await exports.getDisbandVote(type, team);
 	if (!dbVote) {
-		var createVote = await exports.sql(`INSERT INTO ?? (team, votes) VALUES (?,?)`, ['team_disband_votes_' + type, team, JSON.stringify([player])]);
+		var createVote = await exports.sql(`INSERT INTO ?? (team, votes) VALUES (?,?);`, ['team_disband_votes_' + type, team, JSON.stringify([player])]);
 		return createVote.warningCount === 0;
 	} else {
 		var votes = JSON.parse(dbVote[0].votes);
@@ -745,12 +750,31 @@ exports.addDisbandVote = async (type, team, player) => {
 		for (var v in votes)
 			newVotes.push(votes[v]);
 		newVotes.push(player);
-		var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?`, ['team_disband_votes_' + type, JSON.stringify(newVotes), team]);
+		var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?;`, ['team_disband_votes_' + type, JSON.stringify(newVotes), team]);
 		return updated.warningCount === 0;
 	}
 }
 
+exports.removeDisbandVote = async (type, team, player) => {
+	var dbVote = await exports.getDisbandVote(type, team);
+	if (dbVote) {
+		var votes = [];
+		var dbVotes = JSON.parse(dbVote[0].votes);
+		for (var v in dbVotes)
+			if (dbVotes[v] !== player)
+				votes.push(dbVotes[v]);
+		if (votes.length > 0) {
+			var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?;`, ['team_disband_votes_' + type, JSON.stringify(votes), team]);
+		return updated.warningCount === 0;
+		} else {
+			var deleted = await exports.deleteDisbandVote(type, team);
+			return deleted.warningCount === 0;
+		}
+	}
+	return false;
+}
+
 exports.deleteDisbandVote = async (type, team) => {
-	var deleted = await exports.sql(`DELETE FROM ?? WHERE team=?`, ['team_disband_votes_' + type, team]);
+	var deleted = await exports.sql(`DELETE FROM ?? WHERE team=?;`, ['team_disband_votes_' + type, team]);
 	return deleted.warningCount === 0;
 }
