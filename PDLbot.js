@@ -314,61 +314,79 @@ client.on('message', async (message) => {
 	}
 
 	if (cmd === 'createteam') {
+		// TODO: allow team names with spaces
 		if (args.length > 0) {
-			var dbTeam = await db.getTeam(channelMatchFormat, args[0]);
-			if (!dbTeam) {
-				var teamCreated = await db.createTeam(channelMatchFormat, args[0]);
-				if (teamCreated) {
-					if (!await guild.roles.find(role => role.name === args[0])) {
-						var role = await guild.createRole({
-							name: args[0],
-							color: getRandomColor(),
-							hoist: true,
-							position: guild.roles.size - 2,
-							mentionable: true
-						});
-						if (await guild.member(message.author).addRole(role))
-							message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (!pTeam) {
+				var dbTeam = await db.getTeam(channelMatchFormat, args[0]);
+				if (!dbTeam) {
+					var teamCreated = await db.createTeam(channelMatchFormat, args[0]);
+					if (teamCreated) {
+						var team = await db.getTeam(channelMatchFormat, args[0]);
+						var addedPlayerToTeam = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
+						if (addedPlayerToTeam) {
+							if (!await guild.roles.find(role => role.name === args[0])) {
+								var role = await guild.createRole({
+									name: args[0],
+									color: getRandomColor(),
+									hoist: true,
+									position: guild.roles.size - 2,
+									mentionable: true
+								});
+								if (await guild.member(message.author).addRole(role))
+									message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
+							} else {
+								message.channel.send(`Team "${args[0]}" already exists!`);
+							}
+						} else {
+							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							log.error(`Couldn't add player ${await getDiscordUsernameFromDiscordId(message.author.id)} to team ${args[0]}`);
+						}
 					} else {
-						message.channel.send(`Team "${args[0]}" already exists!`);
+						message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+						log.error(`Couldn't create team ${args[0]} for ${await getDiscordUsernameFromDiscordId(message.author.id)}`);
 					}
 				} else {
-					message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
-					log.error(`Couldn't create team ${args[0]} for ${await getDiscordUsernameFromDiscordId(message.author.id)}`);
+					message.channel.send(`Team "${args[0]}" already exists!`);
 				}
 			} else {
-				message.channel.send(`Team "${args[0]}" already exists!`);
+				message.channel.send(`You are already on team ${pTeam[0].name}!`);
 			}
 		} else {
 			message.channel.send(`Usage: !createteam <teamname>`);
 		}
 	}
 
-	if (cmd === 'join') {
+	if (cmd === 'jointeam') {
 		if (args.length == 1) {
-			var team = await db.getTeam('2v2', args[0]);
-			if (team) {
-				//TODO: check the database for the team
-				//TODO: check the database for an invite
-				var teamRole = await guild.roles.find(role => role.name === args[0]);
-				if (teamRole) {
-					var dbJoin = await db.modifyTeam(channelMatchFormat, team.name, 'members', [message.author.id]);
-					if (dbJoin) {
-						if (await guild.member(message.author).addRole(teamRole)) {
-							message.channel.send(`${tag(message.author.id)} has joined the team ${tagRole(teamRole.id)}!`);
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (!pTeam) {
+				// TODO: team capitalization
+				var team = await db.getTeam(channelMatchFormat, args[0]);
+				if (team) {
+					//TODO: check the database for an invite
+					var teamRole = await guild.roles.find(role => role.name === args[0]);
+					if (teamRole) {
+						var dbJoin = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
+						if (dbJoin) {
+							if (await guild.member(message.author).addRole(teamRole)) {
+								message.channel.send(`${tag(message.author.id)} has joined the team ${tagRole(teamRole.id)}!`);
+							} else {
+								message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								log.error(`Couldn't add team role ${team.name} to ${await getDiscordUsernameFromDiscordId(message.author.id)}`)
+							}
 						} else {
 							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
-							log.error(`Couldn't add team role ${team.name} to ${await getDiscordUsernameFromDiscordId(message.author.id)}`)
+							log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team[0].name} in DB`);
 						}
 					} else {
-						message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
-						log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team.name} in DB`);
+						message.channel.send(`Couldn't find the team role "${args[0]}"`);
 					}
 				} else {
-					message.channel.send(`Couldn't find the team role "${args[0]}"`);
+					message.channel.send(`Couldn't find the team "${args[0]}"`);
 				}
 			} else {
-				message.channel.send(`Couldn't find the team "${args[0]}"`);
+				message.channel.send(`Already a member of team ${pTeam.name}`);
 			}
 		} else {
 			message.channel.send(`Usage: !join <teamname>`);

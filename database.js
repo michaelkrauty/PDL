@@ -627,6 +627,28 @@ exports.getPlayerTeam = async (type, playerId) => {
 	return false;
 }
 
+exports.addPlayerToTeam = async (type, playerId, teamId) => {
+	// TODO: address if a player has left a team and is joining another
+	var res = await exports.sql(`INSERT INTO ?? (player_id, team_id) VALUES (?,?);`, ['team_membership_' + type, playerId, teamId]);
+	if (res.warningCount === 0) {
+		var res = await exports.sql(`SELECT members FROM ?? WHERE id=?;`, ['teams_' + type, teamId]);
+		var newMembers = [];
+		if (res) {
+			if (res[0].members) {
+				members = JSON.parse(res[0].members);
+				for (var m in members) {
+					newMembers.push(members[m]);
+				}
+			}
+			newMembers.push(playerId);
+			var res = await exports.sql(`UPDATE ?? SET members=? WHERE id=?;`, ['teams_' + type, JSON.stringify(newMembers), teamId]);
+			return res.warningCount === 0;
+		}
+	}
+
+	return false;
+}
+
 exports.removePlayerFromTeam = async (type, playerId) => {
 	var team = await exports.getPlayerTeam(type, playerId);
 	if (team) {
