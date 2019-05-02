@@ -246,7 +246,10 @@ client.on('message', async (message) => {
 		var topList = await db.getTopCompetingTeams(channelMatchFormat, numTop);
 		if (!topList) {
 			// couldn't get top teams
-			message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
+			if (channelMatchFormat === '1v1')
+				message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
+			else
+				message.channel.send(`${tag(message.author.id)} no top teams to show.`);
 			// remove command message from pending user responses
 			user_commands_running.delete(message.id);
 			return;
@@ -336,24 +339,24 @@ client.on('message', async (message) => {
 								if (await guild.member(message.author).addRole(role))
 									message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
 							} else {
-								message.channel.send(`Team ${args[0]} already exists!`);
+								message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
 							}
 						} else {
-							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
 							log.error(`Couldn't add player ${await getDiscordUsernameFromDiscordId(message.author.id)} to team ${team[0].name}`);
 						}
 					} else {
-						message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+						message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
 						log.error(`Couldn't create team ${args[0]} for ${await getDiscordUsernameFromDiscordId(message.author.id)}`);
 					}
 				} else {
-					message.channel.send(`Team "${args[0]}" already exists!`);
+					message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
 				}
 			} else {
-				message.channel.send(`You are already on team ${pTeam[0].name}!`);
+				message.channel.send(`${tag(message.author.id)} you are already on team ${pTeam[0].name}!`);
 			}
 		} else {
-			message.channel.send(`Usage: !createteam <teamname>`);
+			message.channel.send(`${tag(message.author.id)} usage: !createteam <teamname>`);
 		}
 	}
 
@@ -378,24 +381,24 @@ client.on('message', async (message) => {
 							if (await guild.member(message.author).addRole(teamRole)) {
 								message.channel.send(`${tag(message.author.id)} has joined the team ${tagRole(teamRole.id)}!`);
 							} else {
-								message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
 								log.error(`Couldn't add team role ${team.name} to ${await getDiscordUsernameFromDiscordId(message.author.id)}`)
 							}
 						} else {
-							message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
 							log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team[0].name} in DB`);
 						}
 					} else {
-						message.channel.send(`Couldn't find the team role ${teamName}`);
+						message.channel.send(`${tag(message.author.id)} couldn't find the team role ${teamName}`);
 					}
 				} else {
-					message.channel.send(`Couldn't find the team ${teamName}`);
+					message.channel.send(`${tag(message.author.id)} couldn't find the team ${teamName}`);
 				}
 			} else {
-				message.channel.send(`Already a member of team ${pTeam[0].name}`);
+				message.channel.send(`${tag(message.author.id)} already a member of team ${pTeam[0].name}`);
 			}
 		} else {
-			message.channel.send(`Usage: !join <teamname>`);
+			message.channel.send(`${tag(message.author.id)} usage: !join <teamname>`);
 		}
 	}
 
@@ -417,15 +420,15 @@ client.on('message', async (message) => {
 								await message.channel.send(`Team ${tagRole(teamRole.id)} has been disbanded!`);
 								teamRole.delete();
 							} else
-								message.channel.send(`Couldn't disband team ${tagRole(teamRole.id)}`);
+								message.channel.send(`${tag(message.author.id)} couldn't disband team ${tagRole(teamRole.id)}`);
 						}
 					} else
-						message.channel.send(`Couldn't remove role ${tagRole(teamRole.id)} from ${tag(message.author.id)}`);
+						message.channel.send(`${tag(message.author.id)} couldn't remove role ${tagRole(teamRole.id)} from ${tag(message.author.id)}`);
 				} else {
 					message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 				}
 			} else
-				message.channel.send(`Usage: !leaveteam`);
+				message.channel.send(`${tag(message.author.id)} usage: !leaveteam`);
 		} else
 			message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 	}
@@ -445,13 +448,13 @@ client.on('message', async (message) => {
 							if (invite)
 								message.channel.send(`${tag(userMention.id)} has been invited to ${pTeam[0].name} by ${tag(message.author.id)}`);
 							else
-								message.channel.send(`Couldn't invite ${await getDiscordUsernameFromDiscordId(userMention.id)}`);
+								message.channel.send(`${tag(message.author.id)} couldn't invite ${await getDiscordUsernameFromDiscordId(userMention.id)}`);
 						} else
 							message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} has already been invited to ${pTeam[0].name}.`);
 					} else
 						message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} is not registered.`);
 				} else
-					message.channel.send(`Usage: !invite @<user>`);
+					message.channel.send(`${tag(message.author.id)} usage: !invite @<user>`);
 			} else
 				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 		} else
@@ -479,7 +482,7 @@ client.on('message', async (message) => {
 					if (dbVote) {
 						var disbandVoteDeleted = await db.deleteDisbandVote(channelMatchFormat, dbVote[0].id);
 						if (!disbandVoteDeleted)
-							message.channel.send(`Could not delete disband vote for ${pTeam[0].name}`);
+							message.channel.send(`${tag(message.author.id)} could not delete disband vote for ${pTeam[0].name}`);
 					}
 					var disbanded = await db.disbandTeam(channelMatchFormat, pTeam[0].name);
 					if (disbanded) {
@@ -488,7 +491,7 @@ client.on('message', async (message) => {
 						if (teamRole)
 							teamRole.delete();
 						else
-							message.channel.send(`Could not delete team role for ${pTeam[0].name}`);
+							message.channel.send(`${tag(message.author.id)} could not delete team role for ${pTeam[0].name}`);
 					}
 				} else {
 					await db.addDisbandVote(channelMatchFormat, pTeam[0].id, user.id);
@@ -519,13 +522,13 @@ client.on('message', async (message) => {
 									message.channel.send(`Renamed team ${oldName} to ${tagRole(role.id)}`);
 								}
 							} else {
-								message.channel.send(`An error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
 								console.log(`Couldn't rename team ${pTeam[0].name} to ${args[0]}`);
 							}
 						} else
 							message.channel.send(`${tag(message.author.id)} please specify your new team name.`);
 					} else
-						message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+						message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
 				} else
 					message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
 			} else
@@ -546,7 +549,7 @@ client.on('message', async (message) => {
 						await role.setColor(getRandomColor());
 					message.channel.send(`Team ${tagRole(role.id)} color is now ${role.color}`);
 				} else
-					message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+					message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
 			} else
 				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 		} else
@@ -560,9 +563,9 @@ client.on('message', async (message) => {
 				var role = await getTeamRole(pTeam[0].name);
 				if (role) {
 					await role.setPosition(guild.roles.size - 2);
-					message.channel.send(`Set main team for ${tag(message.author.id)} to ${pTeam[0].name}`);
+					message.channel.send(`${tag(message.author.id)} set main team for ${tag(message.author.id)} to ${pTeam[0].name}`);
 				} else
-					message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+					message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
 			} else
 				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
 		} else
