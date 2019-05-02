@@ -7,6 +7,7 @@ v2.0.0
 - added !leaveteam
 - added !teamcolor
 - added !teamname
+- added !mainteam
 - added !team admin command
 
 v1.0.2

@@ -553,6 +553,22 @@ client.on('message', async (message) => {
 			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
+	if (cmd === 'mainteam') {
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var role = await getTeamRole(pTeam[0].name);
+				if (role) {
+					await role.setPosition(guild.roles.size - 2);
+					message.channel.send(`Set main team for ${tag(message.author.id)} to ${pTeam[0].name}`);
+				} else
+					message.channel.send(`Couldn't find the role for team ${pTeam[0].name}`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+	}
+
 	if (cmd === 'team' && admin) {
 		var role = message.mentions.roles.values().next().value;
 		var member = message.mentions.members.values().next().value;
