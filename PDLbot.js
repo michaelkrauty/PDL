@@ -74,7 +74,7 @@ client.once('ready', async () => {
 	// connect to database
 	await db.connect();
 	// job runs 59 seconds after 12am Monday
-	schedule.scheduleJob('WeeklyEloQuit', '59 0 0 * * 1', async () => {
+	schedule.scheduleJob('WeeklyEloQuit', '0 0 5 * * 1', async () => {
 		// weekly auto-quit, if enabled
 		if (config.auto_quit) {
 			var autoQuitChannel = client.channels.get(config.auto_quit_channel);
