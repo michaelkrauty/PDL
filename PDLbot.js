@@ -74,7 +74,7 @@ client.once('ready', async () => {
 	// connect to database
 	await db.connect();
 	// job runs 59 seconds after 12am Monday
-	schedule.scheduleJob('WeeklyEloQuit', '59 0 0 * * 1', async () => {
+	schedule.scheduleJob('WeeklyEloQuit', '0 0 5 * * 1', async () => {
 		// weekly auto-quit, if enabled
 		if (config.auto_quit) {
 			var autoQuitChannel = client.channels.get(config.auto_quit_channel);
@@ -667,7 +667,7 @@ client.on('message', async (message) => {
 				var latest_matches = await db.getUserUnconfirmedMatches(user.id);
 				if (!latest_matches) {
 					// no recent unconfirmed matches
-					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', message.author.username));
+					message.channel.send(strings.no_unconfirmed_matches.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(message.author.id)));
 					break;
 				}
 				// waiting_for_input will be true if there is one or more match which the user should confirm with reaction emojis
