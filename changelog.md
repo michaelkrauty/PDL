@@ -1,3 +1,6 @@
+v1.0.4
+- changed elo decay and auto-quit to run at 5am rather than midnight
+
 v1.0.3
 - fixed bug where players with 0 matches played would be auto-quit
 
