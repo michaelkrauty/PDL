@@ -572,7 +572,7 @@ client.on('message', async (message) => {
 			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 	}
 
-	if (cmd === 'team' && admin) {
+	if (cmd === 'team') {
 		var role = message.mentions.roles.values().next().value;
 		var member = message.mentions.members.values().next().value;
 		if (args.length < 2 || (args.length == 1 && (role || member))) {
@@ -589,9 +589,22 @@ client.on('message', async (message) => {
 				team = await db.getPlayerTeam(channelMatchFormat, user.id);
 			if (team) {
 				var msg = `${tag(message.author.id)}\n\`\`\``;
-				for (var t in team[0]) {
-					msg += `${t}: ${team[0][t]}\n`;
+				msg += `name: ${team[0].name}\nmembers: `;
+				var members = JSON.parse(team[0].members);
+				for (var p in members) {
+					if (p >= members.length)
+						continue;
+					var member = await db.getUserDataUsingId(members[p]);
+					msg += `${await getDiscordUsernameFromDiscordId(member.discord_id)}`;
+					if (p < members.length - 1)
+						msg += `, `;
+					else
+						msg += `\n`;
 				}
+				msg += `elo: ${team[0].elo_rating}\n`;
+				var competingStr = '';
+				team[0].competing ? competingStr = 'true' : competingStr = 'false';
+				msg += `competing: ${competingStr}\n`;
 				message.channel.send(`${msg}\`\`\``);
 			} else
 				if (args[0])
