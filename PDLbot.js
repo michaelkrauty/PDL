@@ -774,34 +774,57 @@ client.on('message', async (message) => {
 				break;
 			}
 			// register user if they're not already in the DB
-			if (!user) {
+			if (user) {
+				if (channelMatchFormat === '1v1') {
+					// check if the user is currently competing
+					if (user.competing) {
+						message.channel.send(strings.compete_already_competing.replaceAll('{user}', tag(message.author.id)));
+						break;
+					}
+				} else {
+					var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+					if (pTeam) {
+						var teamRole = await guild.roles.find(r => r.name === pTeam[0].name);
+						if (teamRole) {
+							if (!pTeam[0].competing) {
+								var setCompeting = await db.modifyTeam(channelMatchFormat, pTeam[0].name, 'competing', true);
+								if (setCompeting) {
+									message.channel.send(`${tagRole(teamRole.id)} is now competing!`);
+								} else
+									message.channel.send(`${tag(message.author.id)} ${tagRole(adminRole.id)} couldn't modify team`);
+							} else
+								message.channel.send(`${tag(message.author.id)} ${pTeam[0].name} is already competing in PDL.`);
+						} else
+							message.channel.send(`${tag(message.author.id)} ${tagRole(adminRole.id)} couldn't fetch team role`);
+					} else
+						message.channel.send(`${tag(message.author.id)} you are not currently on a team.`);
+				}
+			} else {
+				if (channelMatchFormat === '1v1') {
 				await db.registerUser(message.author.id);
 				// get user's new user ID
 				user_id = await db.getUserIdFromDiscordId(message.author.id);
 				// create new User class
 				user = await new User(user_id, db, client).init();
 			} else {
-				// check if the user is currently competing
-				if (user.competing) {
-					message.channel.send(strings.compete_already_competing.replaceAll('{user}', tag(message.author.id)));
+					message.channel.send(`${tag(message.author.id)} use !register to register`);
 					break;
 				}
 			}
-			// check if competitor role is defined in config
-			if (config.competitor_role_name != null && config.competitor_role_name != '') {
+			if (channelMatchFormat === '1v1') {
 				// get competitor role as defined in config
 				let competitorRole = await guild.roles.find(role => role.name === config.competitor_role_name);
 				// ensure competitor role exists
-				if (competitorRole != null && competitorRole.id != undefined)
+				if (competitorRole && competitorRole.id)
 					// check if user has competitor role
 					if (!message.member._roles.includes(competitorRole))
 						// add competitor role to user
 						message.member.addRole(competitorRole);
-			}
 			// set the user's competing state to true
 			var res = await user.setCompeting(true);
 			if (res)
 				message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
+			}
 			break;
 		// quit command, disables competing for the user
 		case 'quit':
