@@ -834,6 +834,9 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				if (channelMatchFormat == '1v1') {
 			// check if the user is currently competing
 			if (!user.competing) {
 				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
@@ -842,6 +845,22 @@ client.on('message', async (message) => {
 			var quit = await quitUser(message.member.user.id);
 			if (quit)
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
+				} else {
+					if (!pTeam[0].competing) {
+						message.channel.send(`${tag(message.author.id)} ${pTeam[0].name} is not currently competing.`);
+						break;
+					}
+					var quit = await db.modifyTeam(channelMatchFormat, pTeam[0].name, 'competing', false);
+					if (quit) {
+						var teamRole = await getTeamRole(pTeam[0].name);
+						if (teamRole) {
+							message.channel.send(`${tagRole(teamRole.id)} is no longer compting in PDL.`);
+						} else {
+							message.channel.send(`Could not find team role ${pTeam[0].name} ${tagRole(adminRole.id)}`);
+						}
+					}
+				}
+			}
 			break;
 		// competing command, shows if user is competing or not
 		case 'competing':
