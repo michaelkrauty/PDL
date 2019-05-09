@@ -969,53 +969,147 @@ client.on('message', async (message) => {
 			break;
 		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
 		case 'elo':
-			// TODO: add !elo <player>
 			// check if user is registered
-			if (!user) {
+			if (args.length === 0 && !user) {
 				// user is not registered
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			var teamName;
+			var team;
+			var target;
+			var userMention;
+			var roleMention;
+			if (args.length === 1) {
+				// check for a mention
+				userMention = message.mentions.users.values().next().value;
+				roleMention = message.mentions.roles.values().next().value;
+				if ((userMention && userMention.id !== message.author.id) || (userMention && userMention.id === message.author.id && channelMatchFormat !== '1v1')) {
+					var targetId = await db.getUserIdFromDiscordId(userMention.id);
+					if (targetId) {
+						target = await new User(targetId, db, client).init();
+						team = await db.getPlayerTeam(channelMatchFormat, target.id);
+						if (!team && channelMatchFormat !== '1v1') {
+							message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} is not a member of a ${channelMatchFormat} team.`);
+							break;
+						}
+						if (team)
+							teamName = team[0].name;
+					} else {
+						message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} is not registered.`);
+						break;
+					}
+				}
+				// do nothing if the user tagged themself, this just means target will be null
+				else if (userMention && userMention.id === message.author.id && channelMatchFormat === '1v1'); else if (roleMention && channelMatchFormat !== '1v1') {
+					teamName = roleMention.name;
+					team = await db.getTeam(channelMatchFormat, teamName);
+				} else if (channelMatchFormat !== '1v1') {
+					teamName = args[0];
+					team = await db.getTeam(channelMatchFormat, args[0]);
+				} else {
+					message.channel.send(`${tag(message.author.id)} usage: !elo [player]`);
+					break;
+				}
+			} else if (args.length === 0) {
+				team = await db.getPlayerTeam(channelMatchFormat, user.id);
+				if (team)
+					teamName = team[0].name;
+			} else {
+				message.channel.send(`${tag(message.author.id)} usage: !elo [player]`);
+				break;
+			}
+			// check if the team exists
+			if (channelMatchFormat !== '1v1' && !team) {
+				message.channel.send(`${tag(message.author.id)} couldn't find the team ${teamName}.`);
+				break;
+			}
 			// check if user is competing
-			if (!user.competing) {
+			if (channelMatchFormat === '1v1' && !user.competing && !target) {
 				// user is not competing
 				message.channel.send(strings.error_user_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			// check if user has played enough provisional matches to show elo
-			var numMatches = await db.getUserNumConfirmedMatches(user.id);
-			if (!numMatches || numMatches < config.provisional_matches) {
-				if (!numMatches)
-					numMatches = 0;
-				message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
+			// check if target is competing
+			if (target)
+				if (channelMatchFormat === '1v1' && !target.competing) {
+					message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(target.discord_id)} is not competing in ${channelMatchFormat}.`);
+					break;
+				}
+			// check if team is competing
+			if (channelMatchFormat !== '1v1' && !team[0].competing) {
+				// team is not competing
+				message.channel.send(`${tag(message.author.id)} ${teamName} is not competing.`);
 				break;
 			}
-
+			if (channelMatchFormat === '1v1') {
+				// check if user has played enough provisional matches to show elo
+				var numMatches;
+				if (!target)
+					numMatches = await db.getUserNumConfirmedMatches(user.id);
+				else
+					numMatches = await db.getUserNumConfirmedMatches(target.id);
+				if (!numMatches || numMatches < config.provisional_matches) {
+					if (!numMatches)
+						numMatches = 0;
+					if (!target)
+						message.channel.send(strings.not_enough_provisional_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{num_games_played}', numMatches).replaceAll('{provisional_matches}', config.provisional_matches));
+					else
+						message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(target.discord_id)} has not played enough matches to show their ELO rating yet. (${numMatches}/${config.provisional_matches})`);
+					break;
+				}
+			} else {
+				// check if team has played enough provisional matches to show elo
+				var numMatches = await db.getTeamNumConfirmedMatches(channelMatchFormat, team[0].id);
+				if (!numMatches || numMatches < config.provisional_matches) {
+					if (!numMatches)
+						numMatches = 0;
+					message.channel.send(`${tag(message.author.id)} ${teamName} has not played enough matches to show ELO rating yet. (${numMatches}/${config.provisional_matches})`);
+					break;
+				}
+			}
 			// get all competing players in order of rank
 			var top = [];
-			var players = await db.getTopCompetingPlayers(-1);
+			var players;
+			if (channelMatchFormat === '1v1')
+				players = await db.getTopCompetingPlayers(-1);
+			else
+				players = await db.getTopCompetingTeams(channelMatchFormat, -1);
 			for (var i in players) {
-				var numMatches = await db.getUserNumConfirmedMatches(players[i].id);
+				var numMatches;
+				if (channelMatchFormat === '1v1')
+					numMatches = await db.getUserNumConfirmedMatches(players[i].id);
+				else
+					numMatches = await db.getTeamNumConfirmedMatches(channelMatchFormat, players[i].id);
 				if (numMatches && numMatches >= config.provisional_matches)
 					top.push(players[i]);
 			}
-
 			// find the user in the player list
 			var player_index = 0;
 			for (i = 0; i < top.length; i++)
-				if (top[i].id == user.id)
+				if (!target && (channelMatchFormat === '1v1' && top[i].id == user.id) ||
+					(channelMatchFormat !== '1v1' && top[i].id === team[0].id) ||
+					(target && (channelMatchFormat === '1v1' && top[i].id === target.id)))
 					player_index = i;
-
 			// construct message
 			var msg = '';
+			if (target ||
+				(args.length == 0 && channelMatchFormat !== '1v1') ||
+				(args.length == 1 && !roleMention && !userMention))
+				msg += `${tag(message.author.id)}\n`;
 			for (i = player_index - 2; i < player_index + 3; i++) {
 				if (i >= top.length || !top[i])
 					continue;
 				// get player username
-				var username = await getDiscordUsernameFromDiscordId(top[i].discord_id);
+				var username;
+				if (channelMatchFormat === '1v1')
+					username = await getDiscordUsernameFromDiscordId(top[i].discord_id);
+				else
+					username = top[i].name;
 				// list top players
-				if (top[i].id == user.id)
-					username = tag(top[i].discord_id);
+				if (channelMatchFormat === '1v1')
+					if ((top[i].id == user.id) && !target)
+						username = tag(top[i].discord_id);
 				msg += `${i + 1}. ${username}: ${top[i].elo_rating} ELO\n`;
 			}
 			message.channel.send(msg);
