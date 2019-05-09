@@ -801,12 +801,12 @@ client.on('message', async (message) => {
 				}
 			} else {
 				if (channelMatchFormat === '1v1') {
-				await db.registerUser(message.author.id);
-				// get user's new user ID
-				user_id = await db.getUserIdFromDiscordId(message.author.id);
-				// create new User class
-				user = await new User(user_id, db, client).init();
-			} else {
+					await db.registerUser(message.author.id);
+					// get user's new user ID
+					user_id = await db.getUserIdFromDiscordId(message.author.id);
+					// create new User class
+					user = await new User(user_id, db, client).init();
+				} else {
 					message.channel.send(`${tag(message.author.id)} use !register to register`);
 					break;
 				}
@@ -820,10 +820,10 @@ client.on('message', async (message) => {
 					if (!message.member._roles.includes(competitorRole))
 						// add competitor role to user
 						message.member.addRole(competitorRole);
-			// set the user's competing state to true
-			var res = await user.setCompeting(true);
-			if (res)
-				message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
+				// set the user's competing state to true
+				var res = await user.setCompeting(true);
+				if (res)
+					message.channel.send(strings.user_now_competing.replaceAll('{user}', tag(message.author.id)));
 			}
 			break;
 		// quit command, disables competing for the user
@@ -837,14 +837,14 @@ client.on('message', async (message) => {
 			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
 			if (pTeam) {
 				if (channelMatchFormat == '1v1') {
-			// check if the user is currently competing
-			if (!user.competing) {
-				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
-				break;
-			}
-			var quit = await quitUser(message.member.user.id);
-			if (quit)
-				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
+					// check if the user is currently competing
+					if (!user.competing) {
+						message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
+						break;
+					}
+					var quit = await quitUser(message.member.user.id);
+					if (quit)
+						message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 				} else {
 					if (!pTeam[0].competing) {
 						message.channel.send(`${tag(message.author.id)} ${pTeam[0].name} is not currently competing.`);
