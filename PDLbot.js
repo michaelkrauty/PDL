@@ -445,8 +445,13 @@ client.on('message', async (message) => {
 						if (!inviteTo || (inviteTo && (inviteTo[0].team !== pTeam[0].id))) {
 							// create invite
 							var invite = await db.createInvite(channelMatchFormat, pTeam[0].id, user.id, targetUser.id);
-							if (invite)
-								message.channel.send(`${tag(userMention.id)} has been invited to ${pTeam[0].name} by ${tag(message.author.id)}`);
+							if (invite) {
+								var teamRole = await getTeamRole(pTeam[0].name);
+								var teamName = pTeam[0].name;
+								if (teamRole)
+									teamName = tagRole(teamRole.id);
+								message.channel.send(`${tag(userMention.id)} has been invited to ${teamName} by ${tag(message.author.id)}`);
+							}
 							else
 								message.channel.send(`${tag(message.author.id)} couldn't invite ${await getDiscordUsernameFromDiscordId(userMention.id)}`);
 						} else
