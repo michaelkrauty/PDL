@@ -309,6 +309,311 @@ client.on('message', async (message) => {
 		return;
 	}
 
+	if (cmd === 'createteam') {
+		// TODO: allow team names with spaces
+		if (args.length > 0) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (!pTeam) {
+				var dbTeam = await db.getTeam(channelMatchFormat, args[0]);
+				if (!dbTeam) {
+					var teamCreated = await db.createTeam(channelMatchFormat, args[0]);
+					if (teamCreated) {
+						var team = await db.getTeam(channelMatchFormat, args[0]);
+						var addedPlayerToTeam = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
+						if (addedPlayerToTeam) {
+							if (!await getTeamRole(args[0])) {
+								var role = await guild.createRole({
+									name: args[0],
+									color: getRandomColor(),
+									hoist: true,
+									position: guild.roles.size - 2,
+									mentionable: true
+								});
+								if (await guild.member(message.author).addRole(role))
+									message.channel.send(`${tag(message.author.id)} has created the team ${tagRole(role.id)}!`);
+							} else {
+								message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
+							}
+						} else {
+							message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							log.error(`Couldn't add player ${await getDiscordUsernameFromDiscordId(message.author.id)} to team ${team[0].name}`);
+						}
+					} else {
+						message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+						log.error(`Couldn't create team ${args[0]} for ${await getDiscordUsernameFromDiscordId(message.author.id)}`);
+					}
+				} else {
+					message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
+				}
+			} else {
+				message.channel.send(`${tag(message.author.id)} you are already on team ${pTeam[0].name}!`);
+			}
+		} else {
+			message.channel.send(`${tag(message.author.id)} usage: !createteam <teamname>`);
+		}
+	}
+
+	if (cmd === 'jointeam') {
+		var roleMention = message.mentions.roles.values().next().value;
+		if (args.length == 1 || (args.length == 1 && roleMention)) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (!pTeam) {
+				// TODO: team capitalization and spaces
+				var teamName;
+				if (roleMention)
+					teamName = roleMention.name;
+				else
+					teamName = args[0];
+				team = await db.getTeam(channelMatchFormat, teamName);
+				if (team) {
+					//TODO: check the database for an invite
+					var teamRole = await getTeamRole(teamName);
+					if (teamRole) {
+						var dbJoin = await db.addPlayerToTeam(channelMatchFormat, user.id, team[0].id);
+						if (dbJoin) {
+							if (await guild.member(message.author).addRole(teamRole)) {
+								message.channel.send(`${tag(message.author.id)} has joined the team ${tagRole(teamRole.id)}!`);
+							} else {
+								message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								log.error(`Couldn't add team role ${team.name} to ${await getDiscordUsernameFromDiscordId(message.author.id)}`)
+							}
+						} else {
+							message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+							log.error(`Couldn't add ${await getDiscordUsernameFromDiscordId(message.author.id)} to ${team[0].name} in DB`);
+						}
+					} else {
+						message.channel.send(`${tag(message.author.id)} couldn't find the team role ${teamName}`);
+					}
+				} else {
+					message.channel.send(`${tag(message.author.id)} couldn't find the team ${teamName}`);
+				}
+			} else {
+				message.channel.send(`${tag(message.author.id)} already a member of team ${pTeam[0].name}`);
+			}
+		} else {
+			message.channel.send(`${tag(message.author.id)} usage: !join <teamname>`);
+		}
+	}
+
+	if (cmd === 'leaveteam') {
+		var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+		if (pTeam) {
+			if (args.length == 0) {
+				var teamRole = await getTeamRole(pTeam[0].name);
+				if (teamRole && guild.member(message.author)._roles.includes(teamRole.id)) {
+					var removedRole = await guild.member(message.author).removeRole(teamRole);
+					if (removedRole) {
+						await db.removeDisbandVote(channelMatchFormat, pTeam[0].id, user.id);
+						var leftTeam = await db.removePlayerFromTeam(channelMatchFormat, user.id);
+						if (leftTeam.length > 0)
+							message.channel.send(`${tag(message.author.id)} has left team ${tagRole(teamRole.id)}!`);
+						else {
+							disbandedTeam = await db.disbandTeam(channelMatchFormat, pTeam[0].name);
+							if (disbandedTeam) {
+								await message.channel.send(`Team ${tagRole(teamRole.id)} has been disbanded!`);
+								teamRole.delete();
+							} else
+								message.channel.send(`${tag(message.author.id)} couldn't disband team ${tagRole(teamRole.id)}`);
+						}
+					} else
+						message.channel.send(`${tag(message.author.id)} couldn't remove role ${tagRole(teamRole.id)} from ${tag(message.author.id)}`);
+				} else {
+					message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+				}
+			} else
+				message.channel.send(`${tag(message.author.id)} usage: !leaveteam`);
+		} else
+			message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+	}
+
+	if (cmd === 'invite') {
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var userMention = message.mentions.users.values().next().value;
+				if (args.length == 1 && userMention) {
+					var targetUser = await new User(await db.getUserIdFromDiscordId(userMention.id), db, client).init();
+					if (targetUser) {
+						var inviteTo = await db.getInvite(channelMatchFormat, false, targetUser.id);
+						if (!inviteTo || (inviteTo && (inviteTo[0].team !== pTeam[0].id))) {
+							// create invite
+							var invite = await db.createInvite(channelMatchFormat, pTeam[0].id, user.id, targetUser.id);
+							if (invite) {
+								var teamRole = await getTeamRole(pTeam[0].name);
+								var teamName = pTeam[0].name;
+								if (teamRole)
+									teamName = tagRole(teamRole.id);
+								message.channel.send(`${tag(userMention.id)} has been invited to ${teamName} by ${tag(message.author.id)}`);
+							}
+							else
+								message.channel.send(`${tag(message.author.id)} couldn't invite ${await getDiscordUsernameFromDiscordId(userMention.id)}`);
+						} else
+							message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} has already been invited to ${pTeam[0].name}.`);
+					} else
+						message.channel.send(`${tag(message.author.id)} ${await getDiscordUsernameFromDiscordId(userMention.id)} is not registered.`);
+				} else
+					message.channel.send(`${tag(message.author.id)} usage: !invite @<user>`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+	}
+
+	if (cmd === 'disbandteam') {
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var dbVote = await db.getDisbandVote(channelMatchFormat, pTeam[0].id);
+				var votes = [];
+				if (dbVote)
+					votes = JSON.parse(dbVote[0].votes);
+				for (var v in votes)
+					if (votes[v] === user.id) {
+						message.channel.send(`${tag(message.author.id)} you have already voted to disband ${pTeam[0].name}.`);
+						// remove command message from pending user responses
+						user_commands_running.delete(message.id);
+						return;
+					}
+				votes.push(user.id);
+				var members = JSON.parse(pTeam[0].members);
+				if (votes.length >= members.length / 2) {
+					if (dbVote) {
+						var disbandVoteDeleted = await db.deleteDisbandVote(channelMatchFormat, dbVote[0].id);
+						if (!disbandVoteDeleted)
+							message.channel.send(`${tag(message.author.id)} could not delete disband vote for ${pTeam[0].name}`);
+					}
+					var disbanded = await db.disbandTeam(channelMatchFormat, pTeam[0].name);
+					if (disbanded) {
+						await message.channel.send(`${await getTeamRole(pTeam[0].name)} has been disbanded! (${votes.length}/${Math.ceil(members.length / 2)} votes)`);
+						var teamRole = await getTeamRole(pTeam[0].name);
+						if (teamRole)
+							teamRole.delete();
+						else
+							message.channel.send(`${tag(message.author.id)} could not delete team role for ${pTeam[0].name}`);
+					}
+				} else {
+					await db.addDisbandVote(channelMatchFormat, pTeam[0].id, user.id);
+					message.channel.send(`${tag(message.author.id)} has voted to disband ${await getTeamRole(pTeam[0].name)}! (${votes.length}/${Math.ceil(members.length / 2)})`);
+				}
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+		// requires majority of team members to confirm to disband
+	}
+
+	if (cmd === 'teamname') {
+		// TODO: allow team names with spaces
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var tTeam = await db.getTeam(channelMatchFormat, args[0])
+				if (!tTeam) {
+					var role = await getTeamRole(pTeam[0].name);
+					if (role) {
+						if (args.length == 1) {
+							var oldName = pTeam[0].name;
+							var teamNameSet = await db.modifyTeam(channelMatchFormat, pTeam[0].name, 'name', args[0]);
+							if (teamNameSet) {
+								var teamRoleNameSet = await role.setName(args[0]);
+								if (teamRoleNameSet) {
+									message.channel.send(`Renamed team ${oldName} to ${tagRole(role.id)}`);
+								}
+							} else {
+								message.channel.send(`${tag(message.author.id)} an error occurred, an ${tagRole(adminRole.id)} has been notified.`);
+								console.log(`Couldn't rename team ${pTeam[0].name} to ${args[0]}`);
+							}
+						} else
+							message.channel.send(`${tag(message.author.id)} please specify your new team name.`);
+					} else
+						message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
+				} else
+					message.channel.send(`${tag(message.author.id)} team ${args[0]} already exists!`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+	}
+
+	if (cmd === 'teamcolor') {
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var role = await getTeamRole(pTeam[0].name);
+				if (role) {
+					if (args.length == 1)
+						await role.setColor(args[0]);
+					else if (args.length < 1)
+						await role.setColor(getRandomColor());
+					message.channel.send(`Team ${tagRole(role.id)} color is now ${role.color}`);
+				} else
+					message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+	}
+
+	// TODO: args[0]
+	if (cmd === 'mainteam') {
+		if (user) {
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam) {
+				var role = await getTeamRole(pTeam[0].name);
+				if (role) {
+					await role.setPosition(guild.roles.size - 2);
+					message.channel.send(`${tag(message.author.id)} set main team for ${tag(message.author.id)} to ${pTeam[0].name}`);
+				} else
+					message.channel.send(`${tag(message.author.id)} couldn't find the role for team ${pTeam[0].name}`);
+			} else
+				message.channel.send(`${tag(message.author.id)} you are not currently part of a team!`);
+		} else
+			message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
+	}
+
+	if (cmd === 'team') {
+		var role = message.mentions.roles.values().next().value;
+		var member = message.mentions.members.values().next().value;
+		if (args.length < 2 || (args.length == 1 && (role || member))) {
+			var team;
+			if (args.length == 1)
+				if (role) {
+					team = await db.getTeam(channelMatchFormat, role.name);
+				} else if (member) {
+					team = await db.getPlayerTeam(channelMatchFormat, await db.getUserIdFromDiscordId(member.id));
+				} else {
+					team = await db.getTeam(channelMatchFormat, args[0]);
+				}
+			else
+				team = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (team) {
+				var msg = `${tag(message.author.id)}\n\`\`\``;
+				msg += `name: ${team[0].name}\nmembers: `;
+				var members = JSON.parse(team[0].members);
+				for (var p in members) {
+					if (p >= members.length)
+						continue;
+					var member = await db.getUserDataUsingId(members[p]);
+					msg += `${await getDiscordUsernameFromDiscordId(member.discord_id)}`;
+					if (p < members.length - 1)
+						msg += `, `;
+					else
+						msg += `\n`;
+				}
+				msg += `elo: ${team[0].elo_rating}\n`;
+				var competingStr = '';
+				team[0].competing ? competingStr = 'true' : competingStr = 'false';
+				msg += `competing: ${competingStr}\n`;
+				message.channel.send(`${msg}\`\`\``);
+			} else
+				if (args[0])
+					message.channel.send(`${tag(message.author.id)} couldn't find the team ${args[0]}`);
+				else
+					message.channel.send(`${tag(message.author.id)} you are not currently on a team.`);
+		} else
+			message.channel.send(`${tag(message.author.id)} Usage: !team <teamname>`);
+	}
+
 	switch (cmd) {
 		// version command, shows current bot version
 		case 'version':
@@ -867,93 +1172,93 @@ client.on('message', async (message) => {
 				message.channel.send(strings.error_not_registered.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
+			var pTeamName;
+			var pTeam = await db.getPlayerTeam(channelMatchFormat, user.id);
+			if (pTeam)
+				pTeamName = pTeam[0].name;
+			var pTeamRole = await getTeamRole(pTeamName);
+
 			// check for a mention
-			var mention = message.mentions.users.values().next().value;
-			if (args.length != 1 || mention == undefined || mention.id == message.author.id) {
-				// no mentions, too many arguments, or user mentioned self
-				message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
-				break;
+			var userMention = message.mentions.users.values().next().value;
+			var roleMention = message.mentions.roles.values().next().value;
+			if (channelMatchFormat === '1v1') {
+				if (args.length != 1 || !userMention || userMention.id == message.author.id) {
+					// no mentions, too many arguments, or user mentioned self
+					message.channel.send(strings.submit_no_user_specified.replaceAll('{user}', tag(message.author.id)));
+					break;
+				}
+			} else {
+				if (args.length != 1 ||
+					(userMention && userMention.id === message.author.id) ||
+					(roleMention && roleMention.id === pTeamRole.id)) {
+					message.channel.send(`${tag(message.author.id)} usage: !submit @<team>`);
+					break;
+				}
 			}
+			var target;
+			var tTeam;
 			// get mention's database id
-			var mention_discord_id = await db.getUserIdFromDiscordId(mention.id);
-			if (!mention_discord_id) {
+			var mentionId = await db.getUserIdFromDiscordId(userMention.id);
+			if (!mentionId) {
 				// mention is not registered
-				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
+				message.channel.send(strings.error_target_not_registered.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(userMention.id)));
 				break;
 			}
 			// get mention data
-			var target = await new User(mention_discord_id, db, client).init();
+			target = await new User(mentionId, db, client).init();
 			// check if mention is competing
-			if (!target.competing) {
+			if (channelMatchFormat === '1v1' && !target.competing) {
 				// mention is not competing
-				message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
+				message.channel.send(strings.target_is_not_competing.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(userMention.id)));
 				break;
 			}
 			// get the user's latest matches of the week
+			var team_matches = await db.getTeamRecentMatches(channelMatchFormat, pTeam[0].id, 0);
 			var user_matches = await db.getUserRecentMatches(user.id, 0);
 			// check if user has played the maximum amount of games this week as defined in the config
-			if (user_matches)
+			if (channelMatchFormat === '1v1' && user_matches) {
 				if (user_matches.length >= config.maximum_weekly_challenges) {
 					// user has already played the maximum amount of matches for the week
 					message.channel.send(strings.max_weekly_matches_played.replaceAll('{user}', tag(message.author.id)).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
 					break;
 				}
+			} else {
+				if (team_matches.length >= config.maximum_weekly_challenges) {
+					// team has already played the maximum amount of matches for the week
+					message.channel.send(`${tag(message.author.id)} your team has recorded the maximum number of matches for the week ({maximum_weekly_challenges}). Match limit reset on Monday at 12am EST.`);
+					break;
+				}
+			}
 			// get the mention's latest matches of the week
 			var target_latest_matches = await db.getUserRecentMatches(target.id, 0);
+			var target_team_latest_matches = await db.getTeamRecentMatches(channelMatchFormat, tTeam[0].id, 0);
 			// check if target has played the maximum amount of games this week as defined in the config
 			if (target_latest_matches)
 				if (target_latest_matches.length >= config.maximum_weekly_challenges) {
 					// mention has already played the maximum amount of matches for the week
-					message.channel.send(strings.max_weekly_matches_played_other.replaceAll('{mention_name}', mention.username).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
+					message.channel.send(strings.max_weekly_matches_played_other.replaceAll('{mention_name}', await getDiscordUsernameFromDiscordId(userMention.id)).replaceAll('{maximum_weekly_challenges}', config.maximum_weekly_challenges));
 					break;
 				}
 			// ask the user if they won
-			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', mention.username));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
-			// ensure only one response from the user by storing the message id and author id in map
-			user_commands_running.set(msg.id, message.author.id);
-			// ensure only one response from the user by storing message id in collected array
-			var collected = [];
-			// await y/n/cancel reaction from user for 60 seconds
-			var filter = (reaction, usr) => (reaction.emoji.name === ReactionEmoji.WIN || reaction.emoji.name === ReactionEmoji.LOSS || reaction.emoji.name === ReactionEmoji.CANCEL) && usr.id === message.author.id;
-			var collector = msg.createReactionCollector(filter, { time: 60000 });
-			// TODO: apply multiple !confirm fix to !submit
-			collector.on('collect', async (r) => {
-				// user already reacted to this message
-				if (collected.includes(r.message.id))
-					return;
-				// add the message to the collected array to ensure only one response from the user
-				collected.push(r.message.id);
-				// user reacted y/n, what was the match result?
-				var result;
-				if (r._emoji.name === ReactionEmoji.WIN)
-					result = MatchResult.WIN;
-				else if (r._emoji.name === ReactionEmoji.LOSS)
-					result = MatchResult.LOSS;
-				else if (r._emoji.name === ReactionEmoji.CANCEL) {
-					collector.stop();
-					return;
-				}
-				// get player's elo rating
-				var playerElo = user.elo_rating;
-				// get opponent's elo rating
-				var opponentElo = target.elo_rating;
+			var msg = await message.channel.send(strings.did_you_win.replaceAll('{user}', tag(message.author.id)).replaceAll('{target}', await getDiscordUsernameFromDiscordId(userMention.id)));
+			// get player's elo rating
+			var playerElo = user.elo_rating;
+			// get opponent's elo rating
+			var opponentElo = target.elo_rating;
+			onThumbsUp = async () => {
+				// submit match result
+				await db.submitMatchResult(user.id, target.id, true, playerElo, opponentElo, null, null);
+				// ask the target user to confirm the game
+				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(userMention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
+			}
+			onThumbsDown = async () => {
 				// submit match result
 				await db.submitMatchResult(user.id, target.id, (result == MatchResult.WIN), playerElo, opponentElo, null, null);
 				// ask the target user to confirm the game
-				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(mention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
-				collector.stop();
-				// remove message from pending user responses
-				user_commands_running.delete(msg.id);
-				msg.react(ReactionEmoji.CONFIRMED);
-			});
-			// add submission reactions to msg
-			await msg.react(ReactionEmoji.WIN);
-			await msg.react(ReactionEmoji.LOSS);
-			await msg.react(ReactionEmoji.CANCEL);
-			collector.on('end', collected => {
-				if (collected.size < 1) {
+				message.channel.send(strings.confirm_game_please.replaceAll('{target}', tag(userMention.id)).replaceAll('{user}', message.author.username).replaceAll('{match_id}'));
+			}
+			onCancel = async (cancelMsg = null) => {
+				if (cancelMsg) {
 					// no y/n reaction was collected
 					message.channel.send(strings.match_submit_timeout.replaceAll('{user}', tag(message.author.id)));
 				} else if (collected.get(ReactionEmoji.CANCEL) != null) {

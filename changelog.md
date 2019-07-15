@@ -1,8 +1,15 @@
-v1.0.4
-- changed elo decay and auto-quit to run at 5am rather than midnight
-
-v1.0.3
-- fixed bug where players with 0 matches played would be auto-quit
+v2.0.0
+- added !register
+- added support for x vs. x, meaning the bot now supports 1v1, 2v2, 5v5, 25v25, etc.
+- added !createteam
+- added !disbandteam
+- added !invite
+- added !jointeam
+- added !leaveteam
+- added !teamcolor
+- added !teamname
+- added !mainteam
+- added !team admin command
 
 v1.0.2
 - remove challengeme role on quit

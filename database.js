@@ -369,6 +369,13 @@ exports.getUserRecentMatches = async (user_id, weeks) => {
 	return false;
 }
 
+exports.getTeamRecentMatches = async (type, team_id, weeks) => {
+	var res = await exports.sql('SELECT * FROM ?? WHERE (team1=? OR team2=?) AND (YEARWEEK(`timestamp`, 1) >= YEARWEEK(CURDATE(), 1) - ?) ORDER BY id ASC;', ['matches_' + type, team_id, team_id, weeks]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
 /**
  * @description get user's latest match
  * @param {bigint} user_id the user's id
@@ -498,4 +505,219 @@ exports.getWeeklyMatchups = async () => {
 		return arr;
 	}
 	return false;
+}
+
+exports.createChannel = async (id, type) => {
+	var res = await exports.sql('INSERT INTO channels (channel_id, type) VALUES (?,?);', [id, type]);
+	return res.length > 0;
+}
+
+exports.removeChannel = async (id) => {
+	var res = await exports.sql('DELETE FROM channels WHERE channel_id=?', id)
+	return res.length > 0;
+}
+
+exports.getChannels = async () => {
+	var res = await exports.sql('SELECT * FROM channels;');
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.getChannel = async (id) => {
+	var res = await exports.sql('SELECT * FROM channels WHERE channel_id=?;', id);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.createTeamTable = async (type) => {
+	let defaultElo = 1500;
+	if (config.default_starting_elo)
+		defaultElo = config.default_starting_elo;
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, name varchar(255) not null, members varchar(255), elo_rating int default ? not null, competing boolean not null default false, role_id varchar(255));`, ['teams_' + type, defaultElo]);
+	return res.warningCount === 0;
+}
+
+exports.getTeamId = async (type, teamName) => {
+	var res = await exports.sql(`SELECT id FROM ?? WHERE name=?;`, ['teams_' + type, teamName]);
+	if (res) {
+		return res[0].id;
+	} else return false;
+}
+
+exports.createTeam = async (type, teamName) => {
+	var res = await exports.sql(`INSERT INTO ?? (name) VALUES (?);`, ['teams_' + type, teamName]);
+	return res.warningCount === 0;
+}
+
+exports.getTeam = async (type, teamName) => {
+	var res = await exports.sql(`SELECT * FROM ?? WHERE name=?;`, ['teams_' + type, teamName]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.modifyTeam = async (type, teamName, key, value) => {
+	var res = await exports.sql(`UPDATE ?? SET ??=? WHERE name=?;`, ['teams_' + type, key, value, teamName]);
+	return res.warningCount === 0;
+}
+
+exports.getPlayerTeam = async (type, playerId) => {
+	var res = await exports.sql(`SELECT * FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
+	if (res && res.length > 0) {
+		var ret = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['teams_' + type, res[0].team_id]);
+		if (ret)
+			return ret;
+	}
+	return false;
+}
+
+exports.addPlayerToTeam = async (type, playerId, teamId) => {
+	// TODO: address if a player has left a team and is joining another
+	var res = await exports.sql(`INSERT INTO ?? (player_id, team_id) VALUES (?,?);`, ['team_membership_' + type, playerId, teamId]);
+	if (res.warningCount === 0) {
+		var res = await exports.sql(`SELECT members FROM ?? WHERE id=?;`, ['teams_' + type, teamId]);
+		var newMembers = [];
+		if (res) {
+			if (res[0].members) {
+				members = JSON.parse(res[0].members);
+				for (var m in members) {
+					newMembers.push(members[m]);
+				}
+			}
+			newMembers.push(playerId);
+			var res = await exports.sql(`UPDATE ?? SET members=? WHERE id=?;`, ['teams_' + type, JSON.stringify(newMembers), teamId]);
+			return res.warningCount === 0;
+		}
+	}
+
+	return false;
+}
+
+exports.removePlayerFromTeam = async (type, playerId) => {
+	var team = await exports.getPlayerTeam(type, playerId);
+	if (team) {
+		var currentMembers = JSON.parse(team[0].members);
+		var newMembers = [];
+		for (m in currentMembers)
+			if (currentMembers[m] !== playerId)
+				newMembers.push(currentMembers[m]);
+		var membersUpdate = await exports.sql(`UPDATE ?? SET members=? WHERE id=?;`, ['teams_' + type, JSON.stringify(newMembers), team[0].id]);
+		if (membersUpdate.warningCount === 0) {
+			var membershipUpdate = await exports.sql(`DELETE FROM ?? WHERE player_id=?`, ['team_membership_' + type, playerId]);
+			if (membershipUpdate.warningCount === 0)
+				return newMembers;
+		}
+	}
+	return false;
+}
+
+exports.disbandTeam = async (type, teamName) => {
+	var team = await exports.getTeam(type, teamName);
+	if (team) {
+		await exports.sql(`DELETE FROM ?? WHERE id=?`, ['teams_' + type, team[0].id]);
+		await exports.sql(`DELETE FROM ?? WHERE team_id=?`, ['team_membership_' + type, team[0].id]);
+		return true;
+	}
+	return false;
+}
+
+exports.createMatchesTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team1 varchar(255) not null, team2 varchar(255) not null, result boolean not null default false, confirmed boolean not null default false, team1_net_elo int not null, team2_net_elo int not null, timestamp timestamp not null default current_timestamp);`, 'matches_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createTeamMembershipTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, player_id bigint not null, team_id bigint not null);`, 'team_membership_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createInvitesTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team bigint not null, player_from bigint not null, player_to bigint not null);`, 'team_invites_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createDisbandVotesTable = async (type) => {
+	var res = await exports.sql(`CREATE TABLE IF NOT EXISTS ?? (id bigint primary key not null auto_increment, team bigint not null, votes varchar(255));`, 'team_disband_votes_' + type);
+	return res.warningCount === 0;
+}
+
+exports.createInvite = async (type, teamId, from, to) => {
+	var res = await exports.sql(`INSERT INTO ?? (team, player_from, player_to) VALUES (?,?,?);`, ['team_invites_' + type, teamId, from, to]);
+	return res.warningCount === 0;
+}
+
+exports.getInviteById = async (type, id) => {
+	var res = await exports.sql(`SELECT * FROM ?? WHERE id=?;`, ['team_invites_' + type, id]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+/**
+ * @param type channel match format
+ * @param {boolean} sender fetch invite from sender? If false, reciever's invite is fetched
+ * @param id user id to/from
+ */
+exports.getInvite = async (type, sender, id) => {
+	var from = 'player_to';
+	if (sender)
+		from = 'player_from';
+	var res = await exports.sql(`SELECT * FROM ?? WHERE ??=?;`, ['team_invites_' + type, from, id]);
+	if (res.length > 0)
+		return res;
+	return false;
+}
+
+exports.deleteInvite = async (type, id) => {
+	var res = await exports.sql(`DELETE FROM ?? WHERE id=?;`['team_invites_' + type, id]);
+	return res.warningCount === 0;
+}
+
+exports.getDisbandVote = async (type, team) => {
+	var vote = await exports.sql(`SELECT * FROM ?? WHERE team=?;`, ['team_disband_votes_' + type, team]);
+	if (vote.length > 0)
+		return vote;
+	return false;
+}
+
+exports.addDisbandVote = async (type, team, player) => {
+	var dbVote = await exports.getDisbandVote(type, team);
+	if (!dbVote) {
+		var createVote = await exports.sql(`INSERT INTO ?? (team, votes) VALUES (?,?);`, ['team_disband_votes_' + type, team, JSON.stringify([player])]);
+		return createVote.warningCount === 0;
+	} else {
+		var votes = JSON.parse(dbVote[0].votes);
+		var newVotes = [];
+		for (var v in votes)
+			newVotes.push(votes[v]);
+		newVotes.push(player);
+		var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?;`, ['team_disband_votes_' + type, JSON.stringify(newVotes), team]);
+		return updated.warningCount === 0;
+	}
+}
+
+exports.removeDisbandVote = async (type, team, player) => {
+	var dbVote = await exports.getDisbandVote(type, team);
+	if (dbVote) {
+		var votes = [];
+		var dbVotes = JSON.parse(dbVote[0].votes);
+		for (var v in dbVotes)
+			if (dbVotes[v] !== player)
+				votes.push(dbVotes[v]);
+		if (votes.length > 0) {
+			var updated = await exports.sql(`UPDATE ?? SET votes=? WHERE team=?;`, ['team_disband_votes_' + type, JSON.stringify(votes), team]);
+			return updated.warningCount === 0;
+		} else {
+			var deleted = await exports.deleteDisbandVote(type, team);
+			return deleted.warningCount === 0;
+		}
+	}
+	return false;
+}
+
+exports.deleteDisbandVote = async (type, team) => {
+	var deleted = await exports.sql(`DELETE FROM ?? WHERE team=?;`, ['team_disband_votes_' + type, team]);
+	return deleted.warningCount === 0;
 }
