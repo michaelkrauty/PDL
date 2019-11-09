@@ -1,3 +1,6 @@
+v1.0.5
+- added config option to enable/disable tagging of users in matchups announcement
+
 v1.0.4
 - changed elo decay and auto-quit to run at 5am rather than midnight
 
