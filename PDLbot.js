@@ -157,7 +157,7 @@ client.once('ready', async () => {
 			// check if the channel exists
 			if (channel)
 				// run matchup suggestion function, which will save the matchups in the database
-				suggestMatchups(channel, true, true);
+				suggestMatchups(channel, config.suggested_matchups_tag_users === 'true', true);
 		});
 	}
 	// startup complete
@@ -1297,7 +1297,7 @@ client.on('message', async (message) => {
 				}
 				// run matchup suggestion function, which will save the matchups in the database but not tag users
 				if (args[0].toLowerCase() == 'generatematchups' && args.length == 1) {
-					suggestMatchups(message.channel, true, true);
+					suggestMatchups(message.channel, config.suggested_matchups_tag_users === 'true', true);
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
 					return;
