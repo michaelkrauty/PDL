@@ -1,3 +1,6 @@
+v1.0.6
+- added suggested matchups toggle
+
 v1.0.5
 - added config option to enable/disable tagging of users in matchups announcement
 

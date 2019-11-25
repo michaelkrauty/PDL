@@ -26,6 +26,8 @@ module.exports.config = {
 	auto_quit_channel: '',
 	// how many players should be shown with !top by default?
 	top_players: 100,
+	// enable matchup generation?
+	enable_matchups: false,
 	// channel to post suggested weekly matchups to. Set to 0 to disable.
 	suggested_weekly_matchups_channel: '0',
 	// player (admin) to leave out of the weekly recommended matchups in case of an uneven amount of players. Set to 0 to disable.
