@@ -149,7 +149,7 @@ client.once('ready', async () => {
 		}
 	});
 	// setup weekly matchup suggestions, if enabled
-	if (config.suggested_weekly_matchups_channel != '0') {
+	if (config.suggested_weekly_matchups_channel != '0' && config.enable_matchups) {
 		// job runs at 1pm EST on Monday
 		schedule.scheduleJob('WeeklyMatchups', '0 0 13 * * 1', async () => {
 			// get the channel
@@ -272,7 +272,7 @@ client.on('message', async (message) => {
 	}
 
 	// matchups command, shows generated weekly matchups
-	if (cmd === 'matchups') {
+	if (cmd === 'matchups' && config.enable_matchups) {
 		var players = await db.getWeeklyMatchups();
 		// compose matchups message
 		var msg = strings.suggested_matchups_message;
@@ -1296,7 +1296,7 @@ client.on('message', async (message) => {
 					return;
 				}
 				// run matchup suggestion function, which will save the matchups in the database but not tag users
-				if (args[0].toLowerCase() == 'generatematchups' && args.length == 1) {
+				if (args[0].toLowerCase() == 'generatematchups' && args.length == 1 && config.enable_matchups) {
 					suggestMatchups(message.channel, config.suggested_matchups_tag_users === 'true', true);
 					// remove command message from pending user responses
 					user_commands_running.delete(message.id);
