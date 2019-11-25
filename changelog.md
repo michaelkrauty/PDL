@@ -1,3 +1,6 @@
+v1.0.7
+- added command character prefix option
+
 v1.0.6
 - added suggested matchups toggle
 

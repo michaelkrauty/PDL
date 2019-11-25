@@ -199,7 +199,7 @@ client.on('message', async (message) => {
 	if (!started)
 		return;
 	// commands start with !
-	if (message.content.substring(0, 1) != '!')
+	if (message.content.substring(0, 1) != config.command_prefix)
 		return;
 	// check if user is in the map of users running commands
 	let pendingUserResponsesContainsUser = false;
