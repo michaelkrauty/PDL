@@ -1,3 +1,6 @@
+v1.0.8
+- added !elo command alias !rank
+
 v1.0.7
 - added command character prefix option
 
