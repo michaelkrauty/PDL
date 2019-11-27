@@ -601,6 +601,7 @@ client.on('message', async (message) => {
 			}
 			break;
 		// elo command, shows user rank and elo, plus 2 users above rank and 2 users below rank
+		case 'rank':
 		case 'elo':
 			// TODO: add !elo <player>
 			// check if user is registered
