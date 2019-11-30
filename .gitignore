@@ -39,7 +39,6 @@ Thumbs.db
 # Other #
 #########
 package-lock.json
-config_db.js
 node_modules/
 *.tmp
 .vscode/
