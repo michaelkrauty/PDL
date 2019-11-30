@@ -355,6 +355,14 @@ client.on('message', async (message) => {
 		case 'help':
 			message.channel.send(strings.help.replaceAll('{user}', tag(message.author.id)));
 			break;
+		case 'rules':
+			if (strings.rules != '')
+				message.channel.send(strings.rules.replaceAll('{user}', tag(message.author.id)));
+			break;
+		case 'basics':
+			if (strings.basics != '')
+				message.channel.send(strings.basics.replaceAll('{user}', tag(message.author.id)));
+			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
