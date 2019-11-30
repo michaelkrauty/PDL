@@ -1,3 +1,8 @@
+v1.0.9
+- added !rules and !basics
+- added config_db.js
+- wrote README.md
+
 v1.0.8
 - added !elo command alias !rank
 
