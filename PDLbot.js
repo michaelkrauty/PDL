@@ -650,7 +650,7 @@ client.on('message', async (message) => {
 
 			// construct message
 			var msg = '';
-			for (i = player_index - 2; i < player_index + 3; i++) {
+			for (i = player_index - config.rank_players; i < player_index + config.rank_players + 1; i++) {
 				if (i >= top.length || !top[i])
 					continue;
 				// get player username
