@@ -355,6 +355,14 @@ client.on('message', async (message) => {
 		case 'help':
 			message.channel.send(strings.help.replaceAll('{user}', tag(message.author.id)));
 			break;
+		case 'rules':
+			if (strings.rules != '')
+				message.channel.send(strings.rules.replaceAll('{user}', tag(message.author.id)));
+			break;
+		case 'basics':
+			if (strings.basics != '')
+				message.channel.send(strings.basics.replaceAll('{user}', tag(message.author.id)));
+			break;
 		// challengeme command, toggles challengeme rank
 		case 'challengeme':
 			// get challengeme role
@@ -642,7 +650,7 @@ client.on('message', async (message) => {
 
 			// construct message
 			var msg = '';
-			for (i = player_index - 2; i < player_index + 3; i++) {
+			for (i = player_index - config.rank_players; i < player_index + config.rank_players + 1; i++) {
 				if (i >= top.length || !top[i])
 					continue;
 				// get player username
