@@ -1,3 +1,6 @@
+v1.0.10
+- added option to pin top players
+
 v1.0.9
 - added !rules and !basics
 - added config_db.js
