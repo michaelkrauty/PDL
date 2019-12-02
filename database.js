@@ -43,6 +43,11 @@ module.exports.connect = function () {
 			if (res['warningCount'] == 0)
 				log.info('Created MySQL table `matchups`');
 		});
+		await con.query('CREATE TABLE IF NOT EXISTS top_pin (id tinyint primary key auto_increment, message_id varchar(255));', function (err, res) {
+			if (err) throw err;
+			if (res['warningCount'] == 0)
+				log.info('Created MySQL table `top_pin`');
+		});
 		// end connection to database
 		await con.end();
 		// create mysql connection pool
@@ -496,6 +501,25 @@ exports.getWeeklyMatchups = async () => {
 	if (res.length > 0) {
 		var arr = JSON.parse(res[0].matchups);
 		return arr;
+	}
+	return false;
+}
+
+exports.saveTopPinId = async (message_id) => {
+	var query = await exports.sql('SELECT id FROM top_pin WHERE id=1;');
+	var res;
+	if (query.length > 0)
+		res = await exports.sql('UPDATE top_pin SET message_id=? WHERE id=1;', message_id);
+	else
+		res = await exports.sql('INSERT INTO top_pin (message_id) VALUES (?);', message_id);
+	return res.length > 0;
+}
+
+exports.getTopPinId = async () => {
+	var res = await exports.sql('SELECT message_id FROM top_pin WHERE id=1;');
+	if (res.length > 0) {
+		var id = res[0].message_id;
+		return id;
 	}
 	return false;
 }

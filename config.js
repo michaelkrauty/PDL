@@ -30,6 +30,10 @@ module.exports.config = {
 	top_players: 100,
 	// how many players above and below the player should be shown with !rank?
 	rank_players: 3,
+	// pin top players?
+	pin_top_players: true,
+	// how many players should be shown in top players pin?
+	top_players_to_pin: 20,
 	// enable matchup generation?
 	enable_matchups: false,
 	// channel to post suggested weekly matchups to. Set to 0 to disable.

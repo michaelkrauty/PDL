@@ -242,27 +242,10 @@ client.on('message', async (message) => {
 		// parse amount argument if admin
 		if (admin && args.length == 1 && !isNaN(parseInt(args[0])))
 			numPlayers = parseInt(args[0]);
-		// get top players
-		var top_players = await db.getTopCompetingPlayers(numPlayers);
-		if (!top_players) {
-			// couldn't get top players
-			message.channel.send(strings.could_not_get_top_players.replaceAll('{user}', tag(message.author.id)));
-			// remove command message from pending user responses
-			user_commands_running.delete(message.id);
-			return;
-		}
-		if (top_players.length > 0) {
-			// construct message
-			var msg = '';
-			// loop through players and append to message
-			for (i = 0; i < top_players.length; i++) {
-				// get player username
-				var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
-				// construct one line of the message
-				msg += `\`${i + 1}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
-			}
+		var topPlayers = await getTopPlayers(numPlayers);
+		if (topPlayers) {
 			// send it
-			message.channel.send(strings.top_players.replaceAll('{top_players}', msg).replaceAll('{number}', top_players.length));
+			message.channel.send(strings.top_players.replaceAll('{top_players}', topPlayers.players).replaceAll('{number}', topPlayers.amount));
 		} else
 			// no top players
 			message.channel.send(strings.no_top_players.replaceAll('{user}', tag(message.author.id)));
@@ -836,6 +819,7 @@ client.on('message', async (message) => {
 								.replaceAll('{new_player_elo}', newPlayerElo)
 								.replaceAll('{old_opponent_elo}', opponentElo)
 								.replaceAll('{new_opponent_elo}', newOpponentElo));
+							await pinTopPlayers(r.message.channel);
 							await r.message.react(ReactionEmoji.WIN);
 						}
 						// remove message from the map where the value is the message author id
@@ -1805,6 +1789,55 @@ async function suggestMatchups(channel, tagUsers, save) {
 		await db.saveWeeklyMatchups(saveList);
 	channel.send(msg);
 	return;
+}
+
+/**
+ * Retrieves a list of top players
+ * @param {Int} numPlayers how many top players to retrieve?
+ */
+async function getTopPlayers(numPlayers) {
+	// get top players
+	var top_players = await db.getTopCompetingPlayers(numPlayers);
+	if (!top_players) return false;
+	if (top_players.length > 0) {
+		// construct message
+		var msg = '';
+		// loop through players and append to message
+		for (i = 0; i < top_players.length; i++) {
+			// get player username
+			var player_username = await getDiscordUsernameFromDiscordId(top_players[i].discord_id);
+			// construct one line of the message
+			msg += `\`${i + 1}. ${player_username}: ${top_players[i].elo_rating}\`\n`;
+		}
+		return { players: msg, amount: top_players.length };
+	} else
+		return false;
+}
+
+/**
+ * @description creates or updates top players pin
+ */
+async function pinTopPlayers(channel) {
+	if (config.pin_top_players) {
+		var new_top_players = await getTopPlayers(config.top_players_to_pin);
+		var top_pin_message_id = await db.getTopPinId();
+		var top_pin_message;
+		if (top_pin_message_id) {
+			try {
+				top_pin_message = await channel.fetchMessage(top_pin_message_id);
+			} catch { }
+			if (top_pin_message) {
+				await top_pin_message.edit(strings.top_players.replaceAll('{top_players}', new_top_players.players).replaceAll('{number}', new_top_players.amount));
+				if (!top_pin_message.pinned)
+					await top_pin_message.pin();
+			}
+		}
+		if (!top_pin_message || !top_pin_message_id) {
+			var new_top_pin_message = await channel.send(strings.top_players.replaceAll('{top_players}', new_top_players.players).replaceAll('{number}', new_top_players.amount));
+			await db.saveTopPinId(new_top_pin_message.id)
+			await new_top_pin_message.pin();
+		}
+	}
 }
 
 // quit a user
