@@ -228,7 +228,14 @@ client.on('message', async (message) => {
 	// check if user is admin
 	// get admin role
 	let adminRole = await guild.roles.find(role => role.name === config.admin_role_name);
-	var admin = adminRole != null && adminRole.id != undefined && message.member.roles.has(adminRole.id);
+	var member = guild.members.find(member => member.id === message.author.id);
+	var admin = false;
+	try {
+		admin = adminRole != null && adminRole.id != undefined && member.roles.has(adminRole.id);
+	} catch (e) {
+		log.error(e);
+		message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
+	}
 	// is the channel being used by the bot?
 	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin') {
 		// remove command message from pending user responses
@@ -365,13 +372,13 @@ client.on('message', async (message) => {
 				break;
 			}
 			// toggle challengeme role on/off
-			if (message.member._roles.includes(challengeme.id)) {
+			if (member._roles.includes(challengeme.id)) {
 				// toggle off
-				message.member.removeRole(challengeme);
+				member.removeRole(challengeme);
 				message.channel.send(`${tag(message.author.id)} is no longer accepting challenges.`);
 			} else {
 				// toggle on
-				message.member.addRole(challengeme);
+				member.addRole(challengeme);
 				message.channel.send(`${tag(message.author.id)} is now accepting challenges.`);
 			}
 			break;
@@ -417,7 +424,7 @@ client.on('message', async (message) => {
 			}
 			var hasRole = false;
 			if (user == targetUser) {
-				hasRole = message.member._roles.includes(challengeme.id);
+				hasRole = member._roles.includes(challengeme.id);
 			} else {
 				var member = guild.members.find(member => member.id === mention.id)
 				hasRole = member._roles.includes(challengeme.id);
@@ -460,9 +467,9 @@ client.on('message', async (message) => {
 				// ensure competitor role exists
 				if (competitorRole != null && competitorRole.id != undefined)
 					// check if user has competitor role
-					if (!message.member._roles.includes(competitorRole))
+					if (!member._roles.includes(competitorRole))
 						// add competitor role to user
-						message.member.addRole(competitorRole);
+						member.addRole(competitorRole);
 			}
 			// set the user's competing state to true
 			var res = await user.setCompeting(true);
@@ -482,7 +489,7 @@ client.on('message', async (message) => {
 				message.channel.send(strings.quit_not_competing.replaceAll('{user}', tag(message.author.id)));
 				break;
 			}
-			var quit = await quitUser(message.member.user.id);
+			var quit = await quitUser(member.user.id);
 			if (quit)
 				message.channel.send(strings.user_no_longer_competing.replaceAll('{user}', tag(message.author.id)));
 			break;
