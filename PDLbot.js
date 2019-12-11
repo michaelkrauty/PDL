@@ -684,7 +684,7 @@ client.on('message', async (message) => {
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
 					if (!opponent_data) {
 						// could not get the other player's data from their user id
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
 					// get opponent username
@@ -1032,14 +1032,14 @@ client.on('message', async (message) => {
 						var player_data = await db.getUserDataUsingId(player_id);
 						if (!player_data) {
 							// could not get the player's data from their user id
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserDataUsingId(${player_id})`);
 						}
 						// get opponent user data
 						var opponent_data = await db.getUserDataUsingId(opponent_id);
 						if (!opponent_data) {
 							// could not get the other player's data from their user id
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserDataUsingId(${opponent_id})`);
 						}
 						// get player username
@@ -1081,14 +1081,14 @@ client.on('message', async (message) => {
 						var player_data = await db.getUserDataUsingId(player_id);
 						if (!player_data) {
 							// could not get the player's data from their user id
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserDataUsingId(${player_id})`);
 						}
 						// get opponent user data
 						var opponent_data = await db.getUserDataUsingId(opponent_id);
 						if (!opponent_data) {
 							// could not get the other player's data from their user id
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserDataUsingId(${opponent_id})`);
 						}
 						// get player username
@@ -1157,7 +1157,7 @@ client.on('message', async (message) => {
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
 					if (!opponent_data) {
 						// could not get the other player's data from their user id
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
 					// get opponent username
@@ -1190,7 +1190,7 @@ client.on('message', async (message) => {
 					var opponent_data = await db.getUserDataUsingId(opponent_id);
 					if (!opponent_data) {
 						// could not get the other player's data from their user id
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						throw (`Could not getUserDataUsingId(${opponent_id})`);
 					}
 					// get opponent username
@@ -1265,7 +1265,7 @@ client.on('message', async (message) => {
 					// stop using this channel
 					channels.splice(channels.indexOf(message.channel.id), 1);
 					await fm.writeFile('./channels.json', JSON.stringify({ data: channels }), (err) => {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						log.error(err);
 					});
 					// refresh the channels list
@@ -1430,13 +1430,13 @@ client.on('message', async (message) => {
 					// get player's new rank
 					var player_rank = await db.getUserEloRanking(match.player_id);
 					if (!player_rank) {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						throw (`Could not getUserEloRanking(${match.player_id})`);
 					}
 					// get opponent's new rank
 					var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 					if (!opponent_rank) {
-						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+						message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 						throw (`Could not getUserEloRanking(${match.opponent_id})`);
 					}
 					// get player username
@@ -1510,13 +1510,13 @@ client.on('message', async (message) => {
 						// get player's new rank
 						var player_rank = await db.getUserEloRanking(match.player_id);
 						if (!player_rank) {
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserEloRanking(${match.player_id})`);
 						}
 						// get opponent's new rank
 						var opponent_rank = await db.getUserEloRanking(match.opponent_id);
 						if (!opponent_rank) {
-							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)));
+							message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
 							throw (`Could not getUserEloRanking(${match.opponent_id})`);
 						}
 						// get player username
