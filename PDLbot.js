@@ -229,13 +229,7 @@ client.on('message', async (message) => {
 	// get admin role
 	let adminRole = await guild.roles.find(role => role.name === config.admin_role_name);
 	var member = guild.members.find(member => member.id === message.author.id);
-	var admin = false;
-	try {
-		admin = adminRole != null && adminRole.id != undefined && member.roles.has(adminRole.id);
-	} catch (e) {
-		log.error(e);
-		message.channel.send(strings.generic_error.replaceAll('{user}', tag(message.author.id)).replaceAll('{admin}', adminRole));
-	}
+	var admin = adminRole != null && adminRole.id != undefined && member.roles != null && member.roles.has(adminRole.id);
 	// is the channel being used by the bot?
 	if (!discord_channels_to_use.includes(message.channel.id) && cmd != 'admin') {
 		// remove command message from pending user responses
