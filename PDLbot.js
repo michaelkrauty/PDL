@@ -834,14 +834,19 @@ client.on('message', async (message) => {
 						// collector ends when the filter time is up
 						// loop through all collectors
 						for (var c in collectors) {
+							var user_reacted = (collected.size > 0);
 							// remove the message id from the map which stoes the match id
 							user_pending_matches.delete(collectors[c].message.id);
 							// if this collector's message id is a key in the map of users running commands, and the value is the author's discord id
 							if (user_commands_running.get(collectors[c].message.id) == message.author.id) {
 								// remove this collector's message id entry from the map
 								user_commands_running.delete(collectors[c].message.id);
-								// react to the message to signify that it was cancelled
+								if (user_reacted)
+									// react to the message to signify that it was confirmed
 								collectors[c].message.react(ReactionEmoji.CONFIRMED);
+								else
+									// no y/n reaction was collected
+									message.channel.send(strings.match_confirm_timeout.replaceAll('{user}', tag(message.author.id)));
 							}
 						}
 					});
