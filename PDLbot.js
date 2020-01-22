@@ -238,11 +238,12 @@ client.on('message', async (message) => {
 	}
 
 	// top command, shows top competing players ordered by elo
-	if (cmd === 'top' && args.length > -1 && args.length < 2) {
+	// !top [number of players to show]
+	if (cmd === 'top' && args.length <= 1) {
 		let numPlayers = config.top_players;
-		// parse amount argument if admin
-		if (admin && args.length == 1 && !isNaN(parseInt(args[0])))
-			numPlayers = parseInt(args[0]);
+		// parse amount argument
+		if ((!isNaN(parseInt(args[0])) && parseInt(args[0] > 0)) || args[0] == 'all')
+			args[0] == 'all' ? numPlayers = -1 : numPlayers = parseInt(args[0]);
 		var topPlayers = await getTopPlayers(numPlayers);
 		if (topPlayers) {
 			// send it
