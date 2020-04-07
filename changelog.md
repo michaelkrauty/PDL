@@ -1,3 +1,6 @@
+v1.0.11-15
+- bug fixes
+
 v1.0.10
 - added option to pin top players
 
